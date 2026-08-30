@@ -5,7 +5,9 @@ import type { EventBus } from '../core/eventBus';
 import type { GameEvents, StageDef, TileCoord } from '../core/types';
 import { getStage } from '../data/stages';
 import { getEnemy } from '../data/enemies';
-import { getTower, TOWER_KEYS } from '../data/towers';
+import { getTower, TOWER_KEYS, cumulativeCost } from '../data/towers';
+import { canMerge, mergeResultLevel } from '../systems/MergeController';
+import type { MergeCandidate } from '../systems/MergeController';
 import { GridManager } from '../systems/GridManager';
 import { PathManager } from '../systems/PathManager';
 import { WaveManager } from '../systems/WaveManager';
@@ -37,6 +39,10 @@ export class Game extends Phaser.Scene {
   private lives = 0;
   private speedMul = 1;
   private running = false;
+  private sellTimer?: Phaser.Time.TimerEvent;
+  private sellPanel?: Phaser.GameObjects.Container;
+  /** 드래그 직후 발생하는 pointerup 이 빌드메뉴/사거리 토글을 켜지 않도록 억제. */
+  private suppressTapUntil = 0;
 
   constructor() { super('game'); }
 
@@ -61,6 +67,7 @@ export class Game extends Phaser.Scene {
 
     this.drawMap();
     this.setupBuildInput();
+    this.setupDragInput();
 
     this.bus.on('enemy:killed', (p) => {
       this.eco.earn(p.bounty);
@@ -115,6 +122,7 @@ export class Game extends Phaser.Scene {
 
     catcher.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       if (!this.running) return;
+      if (this.time.now < this.suppressTapUntil) return;
       // 빈 곳/타일 탭 → 표시 중인 사거리 링 숨김
       this.clearTowerRanges();
       if (this.buildMenu.isOpen) {
@@ -152,6 +160,115 @@ export class Game extends Phaser.Scene {
     for (const t of this.towers) t.showRange(t === except);
   }
 
+  private setupDragInput(): void {
+    // Phaser 의 drag 이벤트 콜백은 느슨하게 타입되어 있어 여기서 Image 로 좁힌다.
+    this.input.on(
+      'dragstart',
+      (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image) => {
+        this.sellTimer?.remove();
+        obj.setDepth(600);
+        const t = this.towerFromObj(obj);
+        t?.showRange(true);
+      },
+    );
+
+    this.input.on(
+      'drag',
+      (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image, dx: number, dy: number) => {
+        obj.setPosition(dx, dy);
+      },
+    );
+
+    this.input.on(
+      'dragend',
+      (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image) => {
+        obj.setDepth(10);
+        this.suppressTapUntil = this.time.now + 100;
+        const dragged = this.towerFromObj(obj);
+        if (!dragged) return;
+        dragged.showRange(false);
+
+        const dropTile = this.grid.pixelToTile({ x: obj.x, y: obj.y });
+        const occId = this.grid.occupantAt(dropTile);
+        const targetTower =
+          occId != null ? this.towers.find((x) => x.id === occId) : undefined;
+
+        if (targetTower && targetTower.id !== dragged.id) {
+          const a: MergeCandidate = { id: dragged.id, key: dragged.key, level: dragged.level };
+          const b: MergeCandidate = { id: targetTower.id, key: targetTower.key, level: targetTower.level };
+          if (canMerge(a, b, dragged.maxLevel)) {
+            targetTower.setLevel(mergeResultLevel(targetTower.level));
+            this.grid.release(dragged.tile);
+            this.removeTower(dragged);
+            this.snapHome(targetTower);
+            return;
+          }
+        }
+        // 머지 실패 또는 빈 타일 → 원위치(이동 배치는 v1 비포함).
+        this.snapHome(dragged);
+      },
+    );
+  }
+
+  private towerFromObj(obj: Phaser.GameObjects.Image): Tower | undefined {
+    const id = obj.getData('towerId') as number;
+    return this.towers.find((x) => x.id === id);
+  }
+
+  private snapHome(t: Tower): void {
+    t.sprite.setPosition(t.homePos.x, t.homePos.y);
+  }
+
+  private removeTower(t: Tower): void {
+    this.towers = this.towers.filter((x) => x.id !== t.id);
+    t.destroy();
+  }
+
+  private confirmSell(t: Tower): void {
+    this.eco.sellRefund(cumulativeCost(getTower(t.key), t.level));
+    this.grid.release(t.tile);
+    this.removeTower(t);
+  }
+
+  private showSellPrompt(tower: Tower): void {
+    if (!this.running) return;
+    if (this.towers.indexOf(tower) === -1) return;
+    this.sellPanel?.destroy();
+
+    const refund = Math.floor(
+      cumulativeCost(getTower(tower.key), tower.level) * EconomyManager.SELL_RATIO,
+    );
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+
+    const bg = this.add.rectangle(0, 0, 320, 160, 0x000000, 0.8).setStrokeStyle(1, 0xffffff, 0.3);
+    const sell = this.add
+      .text(0, -18, `판매 +${refund}G`, {
+        fontFamily: 'monospace', fontSize: '24px', color: '#7dd87d',
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    const cancel = this.add
+      .text(0, 34, '취소', {
+        fontFamily: 'monospace', fontSize: '20px', color: '#f2f2f7',
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    const panel = this.add.container(cx, cy, [bg, sell, cancel]).setDepth(1200);
+    this.sellPanel = panel;
+
+    const close = (): void => {
+      panel.destroy();
+      if (this.sellPanel === panel) this.sellPanel = undefined;
+    };
+    sell.on('pointerup', () => {
+      this.confirmSell(tower);
+      close();
+    });
+    cancel.on('pointerup', close);
+  }
+
   private placeTower(key: string, tile: TileCoord): void {
     const def = getTower(key);
     if (!this.grid.canPlace(tile)) return;
@@ -160,10 +277,17 @@ export class Game extends Phaser.Scene {
     const tower = new Tower(this, key, tile, pos);
     this.grid.occupy(tile, tower.id);
     this.towers.push(tower);
-    // 타워 탭 → 사거리 링 토글(한 번에 하나만 표시)
+    // 타워 탭 → 사거리 링 토글(한 번에 하나만 표시). 드래그 직후 탭은 무시.
     tower.sprite.on('pointerup', () => {
+      if (this.time.now < this.suppressTapUntil) return;
       this.clearTowerRanges(tower.rangeVisible ? undefined : tower);
     });
+    // 롱프레스(~500ms) → 판매 확인 팝업.
+    tower.sprite.on('pointerdown', () => {
+      this.sellTimer?.remove();
+      this.sellTimer = this.time.delayedCall(500, () => this.showSellPrompt(tower));
+    });
+    tower.sprite.on('pointerup', () => this.sellTimer?.remove());
     this.closeBuildMenu();
   }
 

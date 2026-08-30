@@ -16,6 +16,8 @@ export class Tower {
   cooldownMs = 0;
   readonly sprite: Phaser.GameObjects.Image;
   private ring: Phaser.GameObjects.Arc;
+  /** 타일 중심 픽셀 좌표. 드래그 취소(머지 실패) 시 스냅백 대상. */
+  readonly homePos: Vec2;
 
   constructor(
     scene: Phaser.Scene,
@@ -23,6 +25,7 @@ export class Tower {
     public tile: TileCoord,
     pos: Vec2,
   ) {
+    this.homePos = { x: pos.x, y: pos.y };
     this.sprite = scene.add
       .image(pos.x, pos.y, `tower_${key}`)
       .setDepth(10)
@@ -33,6 +36,10 @@ export class Tower {
       .setDepth(9)
       .setVisible(false);
     this.applyLevelVisual();
+
+    // 드래그&드롭 머지(Task 16). 스냅백/드롭 판정은 Game 이 담당.
+    scene.input.setDraggable(this.sprite);
+    this.sprite.setData('towerId', this.id);
   }
 
   stats(): TowerLevelStats {
