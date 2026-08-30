@@ -9,7 +9,7 @@ export interface PathNode {
   branches?: PathNode[];
 }
 
-export type AttackKind = 'single' | 'splash' | 'slow' | 'ramp';
+export type AttackKind = 'single' | 'splash' | 'slow' | 'chain';
 
 export interface TowerLevelStats {
   damage: number;
@@ -18,8 +18,9 @@ export interface TowerLevelStats {
   splashRadius?: number;
   slowMul?: number;     // 0.5 = 50% 감속
   slowDurationMs?: number;
-  rampStep?: number;    // 연속 명중당 데미지 배수 증가분 (0.1 = +10%)
-  rampMax?: number;     // 최대 배수 (2 = 200%)
+  chainTargets?: number;  // 1차 대상 외에 추가로 튀는 적 수 (chain)
+  chainFalloff?: number;  // 점프마다 곱해지는 데미지 배율 (0.65 = 매 점프 65%)
+  chainRange?: number;    // 마지막 피격 적으로부터 다음 체인 대상 탐색 반경(px)
 }
 
 export interface TowerDef {
