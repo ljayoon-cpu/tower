@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
+import { buildTextures } from '../ui/textures';
 
 export class Preload extends Phaser.Scene {
   constructor() { super('preload'); }
-  preload() {
-    // 이후 태스크에서 텍스처 생성 추가
+  create() {
+    buildTextures(this);
+    this.scene.start('mainmenu');
   }
-  create() { this.scene.start('mainmenu'); }
 }

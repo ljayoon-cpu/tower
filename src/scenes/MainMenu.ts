@@ -12,7 +12,7 @@ export class MainMenu extends Phaser.Scene {
       fontFamily: 'monospace', fontSize: '40px', color: '#ffcc44',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-    start.on('pointerup', () => this.scene.start('stageselect'));
-    // stageselect 씬은 Task 13에서 추가. 그 전까지는 'game' 으로 바꿔 임시 테스트.
+    // stageselect 씬은 Task 13에서 추가. 그 전까지는 'game' 으로 임시 테스트.
+    start.on('pointerup', () => this.scene.start('game', { stageId: '1-1' }));
   }
 }
