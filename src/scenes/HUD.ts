@@ -66,6 +66,14 @@ export class HUD extends Phaser.Scene {
       ...style, fontSize: '18px', color: '#d6b3ff',
     });
 
+    // 보스 체력바 — 필드에 보스가 있을 때만 표시.
+    const bossBar = this.add.container(GAME_WIDTH / 2, 168).setDepth(1500).setVisible(false);
+    const bossTrack = this.add.rectangle(0, 0, GAME_WIDTH - 40, 16, 0x000000, 0.55).setStrokeStyle(1, 0xff5566, 0.6);
+    const bossFill = this.add.rectangle(-(GAME_WIDTH - 44) / 2, 0, GAME_WIDTH - 44, 12, 0xff3355).setOrigin(0, 0.5);
+    const bossLabel = this.add.text(0, -18, '', { ...style, fontSize: '16px', color: '#ff8899' }).setOrigin(0.5);
+    bossBar.add([bossTrack, bossFill, bossLabel]);
+    const bossMaxW = GAME_WIDTH - 44;
+
     const overlay = this.add.container(0, 0).setDepth(2000).setVisible(false);
     const shade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.72).setInteractive();
     const panel = this.add.rectangle(GAME_WIDTH / 2, 620, 460, 370, 0x1b1d33).setStrokeStyle(2, 0x66ccff);
@@ -98,6 +106,13 @@ export class HUD extends Phaser.Scene {
     });
     on('speed:changed', ({ multiplier }) => speed.text.setText(`${multiplier}x`));
     on('pause:changed', ({ paused }) => overlay.setVisible(paused));
+    on('boss:spawned', ({ name }) => {
+      bossLabel.setText(`${name}`);
+      bossFill.width = bossMaxW;
+      bossBar.setVisible(true);
+    });
+    on('boss:health', ({ ratio }) => { bossFill.width = bossMaxW * Math.max(0, ratio); });
+    on('boss:cleared', () => bossBar.setVisible(false));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => cleanups.forEach((off) => off()));
   }
 }

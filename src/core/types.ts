@@ -82,4 +82,7 @@ export type GameEvents = {
   'stage:lost': Record<string, never>;
   'speed:changed': { multiplier: number };
   'pause:changed': { paused: boolean };
+  'boss:spawned': { name: string };
+  'boss:health': { ratio: number };
+  'boss:cleared': Record<string, never>;
 };

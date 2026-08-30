@@ -49,6 +49,7 @@ export class Game extends Phaser.Scene {
   private speedMul = 1;
   private running = false;
   private paused = false;
+  private bossOnField = false;
   private sellTimer?: Phaser.Time.TimerEvent;
   private sellPanel?: Phaser.GameObjects.Container;
   private sellPanelBackdrop?: Phaser.GameObjects.Rectangle;
@@ -79,6 +80,7 @@ export class Game extends Phaser.Scene {
     this.speedMul = 1;
     this.running = true;
     this.paused = false;
+    this.bossOnField = false;
     this.suppressTapUntil = 0;
     this.sellTimer = undefined;
     this.sellPanel = undefined;
@@ -462,6 +464,7 @@ export class Game extends Phaser.Scene {
     const enemy = new Enemy(this, def, route.polyline);
     this.enemies.push(enemy);
     this.waves.notifyEnemySpawned();
+    if (def.isBoss) this.bus.emit('boss:spawned', { name: def.name });
   }
 
   private endStage(won: boolean) {
@@ -592,5 +595,20 @@ export class Game extends Phaser.Scene {
       e.destroy();
     }
     this.enemies = this.enemies.filter((e) => e.alive);
+    this.trackBoss();
+  }
+
+  private trackBoss(): void {
+    let worst: number | null = null;
+    for (const e of this.enemies) {
+      if (e.def.isBoss && e.alive) worst = worst === null ? e.healthRatio : Math.min(worst, e.healthRatio);
+    }
+    if (worst !== null) {
+      this.bossOnField = true;
+      this.bus.emit('boss:health', { ratio: worst });
+    } else if (this.bossOnField) {
+      this.bossOnField = false;
+      this.bus.emit('boss:cleared', {});
+    }
   }
 }
