@@ -102,7 +102,9 @@ index.html  vite.config.ts  vitest.config.ts
   - `single`: 단일 타겟 투사체.
   - `splash`: 착탄 지점 반경 내 광역 피해.
   - `slow`: 명중 시 이동속도 배율·지속시간 디버프.
-  - `ramp`: 같은 대상 연속 명중 시 데미지 증가(번개탑), 대상 바뀌면 리셋.
+  - `chain`: 체인 라이트닝(번개탑). 1차 대상 명중 후, 아직 안 맞은 살아있는 적 중
+    마지막 피격 지점에서 `chainRange` 이내 최근접으로 순차 전이. 전이마다 데미지 ×`chainFalloff`.
+    최대 `chainTargets`회 전이, 범위 내 대상 없으면 조기 종료. (레벨↑ = 전이 수↑, 감쇠 완화)
 - 투사체는 풀링(objectpool)으로 재사용.
 
 ### 이코노미
@@ -130,7 +132,7 @@ index.html  vite.config.ts  vitest.config.ts
 | `arrow` | 화살탑 | single | 낮은 데미지, 빠른 연사, 저렴 |
 | `cannon` | 대포 | splash | 높은 데미지, 느린 연사, 비쌈, 광역 |
 | `frost` | 서리탑 | slow | 낮은 데미지, 적 이동속도 감소 |
-| `bolt` | 번개탑 | ramp | 같은 대상 연속 명중 시 데미지 증가 |
+| `bolt` | 번개탑 | chain | 체인 라이트닝: 근처 적에게 번개가 튐, 튈수록 데미지 감소 |
 
 - 각 타워 Lv1~5. 레벨 상승 시 데미지·사거리(및 타워별 고유 수치) 상승.
   레벨별 수치는 `towers.ts`에 배열 또는 공식으로 정의.
@@ -168,7 +170,7 @@ type TileType = 'PATH' | 'BUILDABLE' | 'BLOCKED';
 
 interface PathNode { points: Vec2[]; branches?: PathNode[]; }
 
-type AttackKind = 'single' | 'splash' | 'slow' | 'ramp';
+type AttackKind = 'single' | 'splash' | 'slow' | 'chain';
 
 interface TowerDef {
   key: string; name: string; attack: AttackKind;
@@ -178,8 +180,8 @@ interface TowerDef {
 }
 interface TowerLevelStats {
   damage: number; range: number; fireRate: number; // 초당 발사
-  splashRadius?: number; slowMul?: number; slowDuration?: number;
-  rampStep?: number; rampMax?: number;
+  splashRadius?: number; slowMul?: number; slowDurationMs?: number;
+  chainTargets?: number; chainFalloff?: number; chainRange?: number;
 }
 
 interface EnemyDef {

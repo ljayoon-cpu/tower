@@ -396,7 +396,7 @@ export interface PathNode {
   branches?: PathNode[];
 }
 
-export type AttackKind = 'single' | 'splash' | 'slow' | 'ramp';
+export type AttackKind = 'single' | 'splash' | 'slow' | 'chain';
 
 export interface TowerLevelStats {
   damage: number;
@@ -405,8 +405,9 @@ export interface TowerLevelStats {
   splashRadius?: number;
   slowMul?: number;     // 0.5 = 50% 감속
   slowDurationMs?: number;
-  rampStep?: number;    // 연속 명중당 데미지 배수 증가분 (0.1 = +10%)
-  rampMax?: number;     // 최대 배수 (2 = 200%)
+  chainTargets?: number;  // 1차 대상 외에 추가로 튀는 적 수 (chain)
+  chainFalloff?: number;  // 점프마다 곱해지는 데미지 배율 (0.65 = 매 점프 65%)
+  chainRange?: number;    // 마지막 피격 적으로부터 다음 체인 대상 탐색 반경(px)
 }
 
 export interface TowerDef {
@@ -1169,6 +1170,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/data/towers.ts`, `src/data/enemies.ts`
+- Modify: `src/core/types.ts` — `AttackKind` 와 `TowerLevelStats` 를 Step 0 대로 갱신 (ramp → chain). Task 2 가 만든 파일이며 이 필드를 쓰는 코드는 아직 없음(Task 15 에서 소비). `npm run build` 로 회귀 확인.
 - Test: `tests/data/definitions.test.ts`
 
 **Interfaces:**
@@ -1177,6 +1179,28 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
   - `towers.ts`: `TOWERS: Record<string, TowerDef>` (keys: `arrow`, `cannon`, `frost`, `bolt`), `TOWER_KEYS: string[]`, `getTower(key): TowerDef`
   - `enemies.ts`: `ENEMIES: Record<string, EnemyDef>` (keys: `normal`, `fast`, `tank`, `boss`), `getEnemy(key): EnemyDef`
   - `cumulativeCost(def: TowerDef, level: number): number` in `towers.ts` — Lv1 설치 + 이후 머지는 무료이므로 = `def.cost` (판매 계산용, 추후 확장 대비 함수로 분리)
+
+- [ ] **Step 0: `src/core/types.ts` 의 `AttackKind` / `TowerLevelStats` 갱신**
+
+기존 두 정의를 아래로 교체 (다른 타입은 그대로):
+
+```ts
+export type AttackKind = 'single' | 'splash' | 'slow' | 'chain';
+
+export interface TowerLevelStats {
+  damage: number;
+  range: number;        // 픽셀
+  fireRate: number;     // 초당 발사 횟수
+  splashRadius?: number;
+  slowMul?: number;     // 0.5 = 50% 감속
+  slowDurationMs?: number;
+  chainTargets?: number;  // 1차 대상 외에 추가로 튀는 적 수 (chain)
+  chainFalloff?: number;  // 점프마다 곱해지는 데미지 배율 (0.65 = 매 점프 65%)
+  chainRange?: number;    // 마지막 피격 적으로부터 다음 체인 대상 탐색 반경(px)
+}
+```
+
+`npm run build` (tsc) 가 통과해야 함 — `rampStep`/`rampMax` 를 참조하는 코드는 아직 없음.
 
 - [ ] **Step 1: 테스트 작성 (실패)**
 
@@ -1203,8 +1227,17 @@ describe('tower definitions', () => {
     expect(TOWERS.cannon.levels[0].splashRadius).toBeGreaterThan(0);
     expect(TOWERS.frost.levels[0].slowMul).toBeGreaterThan(0);
     expect(TOWERS.frost.levels[0].slowMul).toBeLessThan(1);
-    expect(TOWERS.bolt.levels[0].rampStep).toBeGreaterThan(0);
-    expect(TOWERS.bolt.levels[0].rampMax).toBeGreaterThan(1);
+    expect(TOWERS.bolt.attack).toBe('chain');
+    expect(TOWERS.bolt.levels[0].chainTargets).toBeGreaterThan(0);
+    expect(TOWERS.bolt.levels[0].chainFalloff).toBeGreaterThan(0);
+    expect(TOWERS.bolt.levels[0].chainFalloff).toBeLessThan(1);
+    expect(TOWERS.bolt.levels[0].chainRange).toBeGreaterThan(0);
+  });
+
+  it('bolt chain gets more targets and gentler falloff as it levels', () => {
+    const lv = TOWERS.bolt.levels;
+    expect(lv[4].chainTargets!).toBeGreaterThanOrEqual(lv[0].chainTargets!);
+    expect(lv[4].chainFalloff!).toBeGreaterThanOrEqual(lv[0].chainFalloff!);
   });
 
   it('getTower throws on unknown key', () => {
@@ -1267,13 +1300,14 @@ export const TOWERS: Record<string, TowerDef> = {
     ],
   },
   bolt: {
-    key: 'bolt', name: '번개탑', attack: 'ramp', cost: 95, maxLevel: 5,
+    // 체인 라이트닝: 1차 대상 명중 후 근처 적에게 순차 전이, 전이마다 데미지 ×chainFalloff.
+    key: 'bolt', name: '번개탑', attack: 'chain', cost: 95, maxLevel: 5,
     levels: [
-      { damage: 6,  range: 145, fireRate: 3.0, rampStep: 0.12, rampMax: 2.2 },
-      { damage: 9,  range: 152, fireRate: 3.2, rampStep: 0.13, rampMax: 2.4 },
-      { damage: 14, range: 160, fireRate: 3.4, rampStep: 0.14, rampMax: 2.6 },
-      { damage: 21, range: 170, fireRate: 3.7, rampStep: 0.15, rampMax: 2.9 },
-      { damage: 32, range: 182, fireRate: 4.0, rampStep: 0.16, rampMax: 3.2 },
+      { damage: 7,  range: 150, fireRate: 2.4, chainTargets: 2, chainFalloff: 0.55, chainRange: 90 },
+      { damage: 11, range: 158, fireRate: 2.5, chainTargets: 2, chainFalloff: 0.60, chainRange: 95 },
+      { damage: 17, range: 166, fireRate: 2.6, chainTargets: 3, chainFalloff: 0.65, chainRange: 100 },
+      { damage: 26, range: 176, fireRate: 2.8, chainTargets: 3, chainFalloff: 0.70, chainRange: 110 },
+      { damage: 40, range: 188, fireRate: 3.0, chainTargets: 4, chainFalloff: 0.75, chainRange: 120 },
     ],
   },
 };
@@ -2521,7 +2555,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
     - fields: `id`(고유), `key`, `level`(1..5), `tile`, `sprite: Phaser.GameObjects.Image`, `rangeCircle`(옵션 표시)
     - `stats(): TowerLevelStats` — `getTower(key).levels[level-1]`
     - `setLevel(n): void` — 스프라이트 스케일/테두리 갱신
-    - `cooldownMs`, `rampMul` 필드는 Task 15에서 사용
+    - `cooldownMs` 필드 (발사 쿨다운, Task 15에서 사용)
     - `static nextId`
   - `BuildMenu.ts`: `class BuildMenu` — `constructor(scene, opts: { onPick: (key: string) => void; canAfford: (key: string) => boolean })`; `openAt(x, y): void`; `close(): void`. 4개 타워 버튼(아이콘 + 이름 + 가격), 골드 부족 시 흐리게.
   - `Game.ts` 추가: `towers: Tower[]`, `buildMenu: BuildMenu`, 타일 `pointerup` 핸들러 `tryOpenBuild(tile)`, `placeTower(key, tile)`.
@@ -2540,8 +2574,6 @@ export class Tower {
   readonly id = nextId++;
   level = 1;
   cooldownMs = 0;
-  rampMul = 1;
-  rampTargetId: number | null = null;
   readonly sprite: Phaser.GameObjects.Image;
   private ring: Phaser.GameObjects.Arc;
 
@@ -2697,33 +2729,56 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-## Task 15: Projectile + 타워 발사 (single / splash / slow / ramp) + 처치 보상
+## Task 15: Projectile + 타워 발사 (single / splash / slow / chain) + 처치 보상
 
 **Files:**
-- Create: `src/entities/Projectile.ts`
+- Create: `src/entities/Projectile.ts`, `src/systems/combat.ts`
 - Modify: `src/scenes/Game.ts` (타워 update 루프, 발사, 명중 처리)
-- Test: `tests/systems/combat.test.ts` (순수 데미지/램프 계산 헬퍼)
+- Test: `tests/systems/combat.test.ts` (순수 데미지 / 체인 계산 헬퍼)
 
 **Interfaces:**
 - Consumes: `pickTarget`, `enemiesInRadius`, `Targetable`, `Tower`, `Enemy`, `getTower`
 - Produces:
   - `Projectile.ts`: `class Projectile` — `constructor(scene, from: Vec2, opts)`, `update(dtMs, speedMul): boolean` (명중/소멸 시 true). `opts: { targetPos: () => Vec2 | null; speed: number; onHit: (hitPos: Vec2) => void }`
-  - `src/systems/combat.ts` (신규 순수 모듈): `function rampMultiplier(prev: number, step: number, max: number): number` = `Math.min(prev + step, max)`; `function effectiveDamage(base: number, mult: number): number` = `Math.round(base * mult)`
+  - `src/systems/combat.ts` (신규 순수 모듈, `phaser` 미포함, `Targetable` 타입만 `./TargetingSystem` 에서 import):
+    - `effectiveDamage(base: number, mult: number): number` = `Math.round(base * mult)`
+    - `chainDamages(base: number, falloff: number, extraJumps: number): number[]` — 길이 `extraJumps+1`, `[round(base), round(base*falloff), round(base*falloff^2), ...]`
+    - `buildChain(primary: Targetable, all: Targetable[], chainRange: number, extraJumps: number): Targetable[]` — `primary` 부터 시작해 매 점프마다 "아직 안 맞은 살아있는 적 중 마지막 피격 지점에서 `chainRange` 이내 최근접"을 greedy 선택; 범위 내 대상 없으면 조기 종료. 반환 `[primary, ...점프들]`.
   - `Game.ts`: `private updateTowers(dtMs)` — 각 타워 쿨다운 감소, 0 이하면 `pickTarget` → 공격종류별 처리 → 쿨다운 = `1000 / fireRate`.
 
 - [ ] **Step 1: `tests/systems/combat.test.ts` 작성 (실패)**
 
 ```ts
-import { rampMultiplier, effectiveDamage } from '../../src/systems/combat';
+import { chainDamages, buildChain } from '../../src/systems/combat';
+import type { Targetable } from '../../src/systems/TargetingSystem';
 
-describe('combat math', () => {
-  it('rampMultiplier increases by step and clamps at max', () => {
-    expect(rampMultiplier(1, 0.12, 2.2)).toBeCloseTo(1.12);
-    expect(rampMultiplier(2.15, 0.12, 2.2)).toBe(2.2);
+const mk = (id: number, x: number, y: number, alive = true): Targetable =>
+  ({ id, pos: { x, y }, progress: 0, alive });
+
+describe('chainDamages', () => {
+  it('applies falloff per jump and rounds', () => {
+    expect(chainDamages(40, 0.5, 3)).toEqual([40, 20, 10, 5]);
+    expect(chainDamages(10, 0.6, 0)).toEqual([10]);
+    expect(chainDamages(17, 0.65, 2)).toEqual([17, 11, 7]); // round(11.05), round(7.1825)
   });
-  it('effectiveDamage rounds base*mult', () => {
-    expect(effectiveDamage(8, 1.12)).toBe(9);
-    expect(effectiveDamage(20, 2)).toBe(40);
+});
+
+describe('buildChain', () => {
+  it('chains to nearest not-yet-hit alive enemy within range, stopping when none in range', () => {
+    const primary = mk(1, 0, 0);
+    const all = [primary, mk(2, 30, 0), mk(3, 55, 0), mk(4, 500, 0)];
+    expect(buildChain(primary, all, 40, 3).map((t) => t.id)).toEqual([1, 2, 3]);
+  });
+
+  it('stops early when no target in range', () => {
+    const primary = mk(1, 0, 0);
+    expect(buildChain(primary, [primary, mk(2, 200, 0)], 40, 3).map((t) => t.id)).toEqual([1]);
+  });
+
+  it('skips dead enemies', () => {
+    const primary = mk(1, 0, 0);
+    const all = [primary, mk(2, 20, 0, false), mk(3, 25, 0)];
+    expect(buildChain(primary, all, 40, 2).map((t) => t.id)).toEqual([1, 3]);
   });
 });
 ```
@@ -2736,19 +2791,55 @@ Expected: FAIL.
 - [ ] **Step 3: `src/systems/combat.ts` 구현**
 
 ```ts
-export function rampMultiplier(prev: number, step: number, max: number): number {
-  return Math.min(prev + step, max);
+import type { Targetable } from './TargetingSystem';
+import type { Vec2 } from '../core/types';
+
+export function chainDamages(base: number, falloff: number, extraJumps: number): number[] {
+  const out: number[] = [];
+  let mult = 1;
+  for (let i = 0; i <= extraJumps; i++) {
+    out.push(Math.round(base * mult));
+    mult *= falloff;
+  }
+  return out;
 }
 
-export function effectiveDamage(base: number, mult: number): number {
-  return Math.round(base * mult);
+function dist2(a: Vec2, b: Vec2): number {
+  const dx = a.x - b.x, dy = a.y - b.y;
+  return dx * dx + dy * dy;
+}
+
+export function buildChain(
+  primary: Targetable,
+  all: Targetable[],
+  chainRange: number,
+  extraJumps: number,
+): Targetable[] {
+  const chain: Targetable[] = [primary];
+  const hit = new Set<number>([primary.id]);
+  const r2 = chainRange * chainRange;
+  let current = primary;
+  for (let j = 0; j < extraJumps; j++) {
+    let best: Targetable | null = null;
+    let bestD = Infinity;
+    for (const e of all) {
+      if (!e.alive || hit.has(e.id)) continue;
+      const d = dist2(current.pos, e.pos);
+      if (d <= r2 && d < bestD) { best = e; bestD = d; }
+    }
+    if (!best) break;
+    chain.push(best);
+    hit.add(best.id);
+    current = best;
+  }
+  return chain;
 }
 ```
 
 - [ ] **Step 4: 실행 → 통과 확인**
 
 Run: `npm test -- combat`
-Expected: PASS (2 tests).
+Expected: PASS (4 tests).
 
 - [ ] **Step 5: `src/entities/Projectile.ts` 작성**
 
@@ -2815,18 +2906,28 @@ private updateTowers(dtMs: number) {
     if (tower.cooldownMs > 0) continue;
     const s = tower.stats();
     const target = pickTarget(tower.pos, s.range, targets);
-    if (!target) { tower.rampMul = 1; tower.rampTargetId = null; continue; }
+    if (!target) continue;
     tower.cooldownMs = 1000 / s.fireRate;
 
     const enemy = this.enemies.find((e) => e.id === target.id);
     if (!enemy) continue;
     const def = getTower(tower.key);
 
-    if (def.attack === 'ramp') {
-      if (tower.rampTargetId !== enemy.id) { tower.rampMul = 1; tower.rampTargetId = enemy.id; }
-      else tower.rampMul = rampMultiplier(tower.rampMul, s.rampStep ?? 0, s.rampMax ?? 1);
+    if (def.attack === 'chain') {
+      const chain = buildChain(target, targets, s.chainRange ?? 0, s.chainTargets ?? 0);
+      const dmgs = chainDamages(s.damage, s.chainFalloff ?? 1, chain.length - 1);
+      const chainIds = chain.map((t) => t.id);
+      this.projectiles.push(new Projectile(this, tower.pos, {
+        speed: 620,
+        targetPos: () => (enemy.alive ? enemy.pos : null),
+        onHit: () => {
+          chainIds.forEach((id, i) => {
+            this.enemies.find((e) => e.id === id)?.takeDamage(dmgs[i]);
+          });
+        },
+      }));
+      continue;
     }
-    const dmg = def.attack === 'ramp' ? effectiveDamage(s.damage, tower.rampMul) : s.damage;
 
     this.projectiles.push(new Projectile(this, tower.pos, {
       speed: 520,
@@ -2839,7 +2940,7 @@ private updateTowers(dtMs: number) {
           }
         } else {
           if (!enemy.alive) return;
-          enemy.takeDamage(dmg);
+          enemy.takeDamage(s.damage);
           if (def.attack === 'slow') enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
         }
       },
@@ -2848,7 +2949,7 @@ private updateTowers(dtMs: number) {
 }
 ```
 
-imports: `pickTarget`, `enemiesInRadius`, `Targetable` from `../systems/TargetingSystem`; `rampMultiplier`, `effectiveDamage` from `../systems/combat`; `Projectile`; `getTower`.
+imports: `pickTarget`, `enemiesInRadius`, `Targetable` from `../systems/TargetingSystem`; `chainDamages`, `buildChain` from `../systems/combat` (`effectiveDamage` is exported but unused by Game — do not import it); `Projectile`; `getTower`.
 
 - [ ] **Step 7: 수동 검증**
 
@@ -2856,7 +2957,7 @@ Run: `npm run dev` → 1-1, 화살탑을 길 옆에 설치, "다음 웨이브".
 1. 타워가 사거리 안 적에게 점(투사체) 발사, 명중 시 적 사라짐, 골드 +6.
 2. 대포 설치 → 느리게 쏘고 여러 적 동시 피해.
 3. 서리탑 → 맞은 적이 눈에 띄게 느려짐.
-4. 번개탑 → 같은 적 계속 때리면 점점 빨리 죽음(데미지 증가).
+4. 번개탑 → 1차 대상 명중 후 근처 적들에게 번개가 튀고(체인), 튈수록 데미지 감소. 밀집한 적 무리에 강함.
 5. 웨이브 전부 막으면 클리어 보너스만큼 골드 증가, 5웨이브 다 막으면 "CLEAR".
 
 Run: `npm test` → 전부 PASS.
@@ -2865,7 +2966,7 @@ Run: `npm test` → 전부 PASS.
 
 ```bash
 git add -A
-git commit -m "feat: projectiles and tower attacks (single/splash/slow/ramp) + bounty
+git commit -m "feat: projectiles and tower attacks (single/splash/slow/chain) + bounty
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
@@ -3465,7 +3566,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 | TargetingSystem (가장 앞선 적) | 9 |
 | MergeController (같은 종류/레벨, 최대레벨) | 10 |
 | 타워 설치 (위치+종류 선택, 골드) | 14 |
-| 투사체 + 4가지 공격 (single/splash/slow/ramp) | 15 |
+| 투사체 + 4가지 공격 (single/splash/slow/chain) | 15 |
 | 머지 드래그&드롭 + 판매 | 16 |
 | 배속 1x/2x + 일시정지 | 17 |
 | 승패 + 별점 + 저장/해금 | 3, 18 |
