@@ -55,10 +55,38 @@ describe('WaveManager', () => {
     expect(wm.isWaveComplete()).toBe(true);
   });
 
+  it('startNextWave is refused while a wave is still active, allowed after it completes', () => {
+    const { wm } = setup();
+    expect(wm.startNextWave()).toBe(true);   // wave 0 begins
+    expect(wm.isWaveActive).toBe(true);
+    expect(wm.startNextWave()).toBe(false);  // refused mid-wave
+    // drain wave 0 fully
+    let spawned = 0;
+    for (let i = 0; i < 60; i++) {
+      const reqs = wm.update(200);
+      spawned += reqs.length;
+      reqs.forEach(() => wm.notifyEnemySpawned());
+    }
+    for (let i = 0; i < spawned; i++) wm.notifyEnemyRemoved();
+    expect(wm.isWaveActive).toBe(false);
+    expect(wm.startNextWave()).toBe(true);   // now wave 1 is allowed
+  });
+
   it('startNextWave returns false past the last wave', () => {
     const { wm, started } = setup();
+    const drain = () => {
+      let spawned = 0;
+      for (let i = 0; i < 60; i++) {
+        const reqs = wm.update(200);
+        spawned += reqs.length;
+        reqs.forEach(() => wm.notifyEnemySpawned());
+      }
+      for (let i = 0; i < spawned; i++) wm.notifyEnemyRemoved();
+    };
     expect(wm.startNextWave()).toBe(true);  // wave 0
+    drain();
     expect(wm.startNextWave()).toBe(true);  // wave 1
+    drain();
     expect(wm.startNextWave()).toBe(false); // none
     expect(started).toEqual([0, 1]);
   });

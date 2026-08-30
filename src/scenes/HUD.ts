@@ -28,6 +28,8 @@ export class HUD extends Phaser.Scene {
       ...style, color: '#ffcc44',
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
     btn.on('pointerup', () => data.onNextWave());
+    data.bus.on('wave:started', () => { btn.setAlpha(0.35); btn.disableInteractive(); });
+    data.bus.on('wave:cleared', () => { btn.setAlpha(1); btn.setInteractive({ useHandCursor: true }); });
 
     const render = () => {
       this.goldText.setText(`골드 ${data.gold}`);

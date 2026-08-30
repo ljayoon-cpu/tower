@@ -23,11 +23,13 @@ export class WaveManager {
 
   get waveIndex(): number { return this._waveIndex; }
   get totalWaves(): number { return this.waves.length; }
+  get isWaveActive(): boolean { return this.waveActive; }
   get isFinished(): boolean {
     return this._waveIndex >= this.waves.length - 1 && this.isWaveComplete();
   }
 
   startNextWave(): boolean {
+    if (this.waveActive) return false;
     if (this._waveIndex >= this.waves.length - 1) return false;
     this._waveIndex++;
     this.elapsedMs = 0;
