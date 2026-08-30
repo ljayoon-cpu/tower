@@ -1,18 +1,30 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import type { EventBus } from '../core/eventBus';
-import type { GameEvents } from '../core/types';
+import type { GameEvents, Wave } from '../core/types';
 import { audioFor } from '../ui/audio';
+import { waveSummary } from '../core/waveInfo';
+import { getEnemy } from '../data/enemies';
 
 export interface HudInit {
   bus: EventBus<GameEvents>;
   gold: number;
   lives: number;
   totalWaves: number;
+  waves: Wave[];
   onNextWave: () => void;
   onToggleSpeed: () => void;
   onTogglePause: () => void;
   onQuit: () => void;
+}
+
+function previewText(waves: Wave[], nextIndex: number): string {
+  if (nextIndex >= waves.length) return '';
+  const parts = waveSummary(waves[nextIndex]).map((e) => {
+    const def = getEnemy(e.key);
+    return `${def.name}×${e.count}`;
+  });
+  return `다음 웨이브: ${parts.join('  ')}`;
 }
 
 export class HUD extends Phaser.Scene {
@@ -50,6 +62,9 @@ export class HUD extends Phaser.Scene {
     const hint = this.add.text(20, 95, '빈 칸을 눌러 타워 설치', {
       ...style, fontSize: '20px', color: '#8d98bb',
     });
+    const preview = this.add.text(20, 120, previewText(data.waves, 0), {
+      ...style, fontSize: '18px', color: '#d6b3ff',
+    });
 
     const overlay = this.add.container(0, 0).setDepth(2000).setVisible(false);
     const shade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.72).setInteractive();
@@ -72,12 +87,14 @@ export class HUD extends Phaser.Scene {
       next.bg.disableInteractive().setAlpha(0.4);
       next.text.setAlpha(0.4);
       hint.setText('같은 타워를 겹치면 합체');
+      preview.setText(previewText(data.waves, index + 1));
     });
     on('wave:cleared', ({ index }) => {
-      if (index + 1 >= data.totalWaves) return;
+      if (index + 1 >= data.totalWaves) { preview.setText('마지막 웨이브 클리어'); return; }
       next.bg.setInteractive({ useHandCursor: true }).setAlpha(1);
       next.text.setAlpha(1);
       hint.setText('길게 눌러 타워 판매');
+      preview.setText(previewText(data.waves, index + 1));
     });
     on('speed:changed', ({ multiplier }) => speed.text.setText(`${multiplier}x`));
     on('pause:changed', ({ paused }) => overlay.setVisible(paused));

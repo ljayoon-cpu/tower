@@ -2,16 +2,32 @@ import type Phaser from 'phaser';
 import { Enemy } from '../../src/entities/Enemy';
 
 // Minimal rendering boundary; movement and status effects use the real Enemy.
-function makeEnemy() {
+function makeEnemy(hp = 100) {
   const sprite = {
     x: 0, y: 0,
     setPosition(x: number, y: number) { this.x = x; this.y = y; return this; },
     setVisible() { return this; },
   };
-  const scene = { add: { image: () => sprite } } as unknown as Phaser.Scene;
-  return new Enemy(scene, { key: 'normal', name: '', hp: 100, speed: 100, bounty: 1, lifeDamage: 1 },
+  const bar = {
+    clear() { return this; }, fillStyle() { return this; }, fillRect() { return this; },
+    setDepth() { return this; }, setVisible() { return this; }, setPosition() { return this; },
+    destroy() {},
+  };
+  const scene = { add: { image: () => sprite, graphics: () => bar } } as unknown as Phaser.Scene;
+  return new Enemy(scene, { key: 'normal', name: '', hp, speed: 100, bounty: 1, lifeDamage: 1 },
     [{ x: 0, y: 0 }, { x: 0, y: 10000 }]);
 }
+
+describe('enemy health ratio', () => {
+  it('reports full health until damaged, then clamps at zero', () => {
+    const e = makeEnemy(100);
+    expect(e.healthRatio).toBe(1);
+    e.takeDamage(25);
+    expect(e.healthRatio).toBe(0.75);
+    e.takeDamage(999);
+    expect(e.healthRatio).toBe(0);
+  });
+});
 
 describe('enemy simulation time', () => {
   it('expires slow at the same game time at 1x and 2x', () => {

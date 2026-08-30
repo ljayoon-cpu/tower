@@ -29,6 +29,9 @@ class DisplayObject {
   setScale() { return this; }
   setRadius() { return this; }
   setActive() { return this; }
+  clear() { return this; }
+  fillStyle() { return this; }
+  fillRect() { return this; }
   on() { return this; }
   destroy() {}
 }
@@ -76,7 +79,11 @@ export function simulate(stage: StageDef, strategy: Strategy, seed = 1, speed = 
   const scene = new Game();
   const game = scene as unknown as GameBoundary;
   Object.assign(scene, {
-    add: { image: (x: number, y: number) => new DisplayObject(x, y), circle: (x: number, y: number) => new DisplayObject(x, y) },
+    add: {
+      image: (x: number, y: number) => new DisplayObject(x, y),
+      circle: (x: number, y: number) => new DisplayObject(x, y),
+      graphics: () => new DisplayObject(),
+    },
     input: { setDraggable() {}, manager: { pointers: [] } },
     buildMenu: { close() {} },
     sound: { mute: true, play() {} },

@@ -10,6 +10,7 @@ import { recordResult } from '../core/save';
 import { getEnemy } from '../data/enemies';
 import { getTower, TOWER_KEYS, cumulativeCost } from '../data/towers';
 import { canMerge, mergeResultLevel } from '../systems/MergeController';
+import { towerInfo } from '../core/towerInfo';
 import type { MergeCandidate } from '../systems/MergeController';
 import { GridManager } from '../systems/GridManager';
 import { PathManager } from '../systems/PathManager';
@@ -43,6 +44,7 @@ export class Game extends Phaser.Scene {
   private buildMenu!: BuildMenu;
   private pendingTile: TileCoord | null = null;
   private buildPreview: Phaser.GameObjects.Arc | null = null;
+  private inspectText?: Phaser.GameObjects.Text;
   private lives = 0;
   private speedMul = 1;
   private running = false;
@@ -101,6 +103,14 @@ export class Game extends Phaser.Scene {
     this.setupBuildInput();
     this.setupDragInput();
 
+    this.inspectText = this.add
+      .text(20, 148, '', {
+        fontFamily: 'monospace', fontSize: '19px', color: '#cdd6f4',
+        lineSpacing: 3, backgroundColor: '#0f1020cc', padding: { x: 8, y: 5 },
+      })
+      .setDepth(500)
+      .setVisible(false);
+
     this.bus.on('enemy:killed', (p) => {
       this.eco.earn(p.bounty);
       this.audio.play('hit');
@@ -122,6 +132,7 @@ export class Game extends Phaser.Scene {
       gold: this.eco.gold,
       lives: this.lives,
       totalWaves: this.waves.totalWaves,
+      waves: this.stage.waves,
       onNextWave: () => { if (this.running && !this.paused) this.waves.startNextWave(); },
       onToggleSpeed: () => this.toggleSpeed(),
       onTogglePause: () => this.togglePause(),
@@ -224,9 +235,30 @@ export class Game extends Phaser.Scene {
     this.buildPreview = null;
   }
 
-  /** except 타워만 사거리 링을 켜고 나머지는 끈다. */
+  /** except 타워만 사거리 링을 켜고 나머지는 끈다. 선택된 타워는 정보를 표시한다. */
   private clearTowerRanges(except?: Tower): void {
     for (const t of this.towers) t.showRange(t === except);
+    this.showInspect(except);
+  }
+
+  private showInspect(tower?: Tower): void {
+    if (!this.inspectText) return;
+    if (!tower || !this.towers.includes(tower)) {
+      this.inspectText.setVisible(false);
+      return;
+    }
+    const info = towerInfo(tower.key, tower.level);
+    const sell = Math.floor(
+      cumulativeCost(getTower(tower.key), tower.level) * EconomyManager.SELL_RATIO,
+    );
+    const dpsLine = info.nextDps != null
+      ? `DPS ${info.dps} → ${info.nextDps}`
+      : `DPS ${info.dps} (최대)`;
+    const parts = [`사거리 ${info.range}`, `판매 +${sell}G`];
+    if (info.note) parts.push(info.note);
+    this.inspectText
+      .setText(`${info.name} Lv${info.level}   ${dpsLine}\n${parts.join('   ')}`)
+      .setVisible(true);
   }
 
   private setupDragInput(): void {
@@ -305,6 +337,7 @@ export class Game extends Phaser.Scene {
   private removeTower(t: Tower): void {
     this.towers = this.towers.filter((x) => x.id !== t.id);
     t.destroy();
+    this.inspectText?.setVisible(false);
   }
 
   private confirmSell(t: Tower): void {
