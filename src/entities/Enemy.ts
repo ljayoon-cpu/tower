@@ -8,6 +8,7 @@ export class Enemy {
   readonly id = nextId++;
   readonly sprite: Phaser.GameObjects.Image;
   private readonly healthBar: Phaser.GameObjects.Graphics;
+  private readonly slowAura: Phaser.GameObjects.Arc;
   private readonly barWidth: number;
   private traveled = 0;
   private _hp: number;
@@ -26,6 +27,11 @@ export class Enemy {
     this.sprite = scene.add.image(start.x, start.y, `enemy_${def.key}`);
     this.barWidth = def.isBoss ? 40 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
+    this.slowAura = scene.add
+      .circle(start.x, start.y, def.isBoss ? 30 : 18, 0x99e6ff, 0.16)
+      .setStrokeStyle(2, 0x99e6ff, 0.85)
+      .setDepth(4)
+      .setVisible(false);
   }
 
   get pos(): Vec2 { return { x: this.sprite.x, y: this.sprite.y }; }
@@ -46,6 +52,7 @@ export class Enemy {
     if (this._hp <= 0) {
       this.sprite.setVisible(false);
       this.healthBar.setVisible(false);
+      this.slowAura.setVisible(false);
     } else {
       this.flashHit();
       this.drawHealthBar();
@@ -92,9 +99,18 @@ export class Enemy {
     const a = PathManager.advance(this.polyline, this.traveled);
     this._progress = a.progress;
     this.sprite.setPosition(a.pos.x, a.pos.y);
-    if (a.done) { this._done = true; this.sprite.setVisible(false); this.healthBar.setVisible(false); }
-    else this.drawHealthBar();
+    if (a.done) {
+      this._done = true;
+      this.sprite.setVisible(false);
+      this.healthBar.setVisible(false);
+      this.slowAura.setVisible(false);
+    } else {
+      this.drawHealthBar();
+      const slowed = this.slowLeftMs > 0;
+      this.slowAura.setVisible(slowed);
+      if (slowed) this.slowAura.setPosition(a.pos.x, a.pos.y);
+    }
   }
 
-  destroy(): void { this.sprite.destroy(); this.healthBar.destroy(); }
+  destroy(): void { this.sprite.destroy(); this.healthBar.destroy(); this.slowAura.destroy(); }
 }

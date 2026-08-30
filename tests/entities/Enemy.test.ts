@@ -13,7 +13,13 @@ function makeEnemy(hp = 100) {
     setDepth() { return this; }, setVisible() { return this; }, setPosition() { return this; },
     destroy() {},
   };
-  const scene = { add: { image: () => sprite, graphics: () => bar } } as unknown as Phaser.Scene;
+  const arc = {
+    setDepth() { return this; }, setVisible() { return this; }, setPosition() { return this; },
+    setStrokeStyle() { return this; }, destroy() {},
+  };
+  const scene = {
+    add: { image: () => sprite, graphics: () => bar, circle: () => arc },
+  } as unknown as Phaser.Scene;
   return new Enemy(scene, { key: 'normal', name: '', hp, speed: 100, bounty: 1, lifeDamage: 1 },
     [{ x: 0, y: 0 }, { x: 0, y: 10000 }]);
 }
