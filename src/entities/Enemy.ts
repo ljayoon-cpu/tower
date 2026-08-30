@@ -17,7 +17,7 @@ export class Enemy {
   private _progress = 0;
 
   constructor(
-    scene: Phaser.Scene,
+    private readonly scene: Phaser.Scene,
     readonly def: EnemyDef,
     private readonly polyline: Vec2[],
   ) {
@@ -47,8 +47,19 @@ export class Enemy {
       this.sprite.setVisible(false);
       this.healthBar.setVisible(false);
     } else {
+      this.flashHit();
       this.drawHealthBar();
     }
+  }
+
+  /** 피격 시 짧은 흰색 플래시. 시간 API가 없는 테스트 환경에서는 조용히 넘어간다. */
+  private flashHit(): void {
+    const sprite = this.sprite as Phaser.GameObjects.Image & {
+      setTintFill?: (c: number) => unknown; clearTint?: () => unknown;
+    };
+    if (!sprite.setTintFill || !this.scene.time) return;
+    sprite.setTintFill(0xffffff);
+    this.scene.time.delayedCall(70, () => sprite.clearTint?.());
   }
 
   private drawHealthBar(): void {

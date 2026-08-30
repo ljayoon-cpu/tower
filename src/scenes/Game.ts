@@ -509,7 +509,9 @@ export class Game extends Phaser.Scene {
             const chain = buildChain(enemy, this.enemies, s.chainRange ?? 0, s.chainTargets ?? 0);
             const dmgs = chainDamages(s.damage, s.chainFalloff ?? 1, chain.length - 1);
             chain.forEach((hit, i) => {
-              this.enemies.find((e) => e.id === hit.id)?.takeDamage(dmgs[i]);
+              const e = this.enemies.find((x) => x.id === hit.id);
+              e?.takeDamage(dmgs[i]);
+              if (e) this.impactFlash(e.pos, COLORS.bolt);
             });
           },
         });
@@ -521,6 +523,7 @@ export class Game extends Phaser.Scene {
         targetPos: () => (enemy.alive ? enemy.pos : null),
         onHit: (hitPos) => {
           if (def.attack === 'splash') {
+            this.impactFlash(hitPos, COLORS.cannon);
             for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0,
               this.enemies)) {
               this.enemies.find((e) => e.id === hit.id)?.takeDamage(s.damage);
@@ -528,6 +531,7 @@ export class Game extends Phaser.Scene {
           } else {
             if (!enemy.alive) return;
             enemy.takeDamage(s.damage);
+            this.impactFlash(enemy.pos, def.attack === 'slow' ? COLORS.frost : COLORS.arrow);
             if (def.attack === 'slow') enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
           }
         },
@@ -539,6 +543,19 @@ export class Game extends Phaser.Scene {
     const shot = this.projectilePool.acquire();
     shot.launch(from, opts);
     this.projectiles.push(shot);
+  }
+
+  /** 착탄 지점에 잠깐 퍼지는 링. 트윈이 없는 시뮬레이션 환경에서는 생략. */
+  private impactFlash(pos: Vec2, color: number): void {
+    if (!this.tweens) return;
+    const ring = this.add.circle(pos.x, pos.y, 6, color, 0.7).setDepth(25);
+    this.tweens.add({
+      targets: ring,
+      scale: 2.6,
+      alpha: 0,
+      duration: 180,
+      onComplete: () => ring.destroy(),
+    });
   }
 
   update(_time: number, dtMsRaw: number) {
