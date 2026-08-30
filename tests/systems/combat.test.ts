@@ -1,0 +1,32 @@
+import { chainDamages, buildChain } from '../../src/systems/combat';
+import type { Targetable } from '../../src/systems/TargetingSystem';
+
+const mk = (id: number, x: number, y: number, alive = true): Targetable =>
+  ({ id, pos: { x, y }, progress: 0, alive });
+
+describe('chainDamages', () => {
+  it('applies falloff per jump and rounds', () => {
+    expect(chainDamages(40, 0.5, 3)).toEqual([40, 20, 10, 5]);
+    expect(chainDamages(10, 0.6, 0)).toEqual([10]);
+    expect(chainDamages(17, 0.65, 2)).toEqual([17, 11, 7]); // round(11.05), round(7.1825)
+  });
+});
+
+describe('buildChain', () => {
+  it('chains to nearest not-yet-hit alive enemy within range, stopping when none in range', () => {
+    const primary = mk(1, 0, 0);
+    const all = [primary, mk(2, 30, 0), mk(3, 55, 0), mk(4, 500, 0)];
+    expect(buildChain(primary, all, 40, 3).map((t) => t.id)).toEqual([1, 2, 3]);
+  });
+
+  it('stops early when no target in range', () => {
+    const primary = mk(1, 0, 0);
+    expect(buildChain(primary, [primary, mk(2, 200, 0)], 40, 3).map((t) => t.id)).toEqual([1]);
+  });
+
+  it('skips dead enemies', () => {
+    const primary = mk(1, 0, 0);
+    const all = [primary, mk(2, 20, 0, false), mk(3, 25, 0)];
+    expect(buildChain(primary, all, 40, 2).map((t) => t.id)).toEqual([1, 3]);
+  });
+});

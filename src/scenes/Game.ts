@@ -13,6 +13,10 @@ import { EconomyManager } from '../systems/EconomyManager';
 import { Rng } from '../core/rng';
 import { Enemy } from '../entities/Enemy';
 import { Tower } from '../entities/Tower';
+import { Projectile } from '../entities/Projectile';
+import { pickTarget, enemiesInRadius } from '../systems/TargetingSystem';
+import type { Targetable } from '../systems/TargetingSystem';
+import { chainDamages, buildChain } from '../systems/combat';
 import { BuildMenu } from '../ui/BuildMenu';
 import type { HudInit } from './HUD';
 
@@ -26,6 +30,7 @@ export class Game extends Phaser.Scene {
   private rng = new Rng(Date.now() & 0xffffffff);
   private enemies: Enemy[] = [];
   private towers: Tower[] = [];
+  private projectiles: Projectile[] = [];
   private buildMenu!: BuildMenu;
   private pendingTile: TileCoord | null = null;
   private buildPreview: Phaser.GameObjects.Arc | null = null;
@@ -48,6 +53,7 @@ export class Game extends Phaser.Scene {
     this.lives = this.stage.startLives;
     this.enemies = [];
     this.towers = [];
+    this.projectiles = [];
     this.pendingTile = null;
     this.buildPreview = null;
     this.speedMul = 1;
@@ -56,6 +62,9 @@ export class Game extends Phaser.Scene {
     this.drawMap();
     this.setupBuildInput();
 
+    this.bus.on('enemy:killed', (p) => {
+      this.eco.earn(p.bounty);
+    });
     this.bus.on('enemy:reachedGoal', (p) => {
       this.lives = Math.max(0, this.lives - p.lifeDamage);
       this.bus.emit('life:changed', { lives: this.lives });
@@ -176,11 +185,66 @@ export class Game extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(1000);
   }
 
+  private updateTowers(dtMs: number) {
+    const targets: Targetable[] = this.enemies.map((e) => ({
+      id: e.id, pos: e.pos, progress: e.progress, alive: e.alive,
+    }));
+
+    for (const tower of this.towers) {
+      tower.cooldownMs -= dtMs;
+      if (tower.cooldownMs > 0) continue;
+      const s = tower.stats();
+      const target = pickTarget(tower.pos, s.range, targets);
+      if (!target) continue;
+      tower.cooldownMs = 1000 / s.fireRate;
+
+      const enemy = this.enemies.find((e) => e.id === target.id);
+      if (!enemy) continue;
+      const def = getTower(tower.key);
+
+      if (def.attack === 'chain') {
+        const chain = buildChain(target, targets, s.chainRange ?? 0, s.chainTargets ?? 0);
+        const dmgs = chainDamages(s.damage, s.chainFalloff ?? 1, chain.length - 1);
+        const chainIds = chain.map((t) => t.id);
+        this.projectiles.push(new Projectile(this, tower.pos, {
+          speed: 620,
+          targetPos: () => (enemy.alive ? enemy.pos : null),
+          onHit: () => {
+            chainIds.forEach((id, i) => {
+              this.enemies.find((e) => e.id === id)?.takeDamage(dmgs[i]);
+            });
+          },
+        }));
+        continue;
+      }
+
+      this.projectiles.push(new Projectile(this, tower.pos, {
+        speed: 520,
+        targetPos: () => (enemy.alive ? enemy.pos : null),
+        onHit: (hitPos) => {
+          if (def.attack === 'splash') {
+            for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0,
+              this.enemies.map((e) => ({ id: e.id, pos: e.pos, progress: e.progress, alive: e.alive })))) {
+              this.enemies.find((e) => e.id === hit.id)?.takeDamage(s.damage);
+            }
+          } else {
+            if (!enemy.alive) return;
+            enemy.takeDamage(s.damage);
+            if (def.attack === 'slow') enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
+          }
+        },
+      }));
+    }
+  }
+
   update(_time: number, dtMsRaw: number) {
     if (!this.running) return;
     const dtMs = dtMsRaw * this.speedMul;
 
     for (const req of this.waves.update(dtMs)) this.spawnEnemy(req.enemyKey);
+
+    this.updateTowers(dtMs);
+    this.projectiles = this.projectiles.filter((p) => !p.update(dtMs, this.speedMul));
 
     for (const e of this.enemies) {
       e.update(dtMsRaw, this.speedMul);
