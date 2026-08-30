@@ -450,7 +450,7 @@ export interface StageDef {
   startGold: number;
   startLives: number;
   waves: Wave[];
-  starThresholds: [number, number, number]; // 남은 라이프 비율 [1별,2별,3별], 내림차순
+  starThresholds: [number, number, number]; // 남은 라이프 비율 하한 [1별,2별,3별], 오름차순
 }
 
 export interface StageProgress { stars: number; unlocked: boolean; }
@@ -1860,13 +1860,14 @@ describe('stage definitions', () => {
     }
   });
 
-  it('starThresholds are descending in (0,1]', () => {
+  it('starThresholds are ascending [1star, 2star, 3star] within (0,1]', () => {
+    // starsFor(Task 18) reads [0]=1별 하한, [1]=2별 하한, [2]=3별 하한 → 오름차순.
     for (const s of STAGES) {
       const [a, b, c] = s.starThresholds;
-      expect(a).toBeGreaterThanOrEqual(b);
-      expect(b).toBeGreaterThanOrEqual(c);
-      expect(c).toBeGreaterThan(0);
-      expect(a).toBeLessThanOrEqual(1);
+      expect(a).toBeGreaterThan(0);
+      expect(a).toBeLessThanOrEqual(b);
+      expect(b).toBeLessThanOrEqual(c);
+      expect(c).toBeLessThanOrEqual(1);
     }
   });
 

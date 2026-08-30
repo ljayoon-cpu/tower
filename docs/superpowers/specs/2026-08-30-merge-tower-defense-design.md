@@ -200,7 +200,7 @@ interface StageDef {
   spawn: Vec2; goals: Vec2[];
   startGold: number; startLives: number;
   waves: Wave[];
-  starThresholds: [number, number, number]; // 남은 라이프 비율 기준
+  starThresholds: [number, number, number]; // 남은 라이프 비율 하한 [1별,2별,3별], 오름차순
 }
 
 interface SaveData { stages: Record<string, { stars: number; unlocked: boolean }>; }
