@@ -41,6 +41,7 @@ export class Game extends Phaser.Scene {
   private running = false;
   private sellTimer?: Phaser.Time.TimerEvent;
   private sellPanel?: Phaser.GameObjects.Container;
+  private sellPanelBackdrop?: Phaser.GameObjects.Rectangle;
   /** 드래그 직후 발생하는 pointerup 이 빌드메뉴/사거리 토글을 켜지 않도록 억제. */
   private suppressTapUntil = 0;
 
@@ -234,12 +235,24 @@ export class Game extends Phaser.Scene {
     if (!this.running) return;
     if (this.towers.indexOf(tower) === -1) return;
     this.sellPanel?.destroy();
+    this.sellPanelBackdrop?.destroy();
+    // 롱프레스에서 손을 떼며 발생하는 pointerup 이 갓 생성된 판매 버튼이나
+    // 사거리 토글 핸들러로 흘러들지 않도록 억제(드래그 경로와 동일한 가드).
+    this.suppressTapUntil = this.time.now + 150;
 
     const refund = Math.floor(
       cumulativeCost(getTower(tower.key), tower.level) * EconomyManager.SELL_RATIO,
     );
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
+
+    // 패널 뒤 전체 화면 백드롭: 탭이 뒤 타워/빌드 캐처로 새는 것을 막고,
+    // 바깥 탭 → 닫기(판매 안 함)를 제공한다.
+    const backdrop = this.add
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.5)
+      .setDepth(1199)
+      .setInteractive();
+    this.sellPanelBackdrop = backdrop;
 
     const bg = this.add.rectangle(0, 0, 320, 160, 0x000000, 0.8).setStrokeStyle(1, 0xffffff, 0.3);
     const sell = this.add
@@ -260,13 +273,23 @@ export class Game extends Phaser.Scene {
 
     const close = (): void => {
       panel.destroy();
+      backdrop.destroy();
       if (this.sellPanel === panel) this.sellPanel = undefined;
+      if (this.sellPanelBackdrop === backdrop) this.sellPanelBackdrop = undefined;
     };
+    // sell/cancel 핸들러는 suppressTapUntil 로 게이팅되지 않는다 —
+    // 나중의 의도적 탭은 정상 동작해야 한다.
     sell.on('pointerup', () => {
       this.confirmSell(tower);
       close();
     });
     cancel.on('pointerup', close);
+    // 백드롭 = 바깥 탭 닫기. 단, 롱프레스에서 손 떼는 그 pointerup 은 무시
+    // (그 순간 포인터가 백드롭 위에 있으므로 즉시 닫히는 것을 방지).
+    backdrop.on('pointerup', () => {
+      if (this.time.now < this.suppressTapUntil) return;
+      close();
+    });
   }
 
   private placeTower(key: string, tile: TileCoord): void {
