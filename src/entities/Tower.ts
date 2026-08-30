@@ -1,0 +1,76 @@
+import Phaser from 'phaser';
+import type { TileCoord, TowerLevelStats, Vec2 } from '../core/types';
+import { getTower } from '../data/towers';
+import { COLORS } from '../core/constants';
+
+let nextId = 1;
+
+/**
+ * 배치된 타워 1기. Phaser 스프라이트 + 사거리 표시 링을 감싼 얇은 래퍼.
+ * 발사/투사체 로직은 여기 없음 — Task 15 의 Game.updateTowers 가 담당.
+ */
+export class Tower {
+  readonly id = nextId++;
+  level = 1;
+  /** 발사 쿨다운(ms). Task 15 에서 사용. */
+  cooldownMs = 0;
+  readonly sprite: Phaser.GameObjects.Image;
+  private ring: Phaser.GameObjects.Arc;
+
+  constructor(
+    scene: Phaser.Scene,
+    readonly key: string,
+    public tile: TileCoord,
+    pos: Vec2,
+  ) {
+    this.sprite = scene.add
+      .image(pos.x, pos.y, `tower_${key}`)
+      .setDepth(10)
+      .setInteractive({ useHandCursor: true });
+    this.ring = scene.add
+      .circle(pos.x, pos.y, this.stats().range, 0xffffff, 0.05)
+      .setStrokeStyle(1, 0xffffff, 0.25)
+      .setDepth(9)
+      .setVisible(false);
+    this.applyLevelVisual();
+  }
+
+  stats(): TowerLevelStats {
+    return getTower(this.key).levels[this.level - 1];
+  }
+
+  get maxLevel(): number {
+    return getTower(this.key).maxLevel;
+  }
+
+  get pos(): Vec2 {
+    return { x: this.sprite.x, y: this.sprite.y };
+  }
+
+  setLevel(n: number): void {
+    this.level = Math.min(Math.max(n, 1), this.maxLevel);
+    this.applyLevelVisual();
+  }
+
+  private applyLevelVisual(): void {
+    const scale = 1 + (this.level - 1) * 0.12;
+    this.sprite.setScale(scale);
+    this.sprite.setData('level', this.level);
+    this.ring.setRadius(this.stats().range);
+  }
+
+  get rangeVisible(): boolean {
+    return this.ring.visible;
+  }
+
+  showRange(v: boolean): void {
+    this.ring.setVisible(v);
+  }
+
+  destroy(): void {
+    this.sprite.destroy();
+    this.ring.destroy();
+  }
+}
+
+void COLORS;
