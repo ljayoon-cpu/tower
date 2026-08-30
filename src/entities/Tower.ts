@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { TileCoord, TowerLevelStats, Vec2 } from '../core/types';
 import { getTower } from '../data/towers';
-import { COLORS } from '../core/constants';
+import { COLORS, TILE } from '../core/constants';
 
 let nextId = 1;
 
@@ -16,6 +16,7 @@ export class Tower {
   cooldownMs = 0;
   readonly sprite: Phaser.GameObjects.Image;
   private ring: Phaser.GameObjects.Arc;
+  private mergeHint: Phaser.GameObjects.Arc;
   /** 타일 중심 픽셀 좌표. 드래그 취소(머지 실패) 시 스냅백 대상. */
   readonly homePos: Vec2;
 
@@ -34,6 +35,11 @@ export class Tower {
       .circle(pos.x, pos.y, this.stats().range, 0xffffff, 0.05)
       .setStrokeStyle(1, 0xffffff, 0.25)
       .setDepth(9)
+      .setVisible(false);
+    this.mergeHint = scene.add
+      .circle(pos.x, pos.y, TILE * 0.44, 0x7dd87d, 0.18)
+      .setStrokeStyle(2, 0x7dd87d, 0.9)
+      .setDepth(8)
       .setVisible(false);
     this.applyLevelVisual();
 
@@ -74,9 +80,15 @@ export class Tower {
     this.ring.setVisible(v);
   }
 
+  /** 드래그 중 유효한 머지 대상임을 알리는 초록 링. */
+  showMergeHint(v: boolean): void {
+    this.mergeHint.setVisible(v);
+  }
+
   destroy(): void {
     this.sprite.destroy();
     this.ring.destroy();
+    this.mergeHint.destroy();
   }
 }
 

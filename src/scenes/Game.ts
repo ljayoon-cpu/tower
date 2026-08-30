@@ -271,6 +271,7 @@ export class Game extends Phaser.Scene {
         obj.setDepth(600);
         const t = this.towerFromObj(obj);
         t?.showRange(true);
+        if (t) this.showMergeHints(t);
       },
     );
 
@@ -288,6 +289,7 @@ export class Game extends Phaser.Scene {
         if (!this.running || this.paused) return;
         obj.setDepth(10);
         this.suppressTapUntil = this.time.now + 100;
+        this.clearMergeHints();
         const dragged = this.towerFromObj(obj);
         if (!dragged) return;
         dragged.showRange(false);
@@ -324,7 +326,20 @@ export class Game extends Phaser.Scene {
     t.sprite.setPosition(t.homePos.x, t.homePos.y).setDepth(10);
   }
 
+  private showMergeHints(dragged: Tower): void {
+    for (const t of this.towers) {
+      const a: MergeCandidate = { id: dragged.id, key: dragged.key, level: dragged.level };
+      const b: MergeCandidate = { id: t.id, key: t.key, level: t.level };
+      t.showMergeHint(canMerge(a, b, dragged.maxLevel));
+    }
+  }
+
+  private clearMergeHints(): void {
+    for (const t of this.towers) t.showMergeHint(false);
+  }
+
   private cancelDrags(): void {
+    this.clearMergeHints();
     for (const pointer of this.input.manager.pointers) this.input.setDragState(pointer, 0);
     for (const tower of this.towers) {
       // disableInteractive clears Phaser's internal drag lists as well as object state.
