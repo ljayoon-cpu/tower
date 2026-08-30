@@ -1363,6 +1363,8 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ## Task 8: WaveManager (스폰 스케줄 + 웨이브 종료)
 
+> POST-IMPL FIX (Task 12b): `startNextWave()` returns `false` while a wave is active (`if (this.waveActive) return false;` at top); added `get isWaveActive(): boolean`. HUD dims "다음 웨이브" during an active wave. Prevents skipping waves via button spam (which produced a false "CLEAR").
+
 **Files:**
 - Create: `src/systems/WaveManager.ts`
 - Test: `tests/systems/WaveManager.test.ts`
