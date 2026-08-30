@@ -25,6 +25,29 @@ describe('pickTarget', () => {
     const t = pickTarget({ x: 0, y: 0 }, 200, [mk(5, 10, 0, 0.5), mk(2, 12, 0, 0.5)]);
     expect(t?.id).toBe(2);
   });
+
+  it('last: picks the least-progressed enemy', () => {
+    const t = pickTarget({ x: 0, y: 0 }, 200, [mk(1, 10, 0, 0.2), mk(2, 20, 0, 0.9)], 'last');
+    expect(t?.id).toBe(1);
+  });
+
+  it('strong: picks the highest-hp enemy', () => {
+    const es = [
+      { id: 1, pos: { x: 10, y: 0 }, progress: 0.9, alive: true, hp: 20 },
+      { id: 2, pos: { x: 20, y: 0 }, progress: 0.1, alive: true, hp: 500 },
+    ];
+    expect(pickTarget({ x: 0, y: 0 }, 200, es, 'strong')?.id).toBe(2);
+  });
+
+  it('close: picks the nearest enemy to the tower', () => {
+    const t = pickTarget({ x: 0, y: 0 }, 200, [mk(1, 100, 0, 0.9), mk(2, 15, 0, 0.1)], 'close');
+    expect(t?.id).toBe(2);
+  });
+
+  it('defaults to first when no priority is given', () => {
+    const t = pickTarget({ x: 0, y: 0 }, 200, [mk(1, 10, 0, 0.2), mk(2, 20, 0, 0.9)]);
+    expect(t?.id).toBe(2);
+  });
 });
 
 describe('enemiesInRadius', () => {

@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import type { TileCoord, TowerLevelStats, Vec2 } from '../core/types';
 import { getTower } from '../data/towers';
 import { COLORS, TILE } from '../core/constants';
+import { TARGET_PRIORITIES } from '../systems/TargetingSystem';
+import type { TargetPriority } from '../systems/TargetingSystem';
 
 let nextId = 1;
 
@@ -12,6 +14,8 @@ let nextId = 1;
 export class Tower {
   readonly id = nextId++;
   level = 1;
+  /** 표적 우선순위. 플레이어가 선택 패널에서 순환시킨다. */
+  priority: TargetPriority = 'first';
   /** 발사 쿨다운(ms). Task 15 에서 사용. */
   cooldownMs = 0;
   readonly sprite: Phaser.GameObjects.Image;
@@ -78,6 +82,12 @@ export class Tower {
 
   showRange(v: boolean): void {
     this.ring.setVisible(v);
+  }
+
+  cyclePriority(): TargetPriority {
+    const i = TARGET_PRIORITIES.indexOf(this.priority);
+    this.priority = TARGET_PRIORITIES[(i + 1) % TARGET_PRIORITIES.length];
+    return this.priority;
   }
 
   /** 드래그 중 유효한 머지 대상임을 알리는 초록 링. */

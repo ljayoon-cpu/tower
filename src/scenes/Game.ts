@@ -11,6 +11,7 @@ import { getEnemy } from '../data/enemies';
 import { getTower, TOWER_KEYS, cumulativeCost } from '../data/towers';
 import { canMerge, mergeResultLevel } from '../systems/MergeController';
 import { towerInfo } from '../core/towerInfo';
+import { TARGET_PRIORITY_LABEL } from '../systems/TargetingSystem';
 import type { MergeCandidate } from '../systems/MergeController';
 import { GridManager } from '../systems/GridManager';
 import { PathManager } from '../systems/PathManager';
@@ -45,6 +46,7 @@ export class Game extends Phaser.Scene {
   private pendingTile: TileCoord | null = null;
   private buildPreview: Phaser.GameObjects.Arc | null = null;
   private inspectText?: Phaser.GameObjects.Text;
+  private selectedTower?: Tower;
   private lives = 0;
   private speedMul = 1;
   private running = false;
@@ -105,13 +107,21 @@ export class Game extends Phaser.Scene {
     this.setupBuildInput();
     this.setupDragInput();
 
+    this.selectedTower = undefined;
     this.inspectText = this.add
       .text(20, 148, '', {
         fontFamily: 'monospace', fontSize: '19px', color: '#cdd6f4',
         lineSpacing: 3, backgroundColor: '#0f1020cc', padding: { x: 8, y: 5 },
       })
       .setDepth(500)
-      .setVisible(false);
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+    this.inspectText.on('pointerup', () => {
+      if (!this.running || this.paused || !this.selectedTower) return;
+      this.selectedTower.cyclePriority();
+      this.audio.play('click');
+      this.showInspect(this.selectedTower);
+    });
 
     this.bus.on('enemy:killed', (p) => {
       this.eco.earn(p.bounty);
@@ -246,9 +256,11 @@ export class Game extends Phaser.Scene {
   private showInspect(tower?: Tower): void {
     if (!this.inspectText) return;
     if (!tower || !this.towers.includes(tower)) {
+      this.selectedTower = undefined;
       this.inspectText.setVisible(false);
       return;
     }
+    this.selectedTower = tower;
     const info = towerInfo(tower.key, tower.level);
     const sell = Math.floor(
       cumulativeCost(getTower(tower.key), tower.level) * EconomyManager.SELL_RATIO,
@@ -259,7 +271,10 @@ export class Game extends Phaser.Scene {
     const parts = [`사거리 ${info.range}`, `판매 +${sell}G`];
     if (info.note) parts.push(info.note);
     this.inspectText
-      .setText(`${info.name} Lv${info.level}   ${dpsLine}\n${parts.join('   ')}`)
+      .setText(
+        `${info.name} Lv${info.level}   ${dpsLine}\n` +
+        `${parts.join('   ')}\n표적: ${TARGET_PRIORITY_LABEL[tower.priority]} ▸ (눌러 변경)`,
+      )
       .setVisible(true);
   }
 
@@ -354,6 +369,7 @@ export class Game extends Phaser.Scene {
   private removeTower(t: Tower): void {
     this.towers = this.towers.filter((x) => x.id !== t.id);
     t.destroy();
+    if (this.selectedTower === t) this.selectedTower = undefined;
     this.inspectText?.setVisible(false);
   }
 
@@ -491,7 +507,7 @@ export class Game extends Phaser.Scene {
       tower.cooldownMs -= dtMs;
       if (tower.cooldownMs > 0) continue;
       const s = tower.stats();
-      const target = pickTarget(tower.homePos, s.range, targets);
+      const target = pickTarget(tower.homePos, s.range, targets, tower.priority);
       if (!target) continue;
       tower.cooldownMs = 1000 / s.fireRate;
 
