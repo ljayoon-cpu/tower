@@ -1,34 +1,38 @@
 import type { TowerDef } from '../core/types';
 
 export const TOWERS: Record<string, TowerDef> = {
+  // 머지 비용은 레벨마다 2배로 늘지만(2^(n-1) x cost), 데미지는 그보다 가파르게
+  // 오른다. 즉 자리를 합쳐 레벨을 올리면 골드당 화력이 커진다 — 넓게 깔기와
+  // 높게 쌓기를 저울질하게 만드는 핵심 수치.
   arrow: {
     key: 'arrow', name: '화살탑', attack: 'single', cost: 50, maxLevel: 5,
     levels: [
-      { damage: 8,  range: 150, fireRate: 2.0 },
-      { damage: 13, range: 160, fireRate: 2.2 },
-      { damage: 20, range: 170, fireRate: 2.4 },
-      { damage: 30, range: 185, fireRate: 2.7 },
-      { damage: 46, range: 200, fireRate: 3.0 },
+      { damage: 8,   range: 150, fireRate: 2.0 },
+      { damage: 14,  range: 162, fireRate: 2.2 },
+      { damage: 28,  range: 174, fireRate: 2.4 },
+      { damage: 56,  range: 188, fireRate: 2.7 },
+      { damage: 113, range: 205, fireRate: 3.0 },
     ],
   },
   cannon: {
     key: 'cannon', name: '대포', attack: 'splash', cost: 110, maxLevel: 5,
     levels: [
-      { damage: 22, range: 130, fireRate: 0.7, splashRadius: 55 },
-      { damage: 34, range: 135, fireRate: 0.75, splashRadius: 60 },
-      { damage: 52, range: 142, fireRate: 0.8, splashRadius: 66 },
-      { damage: 80, range: 150, fireRate: 0.85, splashRadius: 72 },
-      { damage: 122, range: 160, fireRate: 0.9, splashRadius: 80 },
+      { damage: 22,  range: 130, fireRate: 0.7,  splashRadius: 55 },
+      { damage: 40,  range: 136, fireRate: 0.75, splashRadius: 62 },
+      { damage: 78,  range: 144, fireRate: 0.8,  splashRadius: 70 },
+      { damage: 155, range: 152, fireRate: 0.85, splashRadius: 80 },
+      { damage: 310, range: 162, fireRate: 0.9,  splashRadius: 92 },
     ],
   },
   frost: {
+    // 낮은 데미지, 강한 감속이 정체성. 레벨은 주로 감속률·지속을 키운다.
     key: 'frost', name: '서리탑', attack: 'slow', cost: 80, maxLevel: 5,
     levels: [
-      { damage: 3, range: 140, fireRate: 1.5, slowMul: 0.75, slowDurationMs: 1200 },
-      { damage: 5, range: 148, fireRate: 1.6, slowMul: 0.70, slowDurationMs: 1300 },
-      { damage: 8, range: 156, fireRate: 1.7, slowMul: 0.62, slowDurationMs: 1400 },
-      { damage: 12, range: 165, fireRate: 1.8, slowMul: 0.54, slowDurationMs: 1600 },
-      { damage: 18, range: 175, fireRate: 2.0, slowMul: 0.45, slowDurationMs: 1800 },
+      { damage: 3,  range: 140, fireRate: 1.5, slowMul: 0.75, slowDurationMs: 1200 },
+      { damage: 6,  range: 150, fireRate: 1.6, slowMul: 0.68, slowDurationMs: 1350 },
+      { damage: 11, range: 160, fireRate: 1.7, slowMul: 0.58, slowDurationMs: 1500 },
+      { damage: 20, range: 170, fireRate: 1.8, slowMul: 0.47, slowDurationMs: 1700 },
+      { damage: 38, range: 182, fireRate: 2.0, slowMul: 0.35, slowDurationMs: 2000 },
     ],
   },
   bolt: {
@@ -36,10 +40,10 @@ export const TOWERS: Record<string, TowerDef> = {
     key: 'bolt', name: '번개탑', attack: 'chain', cost: 95, maxLevel: 5,
     levels: [
       { damage: 7,  range: 150, fireRate: 2.4, chainTargets: 2, chainFalloff: 0.55, chainRange: 90 },
-      { damage: 11, range: 158, fireRate: 2.5, chainTargets: 2, chainFalloff: 0.60, chainRange: 95 },
-      { damage: 17, range: 166, fireRate: 2.6, chainTargets: 3, chainFalloff: 0.65, chainRange: 100 },
-      { damage: 26, range: 176, fireRate: 2.8, chainTargets: 3, chainFalloff: 0.70, chainRange: 110 },
-      { damage: 40, range: 188, fireRate: 3.0, chainTargets: 4, chainFalloff: 0.75, chainRange: 120 },
+      { damage: 12, range: 160, fireRate: 2.5, chainTargets: 2, chainFalloff: 0.60, chainRange: 98 },
+      { damage: 23, range: 170, fireRate: 2.6, chainTargets: 3, chainFalloff: 0.65, chainRange: 106 },
+      { damage: 44, range: 182, fireRate: 2.8, chainTargets: 3, chainFalloff: 0.70, chainRange: 116 },
+      { damage: 84, range: 196, fireRate: 3.0, chainTargets: 4, chainFalloff: 0.78, chainRange: 128 },
     ],
   },
 };

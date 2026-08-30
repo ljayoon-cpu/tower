@@ -23,5 +23,16 @@ describe('balance measurement with production combat', () => {
     if (process.env.BALANCE_OUTPUT) writeFileSync(process.env.BALANCE_OUTPUT, JSON.stringify(rows, null, 2));
     expect(rows.filter(r => r.strategy === 'none').every(r => !r.won)).toBe(true);
     expect(simulate(STAGES[1], strategies.mixedMerge, 42)).toEqual(simulate(STAGES[1], strategies.mixedMerge, 42));
+
+    // Design intent: on the hardest stage, concentrating gold into merges must
+    // out-perform blanketing the map with level-1 towers. If this flips, the
+    // merge mechanic has lost its teeth — retune tower level scaling.
+    const last = STAGES[STAGES.length - 1];
+    for (const seed of [1, 42, 20260831]) {
+      const merge = simulate(last, strategies.arrowMerge, seed);
+      const spread = simulate(last, strategies.arrowSpread, seed);
+      expect(merge.won).toBe(true);
+      expect(merge.lives).toBeGreaterThanOrEqual(spread.lives);
+    }
   }, 120000);
 });
