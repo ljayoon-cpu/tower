@@ -45,10 +45,12 @@ export class PathManager {
       const seg = Math.hypot(b.x - a.x, b.y - a.y);
       if (remaining <= seg) {
         const t = seg === 0 ? 0 : remaining / seg;
+        // clamp progress to [0, 1]: negative distance -> 0
+        const progress = total === 0 ? 0 : Math.min(1, Math.max(0, distance / total));
         return {
           pos: { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t },
           done: false,
-          progress: total === 0 ? 0 : distance / total,
+          progress,
         };
       }
       remaining -= seg;
