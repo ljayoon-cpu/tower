@@ -7,6 +7,7 @@ import { MainMenu } from './scenes/MainMenu';
 import { StageSelect } from './scenes/StageSelect';
 import { Game } from './scenes/Game';
 import { HUD } from './scenes/HUD';
+import { Result } from './scenes/Result';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -18,7 +19,7 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [Boot, Preload, MainMenu, StageSelect, Game, HUD],
+  scene: [Boot, Preload, MainMenu, StageSelect, Game, HUD, Result],
 });
 
 if (import.meta.env.DEV) {

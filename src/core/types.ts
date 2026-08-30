@@ -81,4 +81,5 @@ export type GameEvents = {
   'stage:won': { stars: number };
   'stage:lost': Record<string, never>;
   'speed:changed': { multiplier: number };
+  'pause:changed': { paused: boolean };
 };

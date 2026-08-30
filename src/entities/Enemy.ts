@@ -12,6 +12,7 @@ export class Enemy {
   private slowMul = 1;
   private slowLeftMs = 0;
   private _done = false;
+  private _progress = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -28,7 +29,7 @@ export class Enemy {
   get alive(): boolean { return this._hp > 0 && !this._done; }
   get reachedGoal(): boolean { return this._done; }
   get progress(): number {
-    return PathManager.advance(this.polyline, this.traveled).progress;
+    return this._progress;
   }
 
   takeDamage(n: number): void {
@@ -45,13 +46,13 @@ export class Enemy {
 
   update(dtMs: number, speedMul: number): void {
     if (!this.alive) return;
-    if (this.slowLeftMs > 0) {
-      this.slowLeftMs -= dtMs;
-      if (this.slowLeftMs <= 0) this.slowMul = 1;
-    }
-    const effSpeed = this.def.speed * this.slowMul;
-    this.traveled += (effSpeed * dtMs / 1000) * speedMul;
+    const simulationMs = dtMs * speedMul;
+    const slowedMs = Math.min(simulationMs, Math.max(0, this.slowLeftMs));
+    this.traveled += this.def.speed * (slowedMs * this.slowMul + simulationMs - slowedMs) / 1000;
+    this.slowLeftMs = Math.max(0, this.slowLeftMs - simulationMs);
+    if (this.slowLeftMs === 0) this.slowMul = 1;
     const a = PathManager.advance(this.polyline, this.traveled);
+    this._progress = a.progress;
     this.sprite.setPosition(a.pos.x, a.pos.y);
     if (a.done) { this._done = true; this.sprite.setVisible(false); }
   }

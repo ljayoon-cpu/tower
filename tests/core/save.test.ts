@@ -1,5 +1,6 @@
 import { loadSave, recordResult, isUnlocked } from '../../src/core/save';
 import type { StorageLike } from '../../src/core/save';
+import { SAVE_KEY } from '../../src/core/constants';
 
 function memStorage(): StorageLike {
   const m = new Map<string, string>();
@@ -38,5 +39,28 @@ describe('save', () => {
     const s = memStorage();
     s.setItem('mtd:save', '{not json');
     expect(loadSave(s)).toEqual({ stages: {} });
+  });
+
+  it('does not unlock the next stage on defeat', () => {
+    const data = recordResult('1-1', 0, '1-2', memStorage());
+    expect(isUnlocked(data, '1-2')).toBe(false);
+  });
+
+  it('discards malformed entries without losing valid progress', () => {
+    const s = memStorage();
+    s.setItem(SAVE_KEY, JSON.stringify({ stages: {
+      '1-1': { stars: 3, unlocked: true }, '1-2': null,
+      '1-3': { stars: 99, unlocked: 'yes' },
+    } }));
+    expect(loadSave(s)).toEqual({ stages: { '1-1': { stars: 3, unlocked: true } } });
+  });
+
+  it('does not crash a result screen when browser storage is blocked', () => {
+    const blocked: StorageLike = {
+      getItem() { throw new Error('SecurityError'); },
+      setItem() { throw new Error('QuotaExceededError'); },
+    };
+    expect(loadSave(blocked)).toEqual({ stages: {} });
+    expect(() => recordResult('1-1', 3, '1-2', blocked)).not.toThrow();
   });
 });

@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH } from '../core/constants';
+import { GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import type { EventBus } from '../core/eventBus';
 import type { GameEvents } from '../core/types';
+import { audioFor } from '../ui/audio';
 
 export interface HudInit {
   bus: EventBus<GameEvents>;
@@ -9,36 +10,77 @@ export interface HudInit {
   lives: number;
   totalWaves: number;
   onNextWave: () => void;
+  onToggleSpeed: () => void;
+  onTogglePause: () => void;
+  onQuit: () => void;
 }
 
 export class HUD extends Phaser.Scene {
-  private goldText!: Phaser.GameObjects.Text;
-  private lifeText!: Phaser.GameObjects.Text;
-  private waveText!: Phaser.GameObjects.Text;
-
   constructor() { super('hud'); }
 
   create(data: HudInit) {
-    const style = { fontFamily: 'monospace', fontSize: '28px', color: '#f2f2f7' };
-    this.goldText = this.add.text(16, 12, '', style);
-    this.lifeText = this.add.text(16, 46, '', style);
-    this.waveText = this.add.text(GAME_WIDTH - 16, 12, '', style).setOrigin(1, 0);
-
-    const btn = this.add.text(GAME_WIDTH - 16, 46, '▶ 다음 웨이브', {
-      ...style, color: '#ffcc44',
-    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
-    btn.on('pointerup', () => data.onNextWave());
-    data.bus.on('wave:started', () => { btn.setAlpha(0.35); btn.disableInteractive(); });
-    data.bus.on('wave:cleared', () => { btn.setAlpha(1); btn.setInteractive({ useHandCursor: true }); });
-
-    const render = () => {
-      this.goldText.setText(`골드 ${data.gold}`);
-      this.lifeText.setText(`라이프 ${data.lives}`);
+    const audio = audioFor(this);
+    const style = { fontFamily: 'monospace', fontSize: '26px', color: '#f2f2f7' };
+    this.add.rectangle(GAME_WIDTH / 2, 70, GAME_WIDTH, 140, 0x0f1020, 0.96).setInteractive();
+    const goldText = this.add.text(20, 12, `골드 ${data.gold}`, { ...style, color: '#ffcc44' });
+    const lifeText = this.add.text(20, 48, `라이프 ${data.lives}`, { ...style, color: '#ff8899' });
+    const waveText = this.add.text(GAME_WIDTH - 20, 12, `웨이브 -/${data.totalWaves}`, style).setOrigin(1, 0);
+    const button = (x: number, y: number, w: number, label: string, action: () => void) => {
+      const bg = this.add.rectangle(x, y, w, 48, 0x242943).setInteractive({ useHandCursor: true });
+      const text = this.add.text(x, y, label, { ...style, fontSize: '23px' }).setOrigin(0.5);
+      let pressed = false;
+      bg.on('pointerdown', () => { pressed = true; });
+      bg.on('pointerout', () => { pressed = false; });
+      bg.on('pointerup', () => {
+        if (!pressed) return;
+        pressed = false;
+        action();
+      });
+      return { bg, text };
     };
-    data.bus.on('gold:changed', (p) => { data.gold = p.gold; render(); });
-    data.bus.on('life:changed', (p) => { data.lives = p.lives; render(); });
-    data.bus.on('wave:started', (p) => this.waveText.setText(`웨이브 ${p.index + 1}/${p.total}`));
-    render();
-    this.waveText.setText(`웨이브 -/${data.totalWaves}`);
+    const next = button(GAME_WIDTH - 125, 64, 210, '▶ 다음 웨이브', data.onNextWave);
+    const speed = button(GAME_WIDTH - 56, 112, 72, '1x', data.onToggleSpeed);
+    button(GAME_WIDTH - 167, 112, 134, '일시정지', data.onTogglePause);
+    const sound = button(340, 64, 140, '', () => {
+      audio.toggle();
+      sound.text.setText(audio.muted ? '소리 꺼짐' : '소리 켜짐');
+      audio.play('click');
+    });
+    sound.text.setText(audio.muted ? '소리 꺼짐' : '소리 켜짐');
+    const hint = this.add.text(20, 95, '빈 칸을 눌러 타워 설치', {
+      ...style, fontSize: '20px', color: '#8d98bb',
+    });
+
+    const overlay = this.add.container(0, 0).setDepth(2000).setVisible(false);
+    const shade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.72).setInteractive();
+    const panel = this.add.rectangle(GAME_WIDTH / 2, 620, 460, 370, 0x1b1d33).setStrokeStyle(2, 0x66ccff);
+    const heading = this.add.text(GAME_WIDTH / 2, 500, '일시정지', { ...style, fontSize: '42px' }).setOrigin(0.5);
+    overlay.add([shade, panel, heading]);
+    const resume = button(GAME_WIDTH / 2, 615, 320, '▶ 계속하기', data.onTogglePause);
+    const quit = button(GAME_WIDTH / 2, 710, 320, '포기하고 스테이지 선택', data.onQuit);
+    overlay.add([resume.bg, resume.text, quit.bg, quit.text]);
+
+    const cleanups: Array<() => void> = [];
+    const on = <K extends keyof GameEvents>(event: K, fn: (value: GameEvents[K]) => void) => {
+      data.bus.on(event, fn);
+      cleanups.push(() => data.bus.off(event, fn));
+    };
+    on('gold:changed', ({ gold }) => goldText.setText(`골드 ${gold}`));
+    on('life:changed', ({ lives }) => lifeText.setText(`라이프 ${lives}`));
+    on('wave:started', ({ index, total }) => {
+      waveText.setText(`웨이브 ${index + 1}/${total}`);
+      next.bg.disableInteractive().setAlpha(0.4);
+      next.text.setAlpha(0.4);
+      hint.setText('같은 타워를 겹치면 합체');
+    });
+    on('wave:cleared', ({ index }) => {
+      if (index + 1 >= data.totalWaves) return;
+      next.bg.setInteractive({ useHandCursor: true }).setAlpha(1);
+      next.text.setAlpha(1);
+      hint.setText('길게 눌러 타워 판매');
+    });
+    on('speed:changed', ({ multiplier }) => speed.text.setText(`${multiplier}x`));
+    on('pause:changed', ({ paused }) => overlay.setVisible(paused));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => cleanups.forEach((off) => off()));
   }
 }

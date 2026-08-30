@@ -2,8 +2,11 @@ import Phaser from 'phaser';
 import { COLORS, TILE, GRID_COLS, GRID_ROWS, GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import { createEventBus } from '../core/eventBus';
 import type { EventBus } from '../core/eventBus';
-import type { GameEvents, StageDef, TileCoord } from '../core/types';
-import { getStage } from '../data/stages';
+import type { GameEvents, StageDef, TileCoord, Vec2 } from '../core/types';
+import { Pool } from '../core/pool';
+import { getStage, nextStageId } from '../data/stages';
+import { starsFor } from '../core/stars';
+import { recordResult } from '../core/save';
 import { getEnemy } from '../data/enemies';
 import { getTower, TOWER_KEYS, cumulativeCost } from '../data/towers';
 import { canMerge, mergeResultLevel } from '../systems/MergeController';
@@ -16,14 +19,17 @@ import { Rng } from '../core/rng';
 import { Enemy } from '../entities/Enemy';
 import { Tower } from '../entities/Tower';
 import { Projectile } from '../entities/Projectile';
+import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius } from '../systems/TargetingSystem';
-import type { Targetable } from '../systems/TargetingSystem';
 import { chainDamages, buildChain } from '../systems/combat';
 import { BuildMenu } from '../ui/BuildMenu';
+import { audioFor } from '../ui/audio';
+import type { SoundEffects } from '../core/audio';
 import type { HudInit } from './HUD';
 
 export class Game extends Phaser.Scene {
   private stage!: StageDef;
+  private audio!: SoundEffects;
   private bus!: EventBus<GameEvents>;
   private grid!: GridManager;
   private path!: PathManager;
@@ -33,12 +39,14 @@ export class Game extends Phaser.Scene {
   private enemies: Enemy[] = [];
   private towers: Tower[] = [];
   private projectiles: Projectile[] = [];
+  private projectilePool!: Pool<Projectile>;
   private buildMenu!: BuildMenu;
   private pendingTile: TileCoord | null = null;
   private buildPreview: Phaser.GameObjects.Arc | null = null;
   private lives = 0;
   private speedMul = 1;
   private running = false;
+  private paused = false;
   private sellTimer?: Phaser.Time.TimerEvent;
   private sellPanel?: Phaser.GameObjects.Container;
   private sellPanelBackdrop?: Phaser.GameObjects.Rectangle;
@@ -52,6 +60,8 @@ export class Game extends Phaser.Scene {
   }
 
   create() {
+    this.audio = audioFor(this);
+    this.audio.stop();
     this.bus = createEventBus<GameEvents>();
     this.grid = new GridManager(this.stage.grid);
     this.path = new PathManager(this.stage.path);
@@ -61,10 +71,31 @@ export class Game extends Phaser.Scene {
     this.enemies = [];
     this.towers = [];
     this.projectiles = [];
+    this.projectilePool = new Pool(() => new Projectile(this));
     this.pendingTile = null;
     this.buildPreview = null;
     this.speedMul = 1;
     this.running = true;
+    this.paused = false;
+    this.suppressTapUntil = 0;
+    this.sellTimer = undefined;
+    this.sellPanel = undefined;
+    this.sellPanelBackdrop = undefined;
+    this.input.enabled = true;
+    // A stationary press must remain eligible for selling; dragging starts after movement.
+    this.input.dragDistanceThreshold = 10;
+    this.time.paused = false;
+    this.tweens.resumeAll();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.running = false;
+      this.sellTimer?.remove();
+      this.input.off('dragstart');
+      this.input.off('drag');
+      this.input.off('dragend');
+      this.input.off('pointerup');
+      this.bus.clear();
+      this.scene.stop('hud');
+    });
 
     this.drawMap();
     this.setupBuildInput();
@@ -72,25 +103,62 @@ export class Game extends Phaser.Scene {
 
     this.bus.on('enemy:killed', (p) => {
       this.eco.earn(p.bounty);
+      this.audio.play('hit');
     });
     this.bus.on('enemy:reachedGoal', (p) => {
       this.lives = Math.max(0, this.lives - p.lifeDamage);
       this.bus.emit('life:changed', { lives: this.lives });
+      this.audio.play('leak');
       if (this.lives <= 0) this.endStage(false);
     });
     this.bus.on('wave:cleared', () => {
       this.eco.earn(this.waves.currentClearBonus());
       if (this.waves.isFinished) this.endStage(true);
     });
+    this.bus.on('wave:started', () => this.audio.play('wave'));
 
     const hudInit: HudInit = {
       bus: this.bus,
       gold: this.eco.gold,
       lives: this.lives,
       totalWaves: this.waves.totalWaves,
-      onNextWave: () => this.waves.startNextWave(),
+      onNextWave: () => { if (this.running && !this.paused) this.waves.startNextWave(); },
+      onToggleSpeed: () => this.toggleSpeed(),
+      onTogglePause: () => this.togglePause(),
+      onQuit: () => {
+        this.running = false;
+        this.audio.stop();
+        this.scene.stop('hud');
+        this.scene.start('stageselect');
+      },
     };
     this.scene.launch('hud', hudInit);
+  }
+
+  toggleSpeed(): void {
+    if (!this.running || this.paused) return;
+    this.speedMul = this.speedMul === 1 ? 2 : 1;
+    this.bus.emit('speed:changed', { multiplier: this.speedMul });
+  }
+
+  togglePause(): void {
+    if (!this.running) return;
+    this.paused = !this.paused;
+    if (this.paused) this.audio.stop();
+    this.sellTimer?.remove();
+    this.closeBuildMenu();
+    this.sellPanel?.destroy();
+    this.sellPanelBackdrop?.destroy();
+    this.sellPanel = undefined;
+    this.sellPanelBackdrop = undefined;
+    this.clearTowerRanges();
+    this.cancelDrags();
+    this.input.enabled = !this.paused;
+    this.time.paused = this.paused;
+    if (this.paused) this.tweens.pauseAll();
+    else this.tweens.resumeAll();
+    this.suppressTapUntil = this.time.now + 150;
+    this.bus.emit('pause:changed', { paused: this.paused });
   }
 
   private drawMap() {
@@ -122,7 +190,7 @@ export class Game extends Phaser.Scene {
       .setInteractive();
 
     catcher.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      if (!this.running) return;
+      if (!this.running || this.paused) return;
       if (this.time.now < this.suppressTapUntil) return;
       // 빈 곳/타일 탭 → 표시 중인 사거리 링 숨김
       this.clearTowerRanges();
@@ -166,6 +234,7 @@ export class Game extends Phaser.Scene {
     this.input.on(
       'dragstart',
       (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image) => {
+        if (!this.running || this.paused) return;
         this.sellTimer?.remove();
         obj.setDepth(600);
         const t = this.towerFromObj(obj);
@@ -176,6 +245,7 @@ export class Game extends Phaser.Scene {
     this.input.on(
       'drag',
       (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image, dx: number, dy: number) => {
+        if (!this.running || this.paused) return;
         obj.setPosition(dx, dy);
       },
     );
@@ -183,6 +253,7 @@ export class Game extends Phaser.Scene {
     this.input.on(
       'dragend',
       (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image) => {
+        if (!this.running || this.paused) return;
         obj.setDepth(10);
         this.suppressTapUntil = this.time.now + 100;
         const dragged = this.towerFromObj(obj);
@@ -202,6 +273,7 @@ export class Game extends Phaser.Scene {
             this.grid.release(dragged.tile);
             this.removeTower(dragged);
             this.snapHome(targetTower);
+            this.audio.play('merge');
             return;
           }
         }
@@ -217,7 +289,17 @@ export class Game extends Phaser.Scene {
   }
 
   private snapHome(t: Tower): void {
-    t.sprite.setPosition(t.homePos.x, t.homePos.y);
+    t.sprite.setPosition(t.homePos.x, t.homePos.y).setDepth(10);
+  }
+
+  private cancelDrags(): void {
+    for (const pointer of this.input.manager.pointers) this.input.setDragState(pointer, 0);
+    for (const tower of this.towers) {
+      // disableInteractive clears Phaser's internal drag lists as well as object state.
+      if (tower.sprite.input?.dragState) tower.sprite.disableInteractive().setInteractive();
+      this.snapHome(tower);
+      tower.showRange(false);
+    }
   }
 
   private removeTower(t: Tower): void {
@@ -226,13 +308,15 @@ export class Game extends Phaser.Scene {
   }
 
   private confirmSell(t: Tower): void {
+    if (!this.running || this.paused || !this.towers.includes(t)) return;
     this.eco.sellRefund(cumulativeCost(getTower(t.key), t.level));
     this.grid.release(t.tile);
     this.removeTower(t);
+    this.audio.play('sell');
   }
 
   private showSellPrompt(tower: Tower): void {
-    if (!this.running) return;
+    if (!this.running || this.paused) return;
     if (this.towers.indexOf(tower) === -1) return;
     this.sellPanel?.destroy();
     this.sellPanelBackdrop?.destroy();
@@ -277,22 +361,27 @@ export class Game extends Phaser.Scene {
       if (this.sellPanel === panel) this.sellPanel = undefined;
       if (this.sellPanelBackdrop === backdrop) this.sellPanelBackdrop = undefined;
     };
-    // sell/cancel 핸들러는 suppressTapUntil 로 게이팅되지 않는다 —
-    // 나중의 의도적 탭은 정상 동작해야 한다.
+    // Require a fresh press on the modal: releasing the original long press cannot sell/close it.
+    let armed: Phaser.GameObjects.GameObject | null = null;
+    for (const control of [sell, cancel, backdrop]) {
+      control.on('pointerdown', () => { armed = control; });
+    }
     sell.on('pointerup', () => {
+      if (armed !== sell) return;
       this.confirmSell(tower);
       close();
     });
-    cancel.on('pointerup', close);
+    cancel.on('pointerup', () => { if (armed === cancel) close(); });
     // 백드롭 = 바깥 탭 닫기. 단, 롱프레스에서 손 떼는 그 pointerup 은 무시
     // (그 순간 포인터가 백드롭 위에 있으므로 즉시 닫히는 것을 방지).
     backdrop.on('pointerup', () => {
-      if (this.time.now < this.suppressTapUntil) return;
+      if (armed !== backdrop) return;
       close();
     });
   }
 
   private placeTower(key: string, tile: TileCoord): void {
+    if (!this.running || this.paused) return;
     const def = getTower(key);
     if (!this.grid.canPlace(tile)) return;
     if (!this.eco.spend(def.cost)) return;
@@ -300,15 +389,20 @@ export class Game extends Phaser.Scene {
     const tower = new Tower(this, key, tile, pos);
     this.grid.occupy(tile, tower.id);
     this.towers.push(tower);
+    this.audio.play('place');
     // 타워 탭 → 사거리 링 토글(한 번에 하나만 표시). 드래그 직후 탭은 무시.
     tower.sprite.on('pointerup', () => {
+      if (!this.running || this.paused) return;
       if (this.time.now < this.suppressTapUntil) return;
       this.clearTowerRanges(tower.rangeVisible ? undefined : tower);
     });
     // 롱프레스(~500ms) → 판매 확인 팝업.
-    tower.sprite.on('pointerdown', () => {
+    tower.sprite.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!this.running || this.paused) return;
       this.sellTimer?.remove();
-      this.sellTimer = this.time.delayedCall(500, () => this.showSellPrompt(tower));
+      this.sellTimer = this.time.delayedCall(500, () => {
+        if (pointer.isDown) this.showSellPrompt(tower);
+      });
     });
     tower.sprite.on('pointerup', () => this.sellTimer?.remove());
     this.closeBuildMenu();
@@ -326,52 +420,61 @@ export class Game extends Phaser.Scene {
     if (!this.running) return;
     this.running = false;
     this.scene.stop('hud');
-    // Result 씬은 Task 15에서. 임시:
-    this.add.text(360, 640, won ? 'CLEAR' : 'GAME OVER', {
-      fontFamily: 'monospace', fontSize: '48px', color: '#f2f2f7',
-    }).setOrigin(0.5).setDepth(1000);
+    this.audio.stop();
+    this.input.enabled = false;
+    this.sellTimer?.remove();
+    const stars = starsFor(this.lives, this.stage.startLives, this.stage.starThresholds, won);
+    recordResult(this.stage.id, stars, nextStageId(this.stage.id));
+    if (won) this.bus.emit('stage:won', { stars });
+    else this.bus.emit('stage:lost', {});
+    this.scene.start('result', {
+      stageId: this.stage.id, won, stars,
+      lives: this.lives, startLives: this.stage.startLives,
+    });
   }
 
   private updateTowers(dtMs: number) {
-    const targets: Targetable[] = this.enemies.map((e) => ({
-      id: e.id, pos: e.pos, progress: e.progress, alive: e.alive,
-    }));
+    const targets = this.enemies;
 
     for (const tower of this.towers) {
       tower.cooldownMs -= dtMs;
       if (tower.cooldownMs > 0) continue;
       const s = tower.stats();
-      const target = pickTarget(tower.pos, s.range, targets);
+      const target = pickTarget(tower.homePos, s.range, targets);
       if (!target) continue;
       tower.cooldownMs = 1000 / s.fireRate;
 
       const enemy = this.enemies.find((e) => e.id === target.id);
       if (!enemy) continue;
       const def = getTower(tower.key);
+      if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt') {
+        this.audio.play(tower.key);
+      }
 
       if (def.attack === 'chain') {
-        const chain = buildChain(target, targets, s.chainRange ?? 0, s.chainTargets ?? 0);
-        const dmgs = chainDamages(s.damage, s.chainFalloff ?? 1, chain.length - 1);
-        const chainIds = chain.map((t) => t.id);
-        this.projectiles.push(new Projectile(this, tower.pos, {
+        this.fireProjectile(tower.homePos, {
           speed: 620,
           targetPos: () => (enemy.alive ? enemy.pos : null),
           onHit: () => {
-            chainIds.forEach((id, i) => {
-              this.enemies.find((e) => e.id === id)?.takeDamage(dmgs[i]);
+            if (!enemy.alive) return;
+            // Determine jumps on impact, using current positions and living targets.
+            const chain = buildChain(enemy, this.enemies, s.chainRange ?? 0, s.chainTargets ?? 0);
+            const dmgs = chainDamages(s.damage, s.chainFalloff ?? 1, chain.length - 1);
+            chain.forEach((hit, i) => {
+              this.enemies.find((e) => e.id === hit.id)?.takeDamage(dmgs[i]);
             });
           },
-        }));
+        });
         continue;
       }
 
-      this.projectiles.push(new Projectile(this, tower.pos, {
+      this.fireProjectile(tower.homePos, {
         speed: 520,
         targetPos: () => (enemy.alive ? enemy.pos : null),
         onHit: (hitPos) => {
           if (def.attack === 'splash') {
             for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0,
-              this.enemies.map((e) => ({ id: e.id, pos: e.pos, progress: e.progress, alive: e.alive })))) {
+              this.enemies)) {
               this.enemies.find((e) => e.id === hit.id)?.takeDamage(s.damage);
             }
           } else {
@@ -380,23 +483,39 @@ export class Game extends Phaser.Scene {
             if (def.attack === 'slow') enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
           }
         },
-      }));
+      });
     }
   }
 
+  private fireProjectile(from: Vec2, opts: ProjectileOpts): void {
+    const shot = this.projectilePool.acquire();
+    shot.launch(from, opts);
+    this.projectiles.push(shot);
+  }
+
   update(_time: number, dtMsRaw: number) {
-    if (!this.running) return;
+    if (!this.running || this.paused) return;
+    // The HUD may consume pointerup before the Game scene sees it.
+    if (this.input.manager.pointers.some((p) => !p.isDown && this.input.getDragState(p) > 0)) {
+      this.cancelDrags();
+    }
     const dtMs = dtMsRaw * this.speedMul;
 
     for (const req of this.waves.update(dtMs)) this.spawnEnemy(req.enemyKey);
 
     this.updateTowers(dtMs);
-    this.projectiles = this.projectiles.filter((p) => !p.update(dtMs, this.speedMul));
+    let activeShots = 0;
+    for (const shot of this.projectiles) {
+      if (shot.update(dtMsRaw, this.speedMul)) this.projectilePool.release(shot);
+      else this.projectiles[activeShots++] = shot;
+    }
+    this.projectiles.length = activeShots;
 
     for (const e of this.enemies) {
       e.update(dtMsRaw, this.speedMul);
       if (e.reachedGoal) {
         this.bus.emit('enemy:reachedGoal', { lifeDamage: e.def.lifeDamage });
+        if (!this.running) return;
       }
     }
     // 처리된 적 정리
@@ -404,6 +523,7 @@ export class Game extends Phaser.Scene {
     for (const e of removed) {
       if (e.hp <= 0) this.bus.emit('enemy:killed', { bounty: e.def.bounty });
       this.waves.notifyEnemyRemoved();
+      if (!this.running) return;
       e.destroy();
     }
     this.enemies = this.enemies.filter((e) => e.alive);

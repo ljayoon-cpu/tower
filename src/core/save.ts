@@ -6,19 +6,23 @@ export type StorageLike = {
   setItem(k: string, v: string): void;
 };
 
+const memory = new Map<string, string>();
+const fallback: StorageLike = {
+  getItem: (k) => memory.get(k) ?? null,
+  setItem: (k, v) => { memory.set(k, v); },
+};
+
 function defaultStorage(): StorageLike {
-  if (typeof localStorage !== 'undefined') return localStorage;
-  const m = new Map<string, string>();
-  return {
-    getItem: (k) => m.get(k) ?? null,
-    setItem: (k, v) => { m.set(k, v); },
-  };
+  try {
+    if (typeof localStorage !== 'undefined') return localStorage;
+  } catch { /* Browser security settings can block the property itself. */ }
+  return fallback;
 }
 
 export function loadSave(storage: StorageLike = defaultStorage()): SaveData {
-  const raw = storage.getItem(SAVE_KEY);
-  if (!raw) return { stages: {} };
   try {
+    const raw = storage.getItem(SAVE_KEY);
+    if (!raw) return { stages: {} };
     const parsed: unknown = JSON.parse(raw);
     if (
       parsed !== null &&
@@ -26,7 +30,17 @@ export function loadSave(storage: StorageLike = defaultStorage()): SaveData {
       typeof (parsed as { stages?: unknown }).stages === 'object' &&
       (parsed as { stages?: unknown }).stages !== null
     ) {
-      return parsed as SaveData;
+      const entries = (parsed as { stages: Record<string, unknown> }).stages;
+      const stages: SaveData['stages'] = {};
+      if (Array.isArray(entries)) return { stages };
+      for (const [id, entry] of Object.entries(entries)) {
+        if (entry === null || typeof entry !== 'object') continue;
+        const { stars, unlocked } = entry as { stars?: unknown; unlocked?: unknown };
+        if (typeof stars === 'number' && Number.isInteger(stars) && stars >= 0 && stars <= 3 && typeof unlocked === 'boolean') {
+          Object.defineProperty(stages, id, { value: { stars, unlocked }, enumerable: true, writable: true, configurable: true });
+        }
+      }
+      return { stages };
     }
     return { stages: {} };
   } catch {
@@ -35,7 +49,8 @@ export function loadSave(storage: StorageLike = defaultStorage()): SaveData {
 }
 
 export function writeSave(data: SaveData, storage: StorageLike = defaultStorage()): void {
-  storage.setItem(SAVE_KEY, JSON.stringify(data));
+  try { storage.setItem(SAVE_KEY, JSON.stringify(data)); }
+  catch { /* Storage unavailable/full: gameplay and result navigation still work. */ }
 }
 
 export function isUnlocked(data: SaveData, stageId: string): boolean {
