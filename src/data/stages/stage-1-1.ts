@@ -38,7 +38,7 @@ export const stage11: StageDef = {
   path: { points: [{ x: cx, y: topY }, { x: cx, y: botY }] },
   startGold: 200,
   startLives: 20,
-  starThresholds: [1.0, 0.6, 0.3],
+  starThresholds: [0.3, 0.6, 1.0],
   waves: [
     { clearBonus: 25, groups: [{ enemy: 'normal', count: 6, intervalMs: 700, startDelayMs: 0 }] },
     { clearBonus: 25, groups: [{ enemy: 'normal', count: 8, intervalMs: 600, startDelayMs: 0 }] },

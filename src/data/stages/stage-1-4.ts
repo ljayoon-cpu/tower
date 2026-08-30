@@ -64,7 +64,7 @@ export const stage14: StageDef = {
   },
   startGold: 280,
   startLives: 20,
-  starThresholds: [1.0, 0.65, 0.3],
+  starThresholds: [0.3, 0.65, 1.0],
   waves: [
     { clearBonus: 25, groups: [{ enemy: 'normal', count: 12, intervalMs: 450, startDelayMs: 0 }] },
     {

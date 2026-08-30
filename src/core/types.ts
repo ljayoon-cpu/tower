@@ -63,7 +63,7 @@ export interface StageDef {
   startGold: number;
   startLives: number;
   waves: Wave[];
-  starThresholds: [number, number, number]; // 남은 라이프 비율 [1별,2별,3별], 내림차순
+  starThresholds: [number, number, number]; // 남은 라이프 비율 하한 [1별,2별,3별], 오름차순
 }
 
 export interface StageProgress { stars: number; unlocked: boolean; }
