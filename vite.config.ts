@@ -6,11 +6,15 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
+      includeAssets: ['icons/icon-192.png', 'icons/icon-512.png', 'sfx/*.wav'],
       manifest: {
+        lang: 'ko',
         name: '머지 타워디펜스',
         short_name: 'MergeTD',
         display: 'fullscreen',
         orientation: 'portrait',
+        start_url: './',
+        scope: './',
         background_color: '#0f1020',
         theme_color: '#0f1020',
         icons: [

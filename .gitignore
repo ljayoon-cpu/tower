@@ -4,3 +4,8 @@ dev-dist
 *.local
 .DS_Store
 .claude/
+.superpowers/
+
+# Regenerable balance analysis dumps (see tests/balance/, run with BALANCE_OUTPUT / BALANCE_EXPLORE)
+docs/balance-baseline.json
+docs/balance-exploration.json
