@@ -4,6 +4,7 @@
   "description": "Merge tower-defense mobile game (Phaser 3 + TypeScript + Vite)",
   "type": "module",
   "scripts": {
+    "sfx:generate": "node scripts/generate-sfx.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",

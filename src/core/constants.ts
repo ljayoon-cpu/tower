@@ -6,6 +6,8 @@ export const GRID_COLS = 11;
 export const GRID_ROWS = 20;
 
 export const SAVE_KEY = 'mtd:save';
+// Generated local effects; the player can mute them independently in the UI.
+export const SOUND_ENABLED = true;
 
 export const COLORS = {
   bg: 0x0f1020,
