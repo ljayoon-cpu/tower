@@ -9,6 +9,7 @@ describe('balance measurement with production combat', () => {
     const strategies = {
       none: noDefense, oneArrow,
       arrowSpread: spread(['arrow']),
+      frostFocus: mergeArmy(['frost']),
       mixedSpread: spread(['arrow', 'cannon', 'bolt', 'frost', 'poison', 'sniper']),
       arrowMerge: mergeArmy(['arrow', 'arrow', 'arrow']),
       mixedMerge: mergeArmy(['arrow', 'cannon', 'bolt', 'frost', 'poison', 'sniper']),

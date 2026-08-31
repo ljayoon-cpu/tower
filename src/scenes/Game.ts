@@ -15,6 +15,7 @@ import { Tutorial } from '../core/tutorial';
 import type { TutorialEvent } from '../core/tutorial';
 import { getEnemy } from '../data/enemies';
 import { getTower, TOWER_KEYS, cumulativeCost } from '../data/towers';
+import { frostFreezeEffect } from '../data/mergeEffects';
 import { canMerge, mergeResultLevel } from '../systems/MergeController';
 import { towerInfo } from '../core/towerInfo';
 import { TARGET_PRIORITY_LABEL } from '../systems/TargetingSystem';
@@ -657,7 +658,13 @@ export class Game extends Phaser.Scene {
               : s.damage);
             this.impactFlash(enemy.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
               def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');
-            if (def.attack === 'slow') enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
+            if (def.attack === 'slow') {
+              enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
+              const freeze = frostFreezeEffect(tower.level);
+              if (freeze && enemy.applyFreezeHit(freeze.hits, freeze.durationMs, freeze.cooldownMs)) {
+                this.impactFlash(enemy.pos, COLORS.frost, 'heavy');
+              }
+            }
           }
         },
       });

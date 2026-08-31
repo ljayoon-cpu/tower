@@ -31,6 +31,9 @@ export class EnemyState {
   shield: number;
   poisonDps = 0;
   poisonLeftMs = 0;
+  freezeLeftMs = 0;
+  private freezeHits = 0;
+  private freezeCooldownLeftMs = 0;
 
   private readonly armor: number;
   private readonly regenPerSecond: number;
@@ -61,6 +64,10 @@ export class EnemyState {
     return this.maxShield === 0 ? 0 : this.shield / this.maxShield;
   }
 
+  get frozen(): boolean {
+    return this.freezeLeftMs > 0;
+  }
+
   restoreShield(ratio: number): void {
     this.shield = Math.max(this.shield, this.maxShield * Math.max(0, Math.min(1, ratio)));
   }
@@ -88,8 +95,28 @@ export class EnemyState {
     this.poisonLeftMs = Math.max(this.poisonLeftMs, durationMs);
   }
 
-  update(dtMs: number): void {
+  /** 서리 적중을 누적해 정해진 횟수에서만 짧게 빙결시킨다. */
+  applyFreezeHit(hits: number, durationMs: number, cooldownMs: number): boolean {
+    const requiredHits = Math.max(1, Math.floor(hits));
+    const duration = Math.max(0, durationMs);
+    const cooldown = Math.max(0, cooldownMs);
+    if (!this.alive || duration === 0 || this.freezeCooldownLeftMs > 0) return false;
+
+    this.freezeHits++;
+    if (this.freezeHits < requiredHits) return false;
+
+    this.freezeHits = 0;
+    this.freezeLeftMs = duration;
+    this.freezeCooldownLeftMs = cooldown;
+    return true;
+  }
+
+  /** 상태를 경과시키고, 이번 시간 동안 이동이 멈춘 밀리초를 반환한다. */
+  update(dtMs: number): number {
     const dt = Math.max(0, dtMs);
+    const frozenForMs = Math.min(dt, this.freezeLeftMs);
+    this.freezeLeftMs = Math.max(0, this.freezeLeftMs - dt);
+    this.freezeCooldownLeftMs = Math.max(0, this.freezeCooldownLeftMs - dt);
     const poisonedForMs = Math.min(dt, this.poisonLeftMs);
 
     if (poisonedForMs > 0 && this.alive) {
@@ -105,7 +132,7 @@ export class EnemyState {
       this.hp = Math.min(this.maxHp, this.hp + (this.regenPerSecond * dt) / 1000);
     }
 
-    if (this.shield >= this.maxShield || this.maxShield === 0 || dt === 0) return;
+    if (this.shield >= this.maxShield || this.maxShield === 0 || dt === 0) return frozenForMs;
 
     const delayConsumed = Math.min(dt, this.shieldRechargeLeftMs);
     this.shieldRechargeLeftMs -= delayConsumed;
@@ -113,5 +140,6 @@ export class EnemyState {
     if (rechargeMs > 0 && this.shieldRechargeLeftMs === 0) {
       this.shield = Math.min(this.maxShield, this.shield + (this.shieldRechargePerSecond * rechargeMs) / 1000);
     }
+    return frozenForMs;
   }
 }
