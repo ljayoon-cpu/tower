@@ -54,6 +54,21 @@ const PROJECTILE_TEXTURE: Record<string, string> = {
   mine: 'projectile_mine',
 };
 
+const ENEMY_BURST_COLOR: Record<string, number> = {
+  normal: COLORS.enemyNormal,
+  fast: 0xff5a47,
+  tank: COLORS.enemyTank,
+  shield: 0x71dfff,
+  regenerator: 0x75db66,
+  summoner: 0xd69aff,
+  minion: 0xffd75a,
+  boss: COLORS.enemyBoss,
+  splitter: 0xe8963a,
+  splitterling: 0xf0a85a,
+  berserker: 0xd1362f,
+  crusher: 0xc7d0dc,
+};
+
 export class Game extends Phaser.Scene {
   private stage!: StageDef;
   private audio!: SoundEffects;
@@ -79,6 +94,10 @@ export class Game extends Phaser.Scene {
   private running = false;
   private paused = false;
   private bossOnField = false;
+  /** 강한 한 방 뒤에 전투 시간만 잠시 멈춘다. 실제 Phaser 장면에서만 시작된다. */
+  private hitstopLeftMs = 0;
+  /** 직전 프레임의 이동 벡터. 피격 넉백을 진행 방향 반대로 보이게 한다. */
+  private enemyMotion = new Map<number, Vec2>();
   private sellTimer?: Phaser.Time.TimerEvent;
   private sellPanel?: Phaser.GameObjects.Container;
   private sellPanelBackdrop?: Phaser.GameObjects.Rectangle;
@@ -129,6 +148,8 @@ export class Game extends Phaser.Scene {
     this.running = true;
     this.paused = false;
     this.bossOnField = false;
+    this.hitstopLeftMs = 0;
+    this.enemyMotion.clear();
     this.suppressTapUntil = 0;
     this.sellTimer = undefined;
     this.sellPanel = undefined;
@@ -829,6 +850,7 @@ export class Game extends Phaser.Scene {
               const e = this.enemies.find((x) => x.id === hit.id);
               if (!e) return;
               e.takeDamage({ amount: dmgs[i], kind: 'chain' });
+              if (e.alive) this.knockbackEnemy(e);
               const stunned = stagger ? e.applyStagger(stagger.durationMs, stagger.cooldownMs) : false;
               this.impactFlash(e.pos, COLORS.bolt, stunned ? 'stagger' : 'light');
             });
@@ -868,6 +890,7 @@ export class Game extends Phaser.Scene {
                 affected?.takeDamage({ amount: s.damage, kind: 'splash' });
                 affected?.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
               }
+              this.startHitstop();
             } else {
               const e = this.enemies.find((x) => x.id === shot.id);
               if (!e || !e.alive) return;
@@ -880,6 +903,8 @@ export class Game extends Phaser.Scene {
               } else {
                 e.takeDamage({ amount: shot.damage, kind: def.attack });
               }
+              if (def.key === 'arrow' && e.alive) this.knockbackEnemy(e);
+              if (def.key === 'sniper') this.startHitstop();
               this.impactFlash(e.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
                 def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');
               if (def.attack === 'slow') {
@@ -900,6 +925,50 @@ export class Game extends Phaser.Scene {
     const shot = this.projectilePool.acquire();
     shot.launch(from, opts);
     this.projectiles.push(shot);
+  }
+
+  /** 대포·저격이 적중한 다음 40ms 동안 전투 계산만 멈춘다. */
+  private startHitstop(): void {
+    // Phaser가 없는 밸런스 시뮬레이션에서는 시간 흐름을 바꾸지 않는다.
+    if (!this.tweens) return;
+    this.hitstopLeftMs = Math.max(this.hitstopLeftMs, 40);
+  }
+
+  /** 화살·번개 적중 시 진행 반대쪽으로 4px 밀었다가 빠르게 되돌린다. */
+  private knockbackEnemy(enemy: Enemy): void {
+    if (!this.tweens) return;
+    const motion = this.enemyMotion.get(enemy.id) ?? { x: 0, y: 1 };
+    const length = Math.hypot(motion.x, motion.y) || 1;
+    this.tweens.add({
+      targets: enemy.sprite,
+      x: enemy.pos.x - (motion.x / length) * 4,
+      y: enemy.pos.y - (motion.y / length) * 4,
+      duration: 50,
+      yoyo: true,
+      ease: 'Quad.out',
+    });
+  }
+
+  /** 처치 순간에 적 색상 조각 여섯 개와 짧은 찌부를 더한다. */
+  private deathBurst(enemy: Enemy): void {
+    if (!this.tweens || typeof this.add.circle !== 'function') return;
+    const color = ENEMY_BURST_COLOR[enemy.def.key] ?? COLORS.enemyNormal;
+    const sprite = enemy.sprite as Phaser.GameObjects.Image & { setScale?: (x: number, y?: number) => unknown };
+    sprite.setScale?.(sprite.scaleX * 1.1, sprite.scaleY * 0.86);
+    const offsets = [[-1, -1], [0, -1], [1, -1], [-1, 1], [0, 1], [1, 1]] as const;
+    for (const [dx, dy] of offsets) {
+      const particle = this.add.circle(enemy.pos.x, enemy.pos.y, 3, color, 0.92).setDepth(25);
+      this.tweens.add({
+        targets: particle,
+        x: enemy.pos.x + dx * 18,
+        y: enemy.pos.y + dy * 18,
+        scale: 0.35,
+        alpha: 0,
+        duration: 180,
+        ease: 'Quad.out',
+        onComplete: () => particle.destroy(),
+      });
+    }
   }
 
   /** 공격마다 다른 짧은 명중 효과. 강한 한 방만 아주 약하게 화면을 흔든다. */
@@ -972,6 +1041,10 @@ export class Game extends Phaser.Scene {
     if (this.input.manager.pointers.some((p) => !p.isDown && this.input.getDragState(p) > 0)) {
       this.cancelDrags();
     }
+    if (this.hitstopLeftMs > 0) {
+      this.hitstopLeftMs = Math.max(0, this.hitstopLeftMs - dtMsRaw);
+      return;
+    }
     const dtMs = dtMsRaw * this.speedMul;
 
     for (const req of this.waves.update(dtMs)) {
@@ -997,7 +1070,10 @@ export class Game extends Phaser.Scene {
 
     const summoned: Array<{ enemyKey: string; parentId: number }> = [];
     for (const e of this.enemies) {
+      const before = e.pos;
       e.update(dtMsRaw, this.speedMul);
+      const after = e.pos;
+      this.enemyMotion.set(e.id, { x: after.x - before.x, y: after.y - before.y });
       for (const phase of e.collectBossPhases()) {
         this.bus.emit('boss:phase', { name: e.def.name, phaseName: phase.name });
       }
@@ -1013,6 +1089,7 @@ export class Game extends Phaser.Scene {
       if (e.hp <= 0) {
         this.bus.emit('enemy:killed', { bounty: e.def.bounty });
         this.floatingGold(e.pos, e.def.bounty);
+        this.deathBurst(e);
         // 분열체: 죽은 자리(경로 진행도 유지)에서 조각들로 쪼개진다.
         const split = e.collectDeathSpawn();
         if (split && e.hp <= 0) {
@@ -1029,6 +1106,7 @@ export class Game extends Phaser.Scene {
       }
       if (e.countsForWave) this.waves.notifyEnemyRemoved();
       if (!this.running) return;
+      this.enemyMotion.delete(e.id);
       e.destroy();
     }
     this.enemies = this.enemies.filter((e) => e.alive);
