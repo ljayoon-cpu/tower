@@ -175,7 +175,7 @@ export class Game extends Phaser.Scene {
 
   toggleSpeed(): void {
     if (!this.running || this.paused) return;
-    this.speedMul = this.speedMul === 1 ? 2 : 1;
+    this.speedMul = this.speedMul >= 3 ? 1 : this.speedMul + 1; // 1x → 2x → 3x → 1x
     this.bus.emit('speed:changed', { multiplier: this.speedMul });
   }
 
