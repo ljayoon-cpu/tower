@@ -75,6 +75,33 @@ export const ENEMIES: Record<string, EnemyDef> = {
       },
     ],
   },
+  drone: {
+    key: 'drone', name: '정찰 비행체', hp: 26, speed: 120, bounty: 4, lifeDamage: 1,
+    movementLayer: 'air',
+    resist: { single: 0.9, chain: 1.15 },
+  },
+  gunship: {
+    key: 'gunship', name: '포격 비행정', hp: 200, speed: 46, bounty: 18, lifeDamage: 3,
+    movementLayer: 'air', armor: 4,
+    resist: { single: 0.8, beam: 1.1, chain: 0.85 },
+  },
+  carrier: {
+    key: 'carrier', name: '강하 수송선', hp: 260, speed: 40, bounty: 20, lifeDamage: 2,
+    movementLayer: 'air',
+    deathSpawn: { enemyKey: 'minion', count: 3 },
+    resist: { single: 0.85, splash: 1.2 },
+  },
+  airboss: {
+    key: 'airboss', name: '공중 기함', hp: 2200, speed: 70, bounty: 180, lifeDamage: 6,
+    isBoss: true, movementLayer: 'air', armor: 6,
+    poisonResist: 0.35,
+    resist: { single: 0.7, chain: 0.75, beam: 1.1, slow: 0.85 },
+    shield: { energy: 160, rechargeDelayMs: 3600, rechargePerSecond: 18 },
+    bossPhases: [
+      { name: '급강하', atHealthRatio: 0.6, speedMultiplier: 1.6 },
+      { name: '편대 전개', atHealthRatio: 0.3, speedMultiplier: 1.9, shieldRestoreRatio: 1, summon: { enemyKey: 'drone', count: 4 } },
+    ],
+  },
 };
 
 export function getEnemy(key: string): EnemyDef {

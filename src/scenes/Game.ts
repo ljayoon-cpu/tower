@@ -69,6 +69,10 @@ const ENEMY_BURST_COLOR: Record<string, number> = {
   splitterling: 0xf0a85a,
   berserker: 0xd1362f,
   crusher: 0xc7d0dc,
+  drone: 0x9fd8ff,
+  gunship: 0x7cc0ef,
+  carrier: 0x6fb4e6,
+  airboss: 0x8ad0ff,
 };
 
 export class Game extends Phaser.Scene {

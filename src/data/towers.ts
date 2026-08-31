@@ -17,6 +17,7 @@ export const TOWERS: Record<string, TowerDef> = {
   cannon: {
     // 광역. 단일 화력·연사는 화살보다 낮지만 뭉친 적을 한 번에 친다.
     key: 'cannon', name: '파열탑', attack: 'splash', cost: 110, maxLevel: 5,
+    targetsAir: false,
     levels: [
       { damage: 24,  range: 132, fireRate: 0.58, splashRadius: 58 },
       { damage: 44,  range: 138, fireRate: 0.62, splashRadius: 66 },
@@ -63,6 +64,7 @@ export const TOWERS: Record<string, TowerDef> = {
     // 좁은 반경에 중독을 갱신하는 지속 피해형. 스웜엔 훌륭하지만 단일 대상 화력이
     // 낮아 보스전은 혼자 못 끝낸다.
     key: 'poison', name: '역병탑', attack: 'poison', cost: 90, maxLevel: 5,
+    targetsAir: false,
     levels: [
       { damage: 2,  range: 148, fireRate: 1.3, poisonDps: 8,  poisonDurationMs: 1500, poisonRadius: 52 },
       { damage: 4,  range: 158, fireRate: 1.4, poisonDps: 15, poisonDurationMs: 1600, poisonRadius: 60 },
