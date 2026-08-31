@@ -743,7 +743,7 @@ export class Game extends Phaser.Scene {
     while (tower.beamTickMs >= 100) {
       tower.beamTickMs -= 100;
       if (!enemy.alive) break;
-      enemy.takeDamage({ amount: dmgPerHit * s.fireRate * 0.1, armorPierce: 2 }, false);
+      enemy.takeDamage({ amount: dmgPerHit * s.fireRate * 0.1, armorPierce: 2, kind: 'beam' }, false);
       enemy.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
     }
 
@@ -816,7 +816,7 @@ export class Game extends Phaser.Scene {
             chain.forEach((hit, i) => {
               const e = this.enemies.find((x) => x.id === hit.id);
               if (!e) return;
-              e.takeDamage(dmgs[i]);
+              e.takeDamage({ amount: dmgs[i], kind: 'chain' });
               const stunned = stagger ? e.applyStagger(stagger.durationMs, stagger.cooldownMs) : false;
               this.impactFlash(e.pos, COLORS.bolt, stunned ? 'stagger' : 'light');
             });
@@ -846,14 +846,14 @@ export class Game extends Phaser.Scene {
               const pierce = poisonArmorPierceEffect(tower.level)?.armorPierce ?? 0;
               for (const hit of enemiesInRadius(hitPos, s.poisonRadius ?? 0, this.enemies)) {
                 const affected = this.enemies.find((e) => e.id === hit.id);
-                affected?.takeDamage(pierce > 0 ? { amount: s.damage, armorPierce: pierce } : s.damage);
+                affected?.takeDamage({ amount: s.damage, armorPierce: pierce || undefined, kind: 'poison' });
                 affected?.applyPoison(s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
               }
             } else if (def.attack === 'splash') {
               this.impactFlash(hitPos, COLORS.cannon, 'heavy');
               for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0, this.enemies)) {
                 const affected = this.enemies.find((e) => e.id === hit.id);
-                affected?.takeDamage(s.damage);
+                affected?.takeDamage({ amount: s.damage, kind: 'splash' });
                 affected?.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
               }
             } else {
@@ -863,9 +863,10 @@ export class Game extends Phaser.Scene {
                 e.takeDamage({
                   amount: shot.damage * sniperDamageMultiplier(tower.level, e.healthRatio),
                   armorPierce: s.armorPierce ?? 0,
+                  kind: 'single',
                 });
               } else {
-                e.takeDamage(shot.damage);
+                e.takeDamage({ amount: shot.damage, kind: def.attack });
               }
               this.impactFlash(e.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
                 def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');

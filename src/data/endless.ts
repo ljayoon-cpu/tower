@@ -75,13 +75,13 @@ export function endlessWave(n: number): Wave {
   const groups: WaveGroup[] = [];
   // 머지로 오른 타워 화력은 지수적으로 커진다 — 그래서 후반 적 체력도 지수적으로 키운다.
   const late = Math.max(0, n - 12);
-  const swarm = 6 + Math.floor(t * 0.9) + Math.floor(late ** 1.3 * 0.1);
-  const interval = Math.max(85, 340 - t * 6);
+  const swarm = 6 + Math.floor(t * 0.9) + Math.floor(late ** 1.3 * 0.09);
+  const interval = Math.max(85, 335 - t * 6);
   const fastShare = Math.min(0.62, 0.18 + t * 0.025);
-  // 웨이브 전체 체력 배율: 12웨이브까진 1.0, 그 뒤 웨이브당 복리 +5%.
+  // 웨이브 전체 체력 배율: 12웨이브까진 1.0, 그 뒤 웨이브당 복리 +5.5%.
   const hpFactor = 1.05 ** late;
-  // 25웨이브부터 스웜 이동속도도 서서히 오른다(타워 사격 시간 압박).
-  const spd = 1 + Math.max(0, n - 25) * 0.018;
+  // 22웨이브부터 스웜 이동속도도 서서히 오른다(타워 사격 시간 압박).
+  const spd = 1 + Math.max(0, n - 22) * 0.02;
   const withHp = (m = 1): Partial<WaveGroup> => ({ hpMultiplier: m * hpFactor });
   const phase = endlessSpawnPhase(n);
   const alt = (n - 1) % 2; // 이번 웨이브가 먼저 쓰는 입구
@@ -140,7 +140,7 @@ export function endlessWave(n: number): Wave {
     });
   }
 
-  return { groups, clearBonus: 25 + n * 5 };
+  return { groups, clearBonus: 18 + n * 3 };
 }
 
 export function endlessWaves(count = 200): Wave[] {
@@ -157,8 +157,8 @@ export function endlessStage(): StageDef {
     spawn: LEFT_SPAWN,
     goals: [TOP_GOAL, BOT_GOAL],
     path: PATH,
-    startGold: 460,
-    startLives: 25,
+    startGold: 410,
+    startLives: 22,
     starThresholds: [0.3, 0.6, 0.9],
     waves: endlessWaves(),
   };

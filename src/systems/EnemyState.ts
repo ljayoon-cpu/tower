@@ -1,4 +1,4 @@
-import type { EnemyDef } from '../core/types';
+import type { AttackKind, EnemyDef } from '../core/types';
 
 export interface EnemyModifiers {
   hpMultiplier?: number;
@@ -10,6 +10,8 @@ export interface DamagePacket {
   amount: number;
   /** 방어력에서 무시할 수치. 저격 계열이 높은 값을 사용한다. */
   armorPierce?: number;
+  /** 이 피해를 준 타워 공격 종류. 적별 상성 배율(EnemyDef.resist)에 쓰인다. */
+  kind?: AttackKind;
 }
 
 export interface DamageReport {
@@ -81,8 +83,9 @@ export class EnemyState {
     this.shield = Math.max(this.shield, this.maxShield * Math.max(0, Math.min(1, ratio)));
   }
 
-  applyDamage({ amount, armorPierce = 0 }: DamagePacket): DamageReport {
-    const incoming = Math.max(0, amount);
+  applyDamage({ amount, armorPierce = 0, kind }: DamagePacket): DamageReport {
+    const resist = kind ? (this.def.resist?.[kind] ?? 1) : 1;
+    const incoming = Math.max(0, amount * resist);
     const shieldDamage = Math.min(this.shield, incoming);
     this.shield -= shieldDamage;
 
