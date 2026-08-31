@@ -47,8 +47,17 @@ describe('towerInfo', () => {
     expect(towerInfo('laser', 1).note).toContain('집중');
     const l = TOWERS.laser.levels[0];
     expect(towerInfo('laser', 1).dps).toBe(Math.round(l.damage * l.fireRate * (l.beamRampMax ?? 1)));
-    expect(towerInfo('command', 3).note).toContain('공격력');
+    expect(towerInfo('command', 1).note).toContain('공격력');
     expect(towerInfo('mine', 1).note).toContain('G');
+  });
+
+  it('surfaces merge abilities for laser / command / mine too', () => {
+    expect(towerInfo('laser', 2).note).not.toContain('방어');
+    expect(towerInfo('laser', 3).note).toContain('방어 -');   // 레이저 3합: 방어구 파괴
+    expect(towerInfo('command', 2).note).not.toContain('사거리');
+    expect(towerInfo('command', 3).note).toContain('사거리 +'); // 지휘탑 3합: 사거리 버프
+    expect(towerInfo('mine', 2).note).not.toContain('웨이브당');
+    expect(towerInfo('mine', 3).note).toContain('웨이브당 +');   // 금광탑 3합: 웨이브 배당
   });
 
   it('shows frost freeze at merge levels 3 and 5', () => {

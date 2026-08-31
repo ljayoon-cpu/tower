@@ -1,33 +1,56 @@
 import type { PathNode, StageDef, Wave, WaveGroup } from '../core/types';
-import { TILE, GAME_HEIGHT } from '../core/constants';
+import { TILE } from '../core/constants';
 import { parseGrid } from './stages/helpers';
 
-// 좌우·상하 대칭 십자 맵. 적은 좌/우 가장자리에서 나와 중앙에서 위 목표와 아래 목표로
-// 갈라진다. 네 사분면이 전부 설치 구역. 그리드 11열 x 20행.
-const V = '.....#.....';        // 세로 척추 (col5)
-const H = '###########';        // 가로 십자대 (row9-10)
+// 좌우 진입(가로 십자대) → 중앙에서 위/아래로 갈라져 각 절반을 S자로 감고 나간다.
+// 감기는 경로라 타워가 한 적을 여러 번 때릴 수 있다. 그리드 11열 x 20행.
 const ROWS = [
-  V, V, V, V, V, V, V, V, V,
-  H, H,
-  V, V, V, V, V, V, V, V, V,
+  '.........#.',
+  '.#########.',
+  '.#.........',
+  '.#.........',
+  '.#####.....',
+  '.....#.....',
+  '.....#.....',
+  '.....#.....',
+  '.....#.....',
+  '###########',
+  '.....#.....',
+  '.....#.....',
+  '.....#.....',
+  '.....#.....',
+  '.....#.....',
+  '.....#####.',
+  '.........#.',
+  '.........#.',
+  '.#########.',
+  '.#.........',
 ];
 
 const px = (n: number) => n * TILE + TILE / 2;
-const CX = px(5);               // 352 — 중앙 세로선
-const CY = GAME_HEIGHT / 2;     // 640 — 십자대 중심(row9/row10 경계)
+const CY = px(9); // 가로 십자대 중심 y
 
 const LEFT = { x: 0, y: CY };
-const RIGHT = { x: px(10) + TILE / 2, y: CY }; // 704, 오른쪽 가장자리
-const CENTER = { x: CX, y: CY };
-const TOP_GOAL = { x: CX, y: 0 };
-const BOTTOM_GOAL = { x: CX, y: GAME_HEIGHT };
+const RIGHT = { x: 11 * TILE, y: CY };
+const CENTER = { x: px(5), y: CY };
 
-// 루트 4개: (좌|우) 진입 × (위|아래) 목표. lane 인덱스 = 0 좌·위 / 1 좌·아래 / 2 우·위 / 3 우·아래.
+// 위 절반 S: 중앙 → 위로 → 왼쪽 → 위로 → 오른쪽 → 위로 탈출.
+const UP_TAIL = [
+  { x: px(5), y: px(4) }, { x: px(1), y: px(4) }, { x: px(1), y: px(1) },
+  { x: px(9), y: px(1) }, { x: px(9), y: 0 },
+];
+// 아래 절반 S: 위 절반을 180° 돌린 모양.
+const DOWN_TAIL = [
+  { x: px(5), y: px(15) }, { x: px(9), y: px(15) }, { x: px(9), y: px(18) },
+  { x: px(1), y: px(18) }, { x: px(1), y: 20 * TILE },
+];
+
+// 4개 루트: (좌|우) 진입 × (위|아래) 탈출. lane 0 좌·위 / 1 좌·아래 / 2 우·위 / 3 우·아래.
 const PATH: PathNode = {
   points: [],
   branches: [
-    { points: [LEFT, CENTER], branches: [{ points: [TOP_GOAL] }, { points: [BOTTOM_GOAL] }] },
-    { points: [RIGHT, CENTER], branches: [{ points: [TOP_GOAL] }, { points: [BOTTOM_GOAL] }] },
+    { points: [LEFT, CENTER], branches: [{ points: UP_TAIL }, { points: DOWN_TAIL }] },
+    { points: [RIGHT, CENTER], branches: [{ points: UP_TAIL }, { points: DOWN_TAIL }] },
   ],
 };
 
@@ -46,9 +69,9 @@ export function endlessSpawnPhase(n: number): 'single' | 'split' | 'both' {
 export function endlessWave(n: number): Wave {
   const t = n - 1;
   const groups: WaveGroup[] = [];
-  const swarm = 10 + Math.floor(t * 1.6);
-  const interval = Math.max(70, 300 - t * 8);
-  const fastShare = Math.min(0.7, 0.2 + t * 0.03);
+  const swarm = 6 + Math.floor(t * 0.9);
+  const interval = Math.max(110, 340 - t * 6);
+  const fastShare = Math.min(0.6, 0.18 + t * 0.025);
   const phase = endlessSpawnPhase(n);
   const alt = (n - 1) % 2; // 이번 웨이브가 먼저 쓰는 입구
 
@@ -68,41 +91,44 @@ export function endlessWave(n: number): Wave {
     fastLanes = normalLanes = specialLanes = bossLanes = LANES.all;
   }
 
-  /** count 를 lanes 에 고르게 쪼개 그룹으로 넣는다(위·아래 목표로 갈라짐). */
+  /** count 를 lanes 에 정확히 나눠 담는다(총합 == count). 몫이 0인 레인은 건너뛴다. */
   const across = (lanes: readonly number[], enemy: string, count: number, extra: Partial<WaveGroup> = {}) => {
     if (count <= 0) return;
-    const per = Math.max(1, Math.ceil(count / lanes.length));
-    for (const lane of lanes) {
-      groups.push({ enemy, count: per, intervalMs: interval, startDelayMs: 0, lane, ...extra });
-    }
+    const n = lanes.length;
+    lanes.forEach((lane, i) => {
+      const c = Math.floor(count / n) + (i < count % n ? 1 : 0);
+      if (c > 0) groups.push({ enemy, count: c, intervalMs: interval, startDelayMs: 0, lane, ...extra });
+    });
   };
 
   across(fastLanes, 'fast', Math.round(swarm * fastShare));
   across(normalLanes, 'normal', Math.round(swarm * (1 - fastShare)), { intervalMs: interval + 60, startDelayMs: 400 });
 
-  if (n >= 3) {
-    across(specialLanes, 'tank', 2 + Math.floor(t / 3), {
-      intervalMs: 700, startDelayMs: 900, hpMultiplier: 1 + t * 0.05,
+  if (n >= 5) {
+    across(specialLanes, 'tank', 1 + Math.floor((n - 5) / 5), {
+      intervalMs: 900, startDelayMs: 1000, hpMultiplier: 1 + t * 0.022,
     });
   }
-  if (n >= 5 && n % 2 === 1) {
-    across(specialLanes, 'shield', 3 + Math.floor(t / 4), { intervalMs: 360, startDelayMs: 1400 });
+  if (n >= 7 && n % 2 === 1) {
+    across(specialLanes, 'shield', 2 + Math.floor(t / 6), { intervalMs: 400, startDelayMs: 1400 });
   }
-  if (n >= 7 && n % 3 === 0) {
-    across(specialLanes, 'regenerator', 3 + Math.floor(t / 6), { intervalMs: 500, startDelayMs: 1600 });
+  if (n >= 9 && n % 3 === 0) {
+    across(specialLanes, 'regenerator', 2 + Math.floor(t / 8), { intervalMs: 540, startDelayMs: 1600 });
   }
-  if (n >= 9 && n % 4 === 0) {
-    across(specialLanes, 'summoner', 2 + Math.floor(t / 8), { intervalMs: 900, startDelayMs: 1800 });
+  if (n >= 12 && n % 4 === 0) {
+    across(specialLanes, 'summoner', 1 + Math.floor(t / 10), { intervalMs: 900, startDelayMs: 1800 });
   }
-  if (n % 5 === 0) {
-    across(bossLanes, 'boss', 1 + Math.floor(n / 25), {
+  if (n >= 10 && n % 5 === 0) {
+    // 15웨이브까지는 한 입구에서만, 그 뒤 사방 협공.
+    const bossFrom = phase === 'both' ? bossLanes : [alt === 0 ? 0 : 3];
+    across(bossFrom, 'boss', 1 + Math.floor((n - 10) / 30), {
       intervalMs: 3600, startDelayMs: 1200,
-      hpMultiplier: 1 + Math.floor(n / 5) * 0.35,
-      shieldMultiplier: 1 + Math.floor(n / 10) * 0.2,
+      hpMultiplier: 1 + Math.floor((n - 10) / 5) * 0.3,
+      shieldMultiplier: 1 + Math.floor((n - 10) / 10) * 0.2,
     });
   }
 
-  return { groups, clearBonus: 18 + n * 3 };
+  return { groups, clearBonus: 25 + n * 5 };
 }
 
 export function endlessWaves(count = 200): Wave[] {
@@ -117,10 +143,10 @@ export function endlessStage(): StageDef {
     endless: true,
     grid: parseGrid(ROWS),
     spawn: LEFT,
-    goals: [TOP_GOAL, BOTTOM_GOAL],
+    goals: [{ x: px(9), y: 0 }, { x: px(1), y: 20 * TILE }],
     path: PATH,
-    startGold: 280,
-    startLives: 20,
+    startGold: 460,
+    startLives: 25,
     starThresholds: [0.3, 0.6, 0.9],
     waves: endlessWaves(),
   };

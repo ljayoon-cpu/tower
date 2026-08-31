@@ -78,9 +78,9 @@ export const TOWERS: Record<string, TowerDef> = {
     levels: [
       { damage: 22,  range: 176, fireRate: 1.4, beamRampPct: 0.12, beamRampMax: 2.2 },
       { damage: 40,  range: 188, fireRate: 1.5, beamRampPct: 0.14, beamRampMax: 2.4 },
-      { damage: 76,  range: 200, fireRate: 1.6, beamRampPct: 0.16, beamRampMax: 2.7 },
-      { damage: 146, range: 212, fireRate: 1.7, beamRampPct: 0.18, beamRampMax: 3.0 },
-      { damage: 286, range: 226, fireRate: 1.8, beamRampPct: 0.20, beamRampMax: 3.3 },
+      { damage: 76,  range: 200, fireRate: 1.6, beamRampPct: 0.16, beamRampMax: 2.7, armorBreakPercent: 0.25, armorBreakDurationMs: 900 },
+      { damage: 146, range: 212, fireRate: 1.7, beamRampPct: 0.18, beamRampMax: 3.0, armorBreakPercent: 0.25, armorBreakDurationMs: 900 },
+      { damage: 286, range: 226, fireRate: 1.8, beamRampPct: 0.20, beamRampMax: 3.3, armorBreakPercent: 0.45, armorBreakDurationMs: 1200 },
     ],
   },
   command: {
@@ -90,9 +90,9 @@ export const TOWERS: Record<string, TowerDef> = {
     levels: [
       { damage: 4,  range: 128, fireRate: 1.0,  buffRadius: 128, buffDamagePct: 0.10, buffFireRatePct: 0.06 },
       { damage: 8,  range: 134, fireRate: 1.05, buffRadius: 136, buffDamagePct: 0.14, buffFireRatePct: 0.09 },
-      { damage: 15, range: 142, fireRate: 1.1,  buffRadius: 146, buffDamagePct: 0.19, buffFireRatePct: 0.12 },
-      { damage: 29, range: 150, fireRate: 1.15, buffRadius: 158, buffDamagePct: 0.25, buffFireRatePct: 0.16 },
-      { damage: 56, range: 160, fireRate: 1.2,  buffRadius: 172, buffDamagePct: 0.32, buffFireRatePct: 0.20 },
+      { damage: 15, range: 142, fireRate: 1.1,  buffRadius: 146, buffDamagePct: 0.19, buffFireRatePct: 0.12, buffRangePct: 0.10 },
+      { damage: 29, range: 150, fireRate: 1.15, buffRadius: 158, buffDamagePct: 0.25, buffFireRatePct: 0.16, buffRangePct: 0.10 },
+      { damage: 56, range: 160, fireRate: 1.2,  buffRadius: 172, buffDamagePct: 0.32, buffFireRatePct: 0.20, buffRangePct: 0.18 },
     ],
   },
   mine: {
@@ -102,9 +102,9 @@ export const TOWERS: Record<string, TowerDef> = {
     levels: [
       { damage: 3,  range: 110, fireRate: 0.9,  goldPerTick: 6,  goldIntervalMs: 5000 },
       { damage: 6,  range: 116, fireRate: 0.95, goldPerTick: 11, goldIntervalMs: 4800 },
-      { damage: 12, range: 124, fireRate: 1.0,  goldPerTick: 19, goldIntervalMs: 4600 },
-      { damage: 23, range: 132, fireRate: 1.05, goldPerTick: 32, goldIntervalMs: 4400 },
-      { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 52, goldIntervalMs: 4200 },
+      { damage: 12, range: 124, fireRate: 1.0,  goldPerTick: 19, goldIntervalMs: 4600, mineWaveBonus: 12 },
+      { damage: 23, range: 132, fireRate: 1.05, goldPerTick: 32, goldIntervalMs: 4400, mineWaveBonus: 12 },
+      { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 52, goldIntervalMs: 4200, mineWaveBonus: 28 },
     ],
   },
 };

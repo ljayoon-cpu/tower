@@ -32,20 +32,22 @@ describe('endless wave generator', () => {
     expect(endlessWave(40).clearBonus).toBeGreaterThan(endlessWave(1).clearBonus);
   });
 
-  it('spawns a boss every 5th wave and scales its hp', () => {
+  it('holds the first boss until wave 10, then every 5th wave with rising hp', () => {
     const bossOf = (n: number) => endlessWave(n).groups.find((g) => g.enemy === 'boss');
-    expect(bossOf(4)).toBeUndefined();
-    expect(bossOf(5)).toBeDefined();
+    expect(bossOf(5)).toBeUndefined();
+    expect(bossOf(9)).toBeUndefined();
     expect(bossOf(10)).toBeDefined();
-    expect((bossOf(50)?.hpMultiplier ?? 0)).toBeGreaterThan(bossOf(5)?.hpMultiplier ?? 0);
+    expect(bossOf(15)).toBeDefined();
+    expect((bossOf(50)?.hpMultiplier ?? 0)).toBeGreaterThan(bossOf(10)?.hpMultiplier ?? 0);
   });
 
   it('introduces enemy types gradually', () => {
     const has = (n: number, key: string) => endlessWave(n).groups.some((g) => g.enemy === key);
-    expect(has(1, 'tank')).toBe(false);
-    expect(has(3, 'tank')).toBe(true);
-    expect(has(2, 'shield')).toBe(false);
-    expect(has(5, 'shield')).toBe(true);
+    expect(has(3, 'tank')).toBe(false);
+    expect(has(5, 'tank')).toBe(true);
+    expect(has(6, 'shield')).toBe(false);
+    expect(has(7, 'shield')).toBe(true);
+    expect(has(9, 'regenerator')).toBe(true);
   });
 
   it('escalates spawn points: one side alternating, then split columns, then all four', () => {
@@ -90,20 +92,21 @@ describe('endless stage', () => {
     for (const row of s.grid) expect(row).toHaveLength(GRID_COLS);
   });
 
-  it('has four routes: left/right entrance x top/bottom goal, symmetric', () => {
+  it('has four routes: left/right entrance x top/bottom exit, passing through centre', () => {
     const s = endlessStage();
     const routes = new PathManager(s.path).routes();
     expect(routes).toHaveLength(4);
     const starts = routes.map((r) => r[0]);
     const ends = routes.map((r) => r[r.length - 1]);
-    // 두 개의 스폰 지점(좌/우)만 존재.
-    expect(new Set(starts.map((p) => p.x)).size).toBe(2);
-    // 두 개의 목표(위 y=0 / 아래 y=GAME_HEIGHT)만 존재, 각각 두 루트가 도달.
-    const endYs = ends.map((p) => p.y).sort((a, b) => a - b);
-    expect(endYs).toEqual([0, 0, 1280, 1280]);
-    for (const p of ends) expect(Math.abs(p.x - s.goals[0].x)).toBeLessThan(1); // 모두 중앙 세로선
-    // 좌우 대칭: 스폰 x 가 중앙(352)을 기준으로 대칭.
-    const xs = [...new Set(starts.map((p) => p.x))].sort((a, b) => a - b);
-    expect((xs[0] + xs[1]) / 2).toBeCloseTo(s.goals[0].x, 0);
+    // 스폰 지점은 좌·우 두 곳, 중앙(x=352) 기준 좌우 대칭.
+    const startXs = [...new Set(starts.map((p) => p.x))].sort((a, b) => a - b);
+    expect(startXs).toHaveLength(2);
+    expect((startXs[0] + startXs[1]) / 2).toBeCloseTo(352, 0);
+    // 탈출은 위(y=0) 둘 / 아래(y=1280) 둘.
+    expect(ends.map((p) => p.y).sort((a, b) => a - b)).toEqual([0, 0, 1280, 1280]);
+    // 모든 루트가 중앙 십자대(x=352, y=608)를 지난다.
+    for (const r of routes) {
+      expect(r.some((p) => Math.abs(p.x - 352) < 1 && Math.abs(p.y - 608) < 1)).toBe(true);
+    }
   });
 });

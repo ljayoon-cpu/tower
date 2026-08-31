@@ -71,12 +71,21 @@ function noteOf(key: string, level: number, stats: TowerLevelStats, attack: stri
       ? `체력 ${Math.round(exec.healthRatio * 100)}% 이하 처형 ×${exec.damageMultiplier}`
       : '';
   }
-  if (attack === 'beam') return `집중 시 최대 ${Math.round((stats.beamRampMax ?? 1) * 100)}% 피해`;
+  if (attack === 'beam') {
+    const base = `집중 시 최대 ${Math.round((stats.beamRampMax ?? 1) * 100)}% 피해`;
+    return (stats.armorBreakPercent ?? 0) > 0
+      ? `${base} · 방어 -${Math.round((stats.armorBreakPercent ?? 0) * 100)}%`
+      : base;
+  }
   if (attack === 'support') {
     if (stats.goldPerTick != null) {
-      return `${((stats.goldIntervalMs ?? 0) / 1000).toFixed(1)}초마다 +${stats.goldPerTick}G`;
+      const g = `${((stats.goldIntervalMs ?? 0) / 1000).toFixed(1)}초마다 +${stats.goldPerTick}G`;
+      return (stats.mineWaveBonus ?? 0) > 0 ? `${g} · 웨이브당 +${stats.mineWaveBonus}G` : g;
     }
-    return `주변 타워 공격력 +${Math.round((stats.buffDamagePct ?? 0) * 100)}% · 연사 +${Math.round((stats.buffFireRatePct ?? 0) * 100)}%`;
+    const buff = `주변 타워 공격력 +${Math.round((stats.buffDamagePct ?? 0) * 100)}% · 연사 +${Math.round((stats.buffFireRatePct ?? 0) * 100)}%`;
+    return (stats.buffRangePct ?? 0) > 0
+      ? `${buff} · 사거리 +${Math.round((stats.buffRangePct ?? 0) * 100)}%`
+      : buff;
   }
   return '';
 }

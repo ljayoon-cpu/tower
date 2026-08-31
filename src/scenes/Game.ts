@@ -182,6 +182,9 @@ export class Game extends Phaser.Scene {
         WAVE_INTEREST_RATE + this.meta.interestRateBonus, WAVE_INTEREST_CAP,
       );
       if (interest > 0) this.bus.emit('interest:earned', { amount: interest });
+      // 금광탑 3·5합: 웨이브 클리어마다 추가 배당.
+      const mineBonus = this.towers.reduce((sum, t) => sum + (t.stats().mineWaveBonus ?? 0), 0);
+      if (mineBonus > 0) this.eco.earn(mineBonus);
       if (this.waves.isFinished) this.endStage(true);
     });
     this.bus.on('wave:started', () => {
@@ -617,11 +620,12 @@ export class Game extends Phaser.Scene {
     });
   }
 
-  /** 지휘탑 버프(사거리 안 아군 데미지·연사 증가, 중첩 없음)를 적용한 실효 스탯. */
+  /** 지휘탑 버프(사거리 안 아군 데미지·연사·사거리 증가, 중첩 없음)를 적용한 실효 스탯. */
   private effectiveStats(tower: Tower): TowerLevelStats {
     const base = tower.stats();
     const dmgAuras: number[] = [];
     const rateAuras: number[] = [];
+    const rangeAuras: number[] = [];
     for (const b of this.towers) {
       if (b === tower) continue;
       const bs = b.stats();
@@ -631,11 +635,15 @@ export class Game extends Phaser.Scene {
       if (Math.hypot(dx, dy) > bs.buffRadius) continue;
       dmgAuras.push(bs.buffDamagePct ?? 0);
       rateAuras.push(bs.buffFireRatePct ?? 0);
+      rangeAuras.push(bs.buffRangePct ?? 0);
     }
     if (dmgAuras.length === 0) return base;
-    const dmgMul = buffMultiplier(dmgAuras);
-    const rateMul = buffMultiplier(rateAuras);
-    return { ...base, damage: Math.round(base.damage * dmgMul), fireRate: base.fireRate * rateMul };
+    return {
+      ...base,
+      damage: Math.round(base.damage * buffMultiplier(dmgAuras)),
+      fireRate: base.fireRate * buffMultiplier(rateAuras),
+      range: base.range * buffMultiplier(rangeAuras),
+    };
   }
 
   /** 지원 타워(지휘탑·금광탑): 직접 공격 없음. 금광탑은 주기적으로 골드를 생성한다. */
@@ -700,6 +708,7 @@ export class Game extends Phaser.Scene {
           onHit: () => {
             if (!enemy.alive) return;
             enemy.takeDamage(dmg);
+            enemy.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
             this.impactFlash(enemy.pos, COLORS.laser, heavy ? 'heavy' : 'light');
           },
         });

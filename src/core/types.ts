@@ -42,9 +42,11 @@ export interface TowerLevelStats {
   buffRadius?: number;
   buffDamagePct?: number;
   buffFireRatePct?: number;
+  buffRangePct?: number;   // 지휘탑 3·5합: 주변 타워 사거리도 올린다
   // support(금광탑): goldIntervalMs 마다 goldPerTick 골드를 생성한다.
   goldPerTick?: number;
   goldIntervalMs?: number;
+  mineWaveBonus?: number;  // 금광탑 3·5합: 웨이브 클리어마다 추가 골드
 }
 
 export interface TowerDef {
