@@ -14,6 +14,7 @@ export class Enemy {
   private readonly healthBar: Phaser.GameObjects.Graphics;
   private readonly shieldBar: Phaser.GameObjects.Graphics;
   private readonly slowAura: Phaser.GameObjects.Arc;
+  private readonly staggerAura: Phaser.GameObjects.Arc;
   private readonly poisonAura: Phaser.GameObjects.Arc;
   private readonly barWidth: number;
   private traveled = 0;
@@ -50,6 +51,11 @@ export class Enemy {
       .circle(start.x, start.y, def.isBoss ? 30 : 18, 0x99e6ff, 0.16)
       .setStrokeStyle(2, 0x99e6ff, 0.85)
       .setDepth(4)
+      .setVisible(false);
+    this.staggerAura = scene.add
+      .circle(start.x, start.y, def.isBoss ? 27 : 16, 0xffe066, 0.12)
+      .setStrokeStyle(2, 0xffe066, 0.9)
+      .setDepth(5)
       .setVisible(false);
     this.poisonAura = scene.add
       .circle(start.x, start.y, def.isBoss ? 25 : 15, 0x71d957, 0.14)
@@ -113,6 +119,7 @@ export class Enemy {
     this.healthBar.setVisible(false);
     this.shieldBar.setVisible(false);
     this.slowAura.setVisible(false);
+    this.staggerAura.setVisible(false);
     this.poisonAura.setVisible(false);
   }
 
@@ -147,6 +154,10 @@ export class Enemy {
     this.slowLeftMs = Math.max(this.slowLeftMs, durationMs);
   }
 
+  applyStagger(durationMs: number, cooldownMs: number): boolean {
+    return this.state.applyStagger(durationMs, cooldownMs);
+  }
+
   applyPoison(dps: number, durationMs: number): void {
     this.state.applyPoison(dps, durationMs);
   }
@@ -174,12 +185,13 @@ export class Enemy {
   update(dtMs: number, speedMul: number): void {
     if (!this.alive) return;
     const simulationMs = dtMs * speedMul;
-    this.state.update(simulationMs);
+    const staggeredForMs = this.state.update(simulationMs);
     this.advanceBossPhases();
     if (!this.alive) { this.hideIndicators(); return; }
 
-    const slowedMs = Math.min(simulationMs, Math.max(0, this.slowLeftMs));
-    this.traveled += this.state.speed * this.bossSpeedMultiplier * (slowedMs * this.slowMul + simulationMs - slowedMs) / 1000;
+    const movingMs = simulationMs - staggeredForMs;
+    const slowedMs = Math.min(movingMs, Math.max(0, this.slowLeftMs));
+    this.traveled += this.state.speed * this.bossSpeedMultiplier * (slowedMs * this.slowMul + movingMs - slowedMs) / 1000;
     this.slowLeftMs = Math.max(0, this.slowLeftMs - simulationMs);
     if (this.slowLeftMs === 0) this.slowMul = 1;
     this.summonLeftMs -= simulationMs;
@@ -194,10 +206,13 @@ export class Enemy {
     } else {
       this.drawBars();
       const slowed = this.slowLeftMs > 0;
+      const staggered = this.state.staggered;
       const poisoned = this.state.poisonLeftMs > 0;
       this.slowAura.setVisible(slowed);
+      this.staggerAura.setVisible(staggered);
       this.poisonAura.setVisible(poisoned);
       if (slowed) this.slowAura.setPosition(a.pos.x, a.pos.y);
+      if (staggered) this.staggerAura.setPosition(a.pos.x, a.pos.y);
       if (poisoned) this.poisonAura.setPosition(a.pos.x, a.pos.y);
     }
   }
@@ -208,6 +223,7 @@ export class Enemy {
     this.healthBar.destroy();
     this.shieldBar.destroy();
     this.slowAura.destroy();
+    this.staggerAura.destroy();
     this.poisonAura.destroy();
     const tweens = (this.scene as Phaser.Scene & { tweens?: Phaser.Tweens.TweenManager }).tweens;
     if (tweens && this.state.hp <= 0 && !this._done) {

@@ -31,6 +31,12 @@ describe('towerInfo', () => {
     expect(towerInfo('frost', 1).note).toContain('감속');
   });
 
+  it('shows the bolt merge stagger in the tower card', () => {
+    expect(towerInfo('bolt', 2).note).not.toContain('경직');
+    expect(towerInfo('bolt', 3).note).toContain('경직 0.12초');
+    expect(towerInfo('bolt', 5).note).toContain('경직 0.25초');
+  });
+
   it('clamps level into range', () => {
     expect(towerInfo('arrow', 0).level).toBe(1);
     expect(towerInfo('arrow', 99).level).toBe(5);

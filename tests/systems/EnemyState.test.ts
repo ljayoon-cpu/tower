@@ -67,4 +67,17 @@ describe('EnemyState', () => {
     enemy.update(1000);
     expect(enemy.hp).toBe(60);
   });
+
+  it('allows a bolt interrupt only after its per-enemy cooldown has expired', () => {
+    const enemy = new EnemyState(shieldedDef);
+
+    expect(enemy.applyStagger(120, 1800)).toBe(true);
+    expect(enemy.staggered).toBe(true);
+    enemy.update(120);
+    expect(enemy.staggered).toBe(false);
+    expect(enemy.applyStagger(120, 1800)).toBe(false);
+
+    enemy.update(1680);
+    expect(enemy.applyStagger(120, 1800)).toBe(true);
+  });
 });
