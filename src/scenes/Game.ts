@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
-import { COLORS, TILE, GRID_COLS, GRID_ROWS, GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
+import {
+  COLORS, TILE, GRID_COLS, GRID_ROWS, GAME_WIDTH, GAME_HEIGHT,
+  WAVE_INTEREST_RATE, WAVE_INTEREST_CAP,
+} from '../core/constants';
 import { createEventBus } from '../core/eventBus';
 import type { EventBus } from '../core/eventBus';
 import type { GameEvents, StageDef, TileCoord, Vec2 } from '../core/types';
@@ -150,6 +153,8 @@ export class Game extends Phaser.Scene {
     });
     this.bus.on('wave:cleared', () => {
       this.eco.earn(this.waves.currentClearBonus());
+      const interest = this.eco.applyInterest(WAVE_INTEREST_RATE, WAVE_INTEREST_CAP);
+      if (interest > 0) this.bus.emit('interest:earned', { amount: interest });
       if (this.waves.isFinished) this.endStage(true);
     });
     this.bus.on('wave:started', () => this.audio.play('wave'));

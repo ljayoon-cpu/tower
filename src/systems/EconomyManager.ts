@@ -34,4 +34,12 @@ export class EconomyManager {
     this.earn(refund);
     return refund;
   }
+
+  /** 웨이브 클리어 시 현재 골드의 rate 비율(내림)을 이자로 지급. cap 상한. 0이면 무동작. */
+  applyInterest(rate: number, cap: number): number {
+    const amount = Math.min(Math.floor(this._gold * rate), cap);
+    if (amount <= 0) return 0;
+    this.earn(amount);
+    return amount;
+  }
 }

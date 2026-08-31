@@ -9,6 +9,7 @@ import { Enemy } from '../../src/entities/Enemy';
 import { Projectile } from '../../src/entities/Projectile';
 import { Tower } from '../../src/entities/Tower';
 import { EconomyManager } from '../../src/systems/EconomyManager';
+import { WAVE_INTEREST_RATE, WAVE_INTEREST_CAP } from '../../src/core/constants';
 import { GridManager } from '../../src/systems/GridManager';
 import { canMerge } from '../../src/systems/MergeController';
 import { PathManager } from '../../src/systems/PathManager';
@@ -111,6 +112,7 @@ export function simulate(stage: StageDef, strategy: Strategy, seed = 1, speed = 
   });
   game.bus.on('wave:cleared', () => {
     game.eco.earn(game.waves.currentClearBonus());
+    game.eco.applyInterest(WAVE_INTEREST_RATE, WAVE_INTEREST_CAP); // Game.create wires the same
     if (game.waves.isFinished) game.endStage(true);
   });
   const waves: WaveReport[] = [];

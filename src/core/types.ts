@@ -90,4 +90,6 @@ export type GameEvents = {
   'boss:cleared': Record<string, never>;
   /** 다음 웨이브 자동 시작까지 남은 초. null = 카운트다운 없음(진행 중 / 종료). */
   'wave:countdown': { seconds: number | null };
+  /** 웨이브 클리어 시 남긴 골드로 받은 이자. */
+  'interest:earned': { amount: number };
 };

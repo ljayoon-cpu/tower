@@ -37,4 +37,24 @@ describe('EconomyManager', () => {
     expect(refund).toBe(60);
     expect(eco.gold).toBe(60);
   });
+
+  it('applyInterest credits a floored percentage of current gold, capped', () => {
+    const { eco, events } = setup(250);
+    const paid = eco.applyInterest(0.1, 50); // floor(25) = 25
+    expect(paid).toBe(25);
+    expect(eco.gold).toBe(275);
+    expect(events).toEqual([275]);
+  });
+
+  it('applyInterest never exceeds the cap', () => {
+    const { eco } = setup(2000);
+    expect(eco.applyInterest(0.1, 50)).toBe(50); // 200 -> capped 50
+    expect(eco.gold).toBe(2050);
+  });
+
+  it('applyInterest of zero (broke) does nothing and does not emit', () => {
+    const { eco, events } = setup(0);
+    expect(eco.applyInterest(0.1, 50)).toBe(0);
+    expect(events).toEqual([]);
+  });
 });

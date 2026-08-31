@@ -9,6 +9,10 @@ export const SAVE_KEY = 'mtd:save';
 // Generated local effects; the player can mute them independently in the UI.
 export const SOUND_ENABLED = true;
 
+// 웨이브 클리어 이자: 남긴 골드의 8%, 웨이브당 최대 40G. 저축을 보상하되 폭주 방지.
+export const WAVE_INTEREST_RATE = 0.08;
+export const WAVE_INTEREST_CAP = 40;
+
 export const COLORS = {
   bg: 0x0f1020,
   path: 0x2a2c44,

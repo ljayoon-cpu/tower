@@ -103,6 +103,13 @@ export class HUD extends Phaser.Scene {
       cleanups.push(() => data.bus.off(event, fn));
     };
     on('gold:changed', ({ gold }) => goldText.setText(`골드 ${gold}`));
+    on('interest:earned', ({ amount }) => {
+      const tag = this.add.text(goldText.x + goldText.width + 10, 14, `+이자 ${amount}`, {
+        ...style, fontSize: '18px', color: '#7dd87d',
+      });
+      this.tweens.add({ targets: tag, x: tag.x + 18, alpha: 0, delay: 700, duration: 700,
+        onComplete: () => tag.destroy() });
+    });
     on('life:changed', ({ lives }) => lifeText.setText(`라이프 ${lives}`));
     on('wave:started', ({ index, total }) => {
       waveText.setText(`웨이브 ${index + 1}/${total}`);
