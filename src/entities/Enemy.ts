@@ -210,8 +210,7 @@ export class Enemy {
     const ratio = this.healthRatio;
     const w = this.barWidth;
     const x = this.sprite.x - w / 2;
-    const lift = this.layer === 'air' ? AIR_ALTITUDE : 0;
-    const y = this.sprite.y - (this.def.isBoss ? 40 : 18) - lift;
+    const y = this.sprite.y - (this.def.isBoss ? 40 : 18);
     if (ratio >= 1 || !this.alive) {
       this.healthBar.setVisible(false);
     } else {
@@ -314,13 +313,10 @@ export class Enemy {
     this._progress = a.progress;
     // 질주병은 걷기 스프라이트 시트가 달리는 느낌을 낸다.
     this.groundPos = { x: a.pos.x, y: a.pos.y };
-    if (this.layer === 'air') {
-      const bob = Math.sin(this.walkElapsedMs / 260) * 2;
-      this.sprite.setPosition(a.pos.x, a.pos.y - AIR_ALTITUDE + bob);
-      this.shadow?.setPosition(a.pos.x, a.pos.y);
-    } else {
-      this.sprite.setPosition(a.pos.x, a.pos.y);
-    }
+    const bob = this.layer === 'air' ? Math.sin(this.walkElapsedMs / 260) * 2 : 0;
+    const renderY = this.layer === 'air' ? a.pos.y - AIR_ALTITUDE + bob : a.pos.y;
+    this.sprite.setPosition(a.pos.x, renderY);
+    this.shadow?.setPosition(a.pos.x, a.pos.y);
     if (a.done) {
       this._done = true;
       this.sprite.setVisible(false);
@@ -336,10 +332,10 @@ export class Enemy {
       this.freezeAura.setVisible(frozen);
       this.poisonAura.setVisible(poisoned);
       this.armorBreakAura.setVisible(armorBroken);
-      if (slowed) this.slowAura.setPosition(a.pos.x, a.pos.y);
-      if (frozen) this.freezeAura.setPosition(a.pos.x, a.pos.y);
-      if (poisoned) this.poisonAura.setPosition(a.pos.x, a.pos.y);
-      if (armorBroken) this.armorBreakAura.setPosition(a.pos.x, a.pos.y);
+      if (slowed) this.slowAura.setPosition(a.pos.x, renderY);
+      if (frozen) this.freezeAura.setPosition(a.pos.x, renderY);
+      if (poisoned) this.poisonAura.setPosition(a.pos.x, renderY);
+      if (armorBroken) this.armorBreakAura.setPosition(a.pos.x, renderY);
     }
   }
 
