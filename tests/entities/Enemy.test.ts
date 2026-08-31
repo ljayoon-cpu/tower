@@ -14,6 +14,7 @@ function makeEnemy(hp = 100, extras: Partial<EnemyDef> = {}) {
     setFrame(frame: number) { this.frame = frame; return this; },
     setScale() { return this; },
     setVisible() { return this; },
+    setDepth() { return this; },
   };
   const bar = {
     clear() { return this; }, fillStyle() { return this; }, fillRect() { return this; },
@@ -25,7 +26,10 @@ function makeEnemy(hp = 100, extras: Partial<EnemyDef> = {}) {
     setStrokeStyle() { return this; }, destroy() {},
   };
   const scene = {
-    add: { image: () => sprite, graphics: () => bar, circle: () => arc },
+    add: {
+      image: () => sprite, graphics: () => bar, circle: () => arc,
+      ellipse: () => arc,
+    },
   } as unknown as Phaser.Scene;
   return new Enemy(scene, { key: 'normal', name: '', hp, speed: 100, bounty: 1, lifeDamage: 1, ...extras },
     [{ x: 0, y: 0 }, { x: 0, y: 10000 }]);
@@ -127,6 +131,23 @@ describe('enemy simulation time', () => {
 
     e.update(100, 1);
     expect(e.pos.y).toBeCloseTo(10);
+  });
+});
+
+describe('air enemy', () => {
+  it('reports the air layer and keeps pos on the ground projection', () => {
+    const e = makeEnemy(100, { key: 'drone', movementLayer: 'air' });
+    e.update(100, 1); // 경로 (0,0)->(0,10000), speed 100 -> 10px 진행
+    expect(e.layer).toBe('air');
+    expect(e.pos.y).toBeCloseTo(10, 0);        // 그림자(지상) 기준
+    expect((e.sprite as unknown as { y: number }).y).toBeLessThan(10); // 스프라이트는 위로
+  });
+
+  it('defaults to ground layer with pos == sprite', () => {
+    const e = makeEnemy(100, { key: 'normal' });
+    e.update(100, 1);
+    expect(e.layer).toBe('ground');
+    expect(e.pos.y).toBeCloseTo((e.sprite as unknown as { y: number }).y, 5);
   });
 });
 

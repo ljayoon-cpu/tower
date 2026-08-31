@@ -4,6 +4,7 @@ import { PathManager } from '../systems/PathManager';
 import { EnemyState, type DamagePacket, type EnemyModifiers } from '../systems/EnemyState';
 
 let nextId = 1;
+const AIR_ALTITUDE = 22;
 const FAST_WALK_FRAME_MS = 90;
 const FAST_WALK_FRAME_COUNT = 4;
 const NORMAL_WALK_FRAME_MS = 160;
@@ -60,6 +61,10 @@ export class Enemy {
   private readonly poisonAura: Phaser.GameObjects.Arc;
   private readonly armorBreakAura: Phaser.GameObjects.Arc;
   private readonly barWidth: number;
+  private groundPos: Vec2;
+  private readonly shadow?: Phaser.GameObjects.GameObject & {
+    setPosition(x: number, y: number): unknown; setVisible(v: boolean): unknown; destroy(): void;
+  };
   private traveled = 0;
   private walkElapsedMs = 0;
   private slowMul = 1;
@@ -92,6 +97,7 @@ export class Enemy {
     this.traveled = Math.max(0, startTraveled);
     this.deathSpawnPending = def.deathSpawn != null;
     const start = polyline[0];
+    this.groundPos = { x: start.x, y: start.y };
     this.sprite = scene.add.image(start.x, start.y, `enemy_${def.key}`);
     // 128px 걷기 시트를 길 타일 안에서 읽히는 크기로 표시한다.
     if (def.key === 'fast') this.sprite.setScale(0.5);
@@ -123,9 +129,13 @@ export class Enemy {
       .setStrokeStyle(2, 0xffa641, 0.9)
       .setDepth(4)
       .setVisible(false);
+    if ((def.movementLayer ?? 'ground') === 'air') {
+      this.shadow = scene.add.ellipse(start.x, start.y, 20, 8, 0x000000, 0.28).setDepth(3) as never;
+      this.sprite.setDepth(12);
+    }
   }
 
-  get pos(): Vec2 { return { x: this.sprite.x, y: this.sprite.y }; }
+  get pos(): Vec2 { return { x: this.groundPos.x, y: this.groundPos.y }; }
   get hp(): number { return this.state.hp; }
   get alive(): boolean { return this.state.alive && !this._done; }
   get reachedGoal(): boolean { return this._done; }
@@ -200,7 +210,8 @@ export class Enemy {
     const ratio = this.healthRatio;
     const w = this.barWidth;
     const x = this.sprite.x - w / 2;
-    const y = this.sprite.y - (this.def.isBoss ? 40 : 18);
+    const lift = this.layer === 'air' ? AIR_ALTITUDE : 0;
+    const y = this.sprite.y - (this.def.isBoss ? 40 : 18) - lift;
     if (ratio >= 1 || !this.alive) {
       this.healthBar.setVisible(false);
     } else {
@@ -287,7 +298,8 @@ export class Enemy {
     if (!this.alive) { this.hideIndicators(); return; }
 
     const movingMs = simulationMs - frozenMs;
-    this.updateWalkAnimation(movingMs);
+    if (this.layer === 'air') this.walkElapsedMs += movingMs;
+    else this.updateWalkAnimation(movingMs);
     const slowedMs = Math.min(movingMs, Math.max(0, this.slowLeftMs));
     // 광전사: 체력이 rageBelow 이하면 이동속도 폭증.
     const rage = this.def.rageBelow != null && this.healthRatio <= this.def.rageBelow
@@ -301,10 +313,18 @@ export class Enemy {
     const a = PathManager.advance(this.polyline, this.traveled);
     this._progress = a.progress;
     // 질주병은 걷기 스프라이트 시트가 달리는 느낌을 낸다.
-    this.sprite.setPosition(a.pos.x, a.pos.y);
+    this.groundPos = { x: a.pos.x, y: a.pos.y };
+    if (this.layer === 'air') {
+      const bob = Math.sin(this.walkElapsedMs / 260) * 2;
+      this.sprite.setPosition(a.pos.x, a.pos.y - AIR_ALTITUDE + bob);
+      this.shadow?.setPosition(a.pos.x, a.pos.y);
+    } else {
+      this.sprite.setPosition(a.pos.x, a.pos.y);
+    }
     if (a.done) {
       this._done = true;
       this.sprite.setVisible(false);
+      this.shadow?.setVisible(false);
       this.hideIndicators();
     } else {
       this.drawBars();
@@ -332,6 +352,7 @@ export class Enemy {
     this.freezeAura.destroy();
     this.poisonAura.destroy();
     this.armorBreakAura.destroy();
+    this.shadow?.destroy();
     const tweens = (this.scene as Phaser.Scene & { tweens?: Phaser.Tweens.TweenManager }).tweens;
     if (tweens && this.state.hp <= 0 && !this._done) {
       // 현재 크기 기준으로 줄이며 사라진다(스프라이트 원본 크기가 달라도 안전).

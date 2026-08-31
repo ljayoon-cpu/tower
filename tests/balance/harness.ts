@@ -85,6 +85,7 @@ export function simulate(stage: StageDef, strategy: Strategy, seed = 1, speed = 
     add: {
       image: (x: number, y: number) => new DisplayObject(x, y),
       circle: (x: number, y: number) => new DisplayObject(x, y),
+      ellipse: (x: number, y: number) => new DisplayObject(x, y),
       graphics: () => new DisplayObject(),
     },
     input: { setDraggable() {}, manager: { pointers: [] } },
