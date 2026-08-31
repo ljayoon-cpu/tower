@@ -108,12 +108,9 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.clear(); g.fillStyle(COLORS.ballista, 1); g.fillTriangle(34, 8, 34, 24, 6, 16); g.fillRect(2, 14, 24, 4);
   g.fillStyle(0xffffff, 1); g.fillRect(26, 14, 6, 4); g.generateTexture('projectile_ballista', 36, 32);
 
-  // 지상 보병 + 재생충 + 소환사 + 조립 드론은 애니메이션 시트를 Preload에서 로드한다.
+  // 지상 보병 + 재생충 + 소환사 + 조립 드론 + 분해 유닛은 애니메이션 시트를 Preload에서 로드한다.
   // 나머지 적은 실루엣만 봐도 대처법을 짐작하게 도형으로 만든다.
-  // 분열체: 금 간 주황 덩어리. 조각은 작은 삼각형.
-  g.clear(); g.fillStyle(0xe8963a, 1); g.fillCircle(16, 16, 15); g.lineStyle(2, 0x3a1f0c, 1);
-  g.lineBetween(16, 2, 14, 16); g.lineBetween(14, 16, 16, 30); g.lineBetween(14, 16, 3, 12); g.lineBetween(14, 16, 28, 20);
-  g.generateTexture('enemy_splitter', 32, 32);
+  // 분열 조각은 작은 삼각형으로 남겨, 본체와 즉시 구분되게 한다.
   g.clear(); g.fillStyle(0xf0a85a, 1); g.fillTriangle(9, 3, 17, 16, 1, 16); g.generateTexture('enemy_splitterling', 18, 18);
   // 광전사: 붉은 톱니 원.
   g.clear(); g.fillStyle(0xd1362f, 1);

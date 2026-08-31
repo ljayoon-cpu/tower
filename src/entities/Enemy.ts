@@ -19,6 +19,8 @@ const SUMMONER_WALK_FRAME_MS = 205;
 const SUMMONER_WALK_FRAME_COUNT = 4;
 const MINION_HOVER_FRAME_MS = 120;
 const MINION_HOVER_FRAME_COUNT = 4;
+const SPLITTER_WALK_FRAME_MS = 175;
+const SPLITTER_WALK_FRAME_COUNT = 4;
 
 /** 질주병의 이동 시간에 해당하는 스프라이트 시트 프레임. */
 export function fastWalkFrameAt(elapsedMs: number): number {
@@ -53,6 +55,11 @@ export function summonerWalkFrameAt(elapsedMs: number): number {
 /** 조립 드론은 짧은 호버 주기로 민첩한 호위 역할을 드러낸다. */
 export function minionHoverFrameAt(elapsedMs: number): number {
   return Math.floor(elapsedMs / MINION_HOVER_FRAME_MS) % MINION_HOVER_FRAME_COUNT;
+}
+
+/** 분해 유닛은 분열 코어를 흔들며 중간 속도로 전진한다. */
+export function splitterWalkFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / SPLITTER_WALK_FRAME_MS) % SPLITTER_WALK_FRAME_COUNT;
 }
 
 export class Enemy {
@@ -114,6 +121,7 @@ export class Enemy {
     if (def.key === 'regenerator') this.sprite.setScale(0.58);
     if (def.key === 'summoner') this.sprite.setScale(0.6);
     if (def.key === 'minion') this.sprite.setScale(0.34);
+    if (def.key === 'splitter') this.sprite.setScale(0.52);
     this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
@@ -287,7 +295,7 @@ export class Enemy {
     this.summonedAlive = Math.max(0, this.summonedAlive - 1);
   }
 
-  private static readonly WALK_ANIMATED = new Set(['fast', 'normal', 'tank', 'shield', 'regenerator', 'summoner', 'minion']);
+  private static readonly WALK_ANIMATED = new Set(['fast', 'normal', 'tank', 'shield', 'regenerator', 'summoner', 'minion', 'splitter']);
 
   private updateWalkAnimation(movingMs: number): void {
     if (movingMs <= 0 || !Enemy.WALK_ANIMATED.has(this.def.key)) return;
@@ -299,7 +307,8 @@ export class Enemy {
           : this.def.key === 'shield' ? shieldWalkFrameAt(this.walkElapsedMs)
             : this.def.key === 'regenerator' ? regeneratorWalkFrameAt(this.walkElapsedMs)
               : this.def.key === 'summoner' ? summonerWalkFrameAt(this.walkElapsedMs)
-                : minionHoverFrameAt(this.walkElapsedMs);
+                : this.def.key === 'minion' ? minionHoverFrameAt(this.walkElapsedMs)
+                  : splitterWalkFrameAt(this.walkElapsedMs);
     sprite.setFrame?.(frame);
   }
 

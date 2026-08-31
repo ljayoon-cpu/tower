@@ -6,7 +6,7 @@ import { SFX_KEYS } from '../core/audio';
 export class Preload extends Phaser.Scene {
   constructor() { super('preload'); }
   preload() {
-    // 지상 보병과 특수 적은 128px 4프레임 시트를 쓰고, Enemy가 이동 시간에 맞춰 프레임을 순환한다.
+    // 지상 보병·분열체·특수 유닛은 128px 4프레임 시트를 쓰고, Enemy가 이동 시간에 맞춰 프레임을 순환한다.
     for (const [key, file] of [
       ['enemy_fast', 'fast-hound-walk-v1'],
       ['enemy_normal', 'normal-soldier-walk-v1'],
@@ -15,6 +15,7 @@ export class Preload extends Phaser.Scene {
       ['enemy_regenerator', 'regenerator-grub-walk-v1'],
       ['enemy_summoner', 'rift-summoner-walk-v1'],
       ['enemy_minion', 'assembly-drone-hover-v1'],
+      ['enemy_splitter', 'disassembly-unit-walk-v1'],
     ] as const) {
       this.load.spritesheet(key, `art/enemies/${file}.png`, { frameWidth: 128, frameHeight: 128 });
     }
