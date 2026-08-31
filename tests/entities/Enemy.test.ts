@@ -1,8 +1,9 @@
 import type Phaser from 'phaser';
 import { Enemy } from '../../src/entities/Enemy';
+import type { EnemyDef } from '../../src/core/types';
 
 // Minimal rendering boundary; movement and status effects use the real Enemy.
-function makeEnemy(hp = 100) {
+function makeEnemy(hp = 100, extras: Partial<EnemyDef> = {}) {
   const sprite = {
     x: 0, y: 0,
     setPosition(x: number, y: number) { this.x = x; this.y = y; return this; },
@@ -20,7 +21,7 @@ function makeEnemy(hp = 100) {
   const scene = {
     add: { image: () => sprite, graphics: () => bar, circle: () => arc },
   } as unknown as Phaser.Scene;
-  return new Enemy(scene, { key: 'normal', name: '', hp, speed: 100, bounty: 1, lifeDamage: 1 },
+  return new Enemy(scene, { key: 'normal', name: '', hp, speed: 100, bounty: 1, lifeDamage: 1, ...extras },
     [{ x: 0, y: 0 }, { x: 0, y: 10000 }]);
 }
 
@@ -55,5 +56,19 @@ describe('enemy simulation time', () => {
     expect(e.hp).toBeCloseTo(90);
     e.update(100, 1);
     expect(e.hp).toBeCloseTo(90);
+  });
+});
+
+describe('enemy summons', () => {
+  it('spawns only up to its living-minion cap, and frees a slot when a minion is removed', () => {
+    const e = makeEnemy(100, { summon: { enemyKey: 'minion', intervalMs: 500, maxAlive: 1 } });
+
+    e.update(500, 1);
+    expect(e.collectSummons()).toEqual(['minion']);
+    e.update(1000, 1);
+    expect(e.collectSummons()).toEqual([]);
+
+    e.notifySummonRemoved();
+    expect(e.collectSummons()).toEqual(['minion']);
   });
 });

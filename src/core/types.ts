@@ -24,6 +24,8 @@ export interface TowerLevelStats {
   poisonDps?: number;     // 중독 중 초당 피해
   poisonDurationMs?: number; // 중독 지속 시간
   poisonRadius?: number;  // 중독 투사체의 적용 반경(px)
+
+  armorPierce?: number;   // 방어력에서 무시할 수치
 }
 
 export interface TowerDef {
@@ -35,6 +37,24 @@ export interface TowerDef {
   levels: TowerLevelStats[]; // length === maxLevel, index 0 = Lv1
 }
 
+export type MovementLayer = 'ground' | 'air';
+
+export interface EnemyShieldDef {
+  /** 방어막이 먼저 흡수하는 피해량. */
+  energy: number;
+  /** 피격 뒤 방어막 회복을 시작하기까지의 시간. */
+  rechargeDelayMs: number;
+  /** 방어막 초당 회복량. */
+  rechargePerSecond: number;
+}
+
+export interface EnemySummonDef {
+  /** 소환할 EnemyDef.key */
+  enemyKey: string;
+  intervalMs: number;
+  maxAlive: number;
+}
+
 export interface EnemyDef {
   key: string;
   name: string;
@@ -43,6 +63,15 @@ export interface EnemyDef {
   bounty: number;
   lifeDamage: number;
   isBoss?: boolean;
+  /** 공중 경로와 대공 타워는 후속 챕터에서 사용한다. */
+  movementLayer?: MovementLayer;
+  /** 보호막을 모두 잃은 뒤 체력에 적용되는 고정 피해 감소량. */
+  armor?: number;
+  shield?: EnemyShieldDef;
+  regenPerSecond?: number;
+  /** 직접 타격 투사체가 우선 조준하는 보호 유닛 여부. */
+  intercepts?: boolean;
+  summon?: EnemySummonDef;
 }
 
 export interface WaveGroup {
@@ -50,6 +79,10 @@ export interface WaveGroup {
   count: number;
   intervalMs: number;   // 그룹 내 스폰 간격
   startDelayMs: number; // 웨이브 시작 기준 지연
+  /** 같은 적을 후반 웨이브에서 단계적으로 강화한다. */
+  hpMultiplier?: number;
+  speedMultiplier?: number;
+  shieldMultiplier?: number;
 }
 
 export interface Wave {

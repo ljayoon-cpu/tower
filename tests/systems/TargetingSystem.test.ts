@@ -21,6 +21,14 @@ describe('pickTarget', () => {
     expect(t?.id).toBe(2);
   });
 
+  it('prioritizes an in-range interceptor over the selected priority target', () => {
+    const t = pickTarget({ x: 0, y: 0 }, 200, [
+      { ...mk(1, 10, 0, 0.95), intercepts: false },
+      { ...mk(2, 30, 0, 0.1), intercepts: true },
+    ]);
+
+    expect(t?.id).toBe(2);
+  });
   it('breaks ties by lower id', () => {
     const t = pickTarget({ x: 0, y: 0 }, 200, [mk(5, 10, 0, 0.5), mk(2, 12, 0, 0.5)]);
     expect(t?.id).toBe(2);

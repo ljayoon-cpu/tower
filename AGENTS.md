@@ -62,8 +62,8 @@ src/
 
 1. **항상 `npm test` + `npm run build`** 를 커밋 전에 통과시킨다.
 2. **밸런스 회귀:** `tests/balance/balance.test.ts` — Phaser 없이 전투를 시뮬레이션한다.
-   단언: "방어 안 함"은 전 스테이지 전패 / 마지막 스테이지에서 arrowMerge가 이기고
-   arrowSpread보다 라이프가 많다(= 머지가 스프레드보다 나아야 한다). 타워 수치를
+   단언: "방어 안 함"은 전 스테이지 전패 / 마지막 스테이지에서 단일 화살 머지 빌드는
+   승리하지 못한다. 적 특성의 카운터가 필요한 후반 조합을 유지한다. 타워 수치를
    건드리면 여기부터 확인. 표 출력: `npx vitest run tests/balance/balance.test.ts --reporter=verbose`.
 3. **브라우저:** `npm run dev` 후 확인. 모바일 세로로 보려면 뷰포트를 420×840 정도로.
 
