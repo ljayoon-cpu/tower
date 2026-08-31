@@ -39,6 +39,11 @@ function dpsOf(stats: TowerLevelStats, attack: string): number {
 }
 
 function noteOf(key: string, level: number, stats: TowerLevelStats, attack: string): string {
+  if ((stats.airDamageMultiplier ?? 1) > 1) {
+    return (stats.projectileCount ?? 1) > 1
+      ? `대공 x${stats.airDamageMultiplier} · 멀티샷 ${stats.projectileCount}발`
+      : `대공 피해 x${stats.airDamageMultiplier}`;
+  }
   if ((stats.projectileCount ?? 1) > 1) {
     return `멀티샷 ${stats.projectileCount}발 · 발당 ${Math.round((stats.projectileDamageMultiplier ?? 1) * 100)}%`;
   }
@@ -64,9 +69,6 @@ function noteOf(key: string, level: number, stats: TowerLevelStats, attack: stri
     const poison = `독 지속 ${stats.poisonDps ?? 0}/초`;
     const pierce = key === 'poison' ? poisonArmorPierceEffect(level) : undefined;
     return pierce ? `${poison} · 방어 무시 ${pierce.armorPierce}` : poison;
-  }
-  if ((stats.airDamageMultiplier ?? 1) > 1) {
-    return `대공 피해 x${stats.airDamageMultiplier}`;
   }
   if (attack === 'single' && key === 'sniper') {
     const exec = sniperExecuteEffect(level);

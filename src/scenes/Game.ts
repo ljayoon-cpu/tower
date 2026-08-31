@@ -966,7 +966,7 @@ export class Game extends Phaser.Scene {
                   kind: 'single',
                 });
               } else {
-                e.takeDamage({ amount: shot.damage * airMul, kind: def.attack });
+                e.takeDamage({ amount: shot.damage * airMul, armorPierce: s.armorPierce ?? 0, kind: def.attack });
               }
               if (def.key === 'arrow' && e.alive) this.knockbackEnemy(e);
               if (def.key === 'sniper') this.startHitstop();
