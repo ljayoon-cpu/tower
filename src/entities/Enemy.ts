@@ -8,6 +8,8 @@ const FAST_WALK_FRAME_MS = 90;
 const FAST_WALK_FRAME_COUNT = 4;
 const NORMAL_WALK_FRAME_MS = 160;
 const NORMAL_WALK_FRAME_COUNT = 4;
+const TANK_WALK_FRAME_MS = 220;
+const TANK_WALK_FRAME_COUNT = 4;
 
 /** 질주병의 이동 시간에 해당하는 스프라이트 시트 프레임. */
 export function fastWalkFrameAt(elapsedMs: number): number {
@@ -17,6 +19,11 @@ export function fastWalkFrameAt(elapsedMs: number): number {
 /** 보행병은 질주병보다 느린 리듬으로 걷는다. */
 export function normalWalkFrameAt(elapsedMs: number): number {
   return Math.floor(elapsedMs / NORMAL_WALK_FRAME_MS) % NORMAL_WALK_FRAME_COUNT;
+}
+
+/** 장갑병은 묵직한 발걸음으로 가장 느리게 움직인다. */
+export function tankWalkFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / TANK_WALK_FRAME_MS) % TANK_WALK_FRAME_COUNT;
 }
 
 export class Enemy {
@@ -63,6 +70,7 @@ export class Enemy {
     // 128px 프레임을 길 타일 안에서 읽히는 크기로 표시한다.
     if (def.key === 'fast') this.sprite.setScale(0.5);
     if (def.key === 'normal') this.sprite.setScale(0.6);
+    if (def.key === 'tank') this.sprite.setScale(0.55);
     this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
@@ -217,12 +225,12 @@ export class Enemy {
   }
 
   private updateWalkAnimation(movingMs: number): void {
-    if (movingMs <= 0 || (this.def.key !== 'fast' && this.def.key !== 'normal')) return;
+    if (movingMs <= 0 || (this.def.key !== 'fast' && this.def.key !== 'normal' && this.def.key !== 'tank')) return;
     this.walkElapsedMs += movingMs;
     const sprite = this.sprite as Phaser.GameObjects.Image & { setFrame?: (frame: number) => unknown };
-    const frame = this.def.key === 'fast'
-      ? fastWalkFrameAt(this.walkElapsedMs)
-      : normalWalkFrameAt(this.walkElapsedMs);
+    const frame = this.def.key === 'fast' ? fastWalkFrameAt(this.walkElapsedMs)
+      : this.def.key === 'normal' ? normalWalkFrameAt(this.walkElapsedMs)
+        : tankWalkFrameAt(this.walkElapsedMs);
     sprite.setFrame?.(frame);
   }
 
