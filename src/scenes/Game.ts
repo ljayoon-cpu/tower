@@ -9,7 +9,7 @@ import type { GameEvents, StageDef, TileCoord, Vec2 } from '../core/types';
 import { Pool } from '../core/pool';
 import { getStage, nextStageId } from '../data/stages';
 import { starsFor } from '../core/stars';
-import { loadSave, loadMeta, recordResult, markTutorialDone } from '../core/save';
+import { loadSave, loadMeta, recordResult, recordEndless, markTutorialDone } from '../core/save';
 import { metaBonuses } from '../core/meta';
 import { Tutorial } from '../core/tutorial';
 import type { TutorialEvent } from '../core/tutorial';
@@ -190,6 +190,7 @@ export class Game extends Phaser.Scene {
       lives: this.lives,
       totalWaves: this.waves.totalWaves,
       waves: this.stage.waves,
+      endless: this.stage.endless ?? false,
       tutorialText: this.tutorial?.text ?? null,
       bannedTowerName: this.bannedTowerKey ? getTower(this.bannedTowerKey).name : '',
       onSkipTutorial: () => this.finishTutorial(),
@@ -580,6 +581,22 @@ export class Game extends Phaser.Scene {
     this.audio.stop();
     this.input.enabled = false;
     this.sellTimer?.remove();
+
+    if (this.stage.endless) {
+      // 무한 모드: 승패 대신 도달 웨이브를 기록한다. waveIndex 0-based → +1.
+      const reached = this.waves.waveIndex + 1;
+      const prevBest = loadSave().endlessBest ?? 0;
+      const best = recordEndless(reached);
+      if (won) this.bus.emit('stage:won', { stars: 3 });
+      else this.bus.emit('stage:lost', {});
+      this.scene.start('result', {
+        stageId: this.stage.id, won, stars: 0,
+        lives: this.lives, startLives: this.stage.startLives,
+        endless: { reached, best, prevBest },
+      });
+      return;
+    }
+
     const stars = starsFor(this.lives, this.stage.startLives, this.stage.starThresholds, won);
     const prevStars = loadSave().stages[this.stage.id]?.stars ?? 0;
     recordResult(this.stage.id, stars, nextStageId(this.stage.id));

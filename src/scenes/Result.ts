@@ -11,6 +11,8 @@ export interface ResultData {
   prevStars?: number;
   lives: number;
   startLives: number;
+  /** 무한 모드 결과. 있으면 별점 대신 도달 웨이브를 보여준다. */
+  endless?: { reached: number; best: number; prevBest: number };
 }
 
 export class Result extends Phaser.Scene {
@@ -22,6 +24,37 @@ export class Result extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => audio.stop());
     const cx = GAME_WIDTH / 2;
     this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0f1020);
+
+    if (data.endless) {
+      const { reached, best, prevBest } = data.endless;
+      const isRecord = reached > prevBest;
+      this.add.text(cx, 290, '무한 모드', {
+        fontFamily: 'monospace', fontSize: '26px', color: '#99aabb',
+      }).setOrigin(0.5);
+      this.add.text(cx, 390, '방어 종료', {
+        fontFamily: 'monospace', fontSize: '48px', color: '#ff5566',
+      }).setOrigin(0.5);
+      this.add.text(cx, 500, `웨이브 ${reached} 도달`, {
+        fontFamily: 'monospace', fontSize: '52px', color: '#ffcc44',
+      }).setOrigin(0.5);
+      this.add.text(cx, 565, isRecord ? '⭐ 신기록!' : `최고 웨이브 ${best}`, {
+        fontFamily: 'monospace', fontSize: '24px',
+        color: isRecord ? '#ffdd55' : '#8d98bb',
+      }).setOrigin(0.5);
+
+      const eButton = (y: number, label: string, onClick: () => void) => {
+        const bg = this.add.rectangle(cx, y, 390, 76, 0x1b1d33)
+          .setStrokeStyle(2, 0x66ccff).setInteractive({ useHandCursor: true });
+        this.add.text(cx, y, label, {
+          fontFamily: 'monospace', fontSize: '28px', color: '#f2f2f7',
+        }).setOrigin(0.5);
+        bg.on('pointerup', onClick);
+      };
+      eButton(720, '다시 도전', () => this.scene.start('game', { stageId: data.stageId }));
+      eButton(820, '메인 메뉴', () => this.scene.start('mainmenu'));
+      return;
+    }
+
     this.add.text(cx, 290, `STAGE ${data.stageId}`, {
       fontFamily: 'monospace', fontSize: '26px', color: '#99aabb',
     }).setOrigin(0.5);

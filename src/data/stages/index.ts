@@ -12,7 +12,9 @@ import { stage22 } from './stage-2-2';
 import { stage23 } from './stage-2-3';
 import { stage24 } from './stage-2-4';
 import { stage25 } from './stage-2-5';
+import { endlessStage, ENDLESS_STAGE_ID } from '../endless';
 
+/** 캠페인 스테이지 (스테이지 선택 화면에 나오는 것). */
 export const STAGES: StageDef[] = [
   stage11, stage12, stage13, stage14, stage15, stage16, stage17, stage18,
   stage21, stage22, stage23, stage24,
@@ -20,7 +22,10 @@ export const STAGES: StageDef[] = [
 ];
 export const STAGE_IDS: string[] = STAGES.map((s) => s.id);
 
+let endlessCache: StageDef | null = null;
+
 export function getStage(id: string): StageDef {
+  if (id === ENDLESS_STAGE_ID) return (endlessCache ??= endlessStage());
   const s = STAGES.find((x) => x.id === id);
   if (!s) throw new Error(`unknown stage: ${id}`);
   return s;

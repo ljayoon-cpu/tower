@@ -14,6 +14,8 @@ export interface HudInit {
   lives: number;
   totalWaves: number;
   waves: Wave[];
+  /** 무한 모드. 웨이브 표시를 "N/총합" 대신 "N"으로 바꾼다. */
+  endless?: boolean;
   /** 튜토리얼 초기 안내 문구. null이면 튜토리얼 비활성. */
   tutorialText: string | null;
   /** 이번 판에 설치할 수 없는 타워 이름. */
@@ -51,7 +53,8 @@ export class HUD extends Phaser.Scene {
     this.add.rectangle(GAME_WIDTH / 2, 80, GAME_WIDTH, 160, 0x0f1020, 0.96).setInteractive();
     const goldText = this.add.text(20, 12, `골드 ${data.gold}`, { ...style, color: '#ffcc44' });
     const lifeText = this.add.text(20, 48, `라이프 ${data.lives}`, { ...style, color: '#ff8899' });
-    const waveText = this.add.text(GAME_WIDTH - 20, 12, `웨이브 -/${data.totalWaves}`, style).setOrigin(1, 0);
+    const waveLabel = (n: number | '-') => (data.endless ? `웨이브 ${n}` : `웨이브 ${n}/${data.totalWaves}`);
+    const waveText = this.add.text(GAME_WIDTH - 20, 12, waveLabel('-'), style).setOrigin(1, 0);
     const button = (x: number, y: number, w: number, label: string, action: () => void) => {
       const bg = this.add.rectangle(x, y, w, 48, 0x242943).setInteractive({ useHandCursor: true });
       const text = this.add.text(x, y, label, { ...style, fontSize: '23px' }).setOrigin(0.5);
@@ -139,7 +142,7 @@ export class HUD extends Phaser.Scene {
     });
     on('life:changed', ({ lives }) => lifeText.setText(`라이프 ${lives}`));
     on('wave:started', ({ index, total }) => {
-      waveText.setText(`웨이브 ${index + 1}/${total}`);
+      waveText.setText(data.endless ? waveLabel(index + 1) : `웨이브 ${index + 1}/${total}`);
       next.bg.disableInteractive().setAlpha(0.4);
       next.text.setAlpha(0.4).setText('▶ 다음 웨이브');
       hint.setText('같은 타워를 겹치면 합체');

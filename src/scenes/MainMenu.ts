@@ -16,12 +16,17 @@ export class MainMenu extends Phaser.Scene {
 
     start.on('pointerup', () => { audio.play('click'); this.scene.start('stageselect'); });
 
-    const shop = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.68, '⚙ 강화 상점', {
+    const endless = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.68, '♾ 무한 모드', {
+      fontFamily: 'monospace', fontSize: '30px', color: '#ff9ee0',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    endless.on('pointerup', () => { audio.play('click'); this.scene.start('game', { stageId: 'endless' }); });
+
+    const shop = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.76, '⚙ 강화 상점', {
       fontFamily: 'monospace', fontSize: '30px', color: '#7dd8ff',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     shop.on('pointerup', () => { audio.play('click'); this.scene.start('shop'); });
 
-    const sound = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.78, '', {
+    const sound = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.84, '', {
       fontFamily: 'monospace', fontSize: '28px', color: '#99aabb',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     const refresh = () => sound.setText(audio.muted ? '소리: 꺼짐' : '소리: 켜짐');

@@ -33,8 +33,11 @@ export function loadSave(storage: StorageLike = defaultStorage()): SaveData {
     ) {
       const entries = (parsed as { stages: Record<string, unknown> }).stages;
       const extras = (data: SaveData): SaveData => {
-        const p = parsed as { tutorialDone?: unknown; meta?: unknown };
+        const p = parsed as { tutorialDone?: unknown; meta?: unknown; endlessBest?: unknown };
         if (p.tutorialDone === true) data.tutorialDone = true;
+        if (typeof p.endlessBest === 'number' && Number.isFinite(p.endlessBest) && p.endlessBest > 0) {
+          data.endlessBest = Math.floor(p.endlessBest);
+        }
         const m = p.meta;
         if (m !== null && typeof m === 'object') {
           const { cores, upgrades } = m as { cores?: unknown; upgrades?: unknown };
@@ -87,6 +90,15 @@ export function markTutorialDone(storage: StorageLike = defaultStorage()): void 
 
 export function loadMeta(storage: StorageLike = defaultStorage()): MetaState {
   return loadSave(storage).meta ?? { cores: 0, upgrades: {} };
+}
+
+/** 무한 모드 도달 웨이브를 기록한다(최고값 유지). 반환: 갱신된 최고값. */
+export function recordEndless(wave: number, storage: StorageLike = defaultStorage()): number {
+  const data = loadSave(storage);
+  const best = Math.max(data.endlessBest ?? 0, Math.max(0, Math.floor(wave)));
+  data.endlessBest = best;
+  writeSave(data, storage);
+  return best;
 }
 
 export function saveMeta(meta: MetaState, storage: StorageLike = defaultStorage()): void {

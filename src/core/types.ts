@@ -117,6 +117,8 @@ export interface StageDef {
   starThresholds: [number, number, number]; // 남은 라이프 비율 하한 [1별,2별,3별], 오름차순
   /** 보스전. 이 스테이지에서만 타워 1종이 랜덤 봉인된다. */
   bossStage?: boolean;
+  /** 무한 모드. 승리 조건이 없고 도달 웨이브를 기록한다. */
+  endless?: boolean;
 }
 
 export interface StageProgress { stars: number; unlocked: boolean; }
@@ -126,6 +128,8 @@ export interface SaveData {
   tutorialDone?: boolean;
   /** 판 사이 영구 성장. 코어와 업그레이드 레벨. */
   meta?: { cores: number; upgrades: Record<string, number> };
+  /** 무한 모드 최고 도달 웨이브. */
+  endlessBest?: number;
 }
 
 // `type` (not `interface`): an interface has no implicit index signature, so it
