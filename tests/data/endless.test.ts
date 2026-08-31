@@ -48,27 +48,27 @@ describe('endless wave generator', () => {
     expect(has(5, 'shield')).toBe(true);
   });
 
-  it('escalates spawn points: alternating one entrance, then split, then both', () => {
+  it('escalates spawn points: one side alternating, then split columns, then all four', () => {
+    // lane 0 좌·위 / 1 좌·아래 / 2 우·위 / 3 우·아래.
     expect(endlessSpawnPhase(1)).toBe('single');
     expect(endlessSpawnPhase(5)).toBe('single');
     expect(endlessSpawnPhase(6)).toBe('split');
     expect(endlessSpawnPhase(14)).toBe('split');
     expect(endlessSpawnPhase(15)).toBe('both');
 
-    // single 페이즈: 모든 그룹이 한 레인, 웨이브마다 번갈아.
-    const w1 = endlessWave(1).groups.map((g) => g.lane);
-    const w2 = endlessWave(2).groups.map((g) => g.lane);
-    expect(new Set(w1).size).toBe(1);
-    expect(new Set(w2).size).toBe(1);
-    expect(w1[0]).not.toBe(w2[0]);
+    const lanesOf = (n: number) => new Set(endlessWave(n).groups.map((g) => g.lane));
 
-    // split 페이즈: 코어 스웜이 두 레인으로 갈린다.
-    const core8 = endlessWave(8).groups.filter((g) => g.enemy === 'fast' || g.enemy === 'normal');
-    expect(new Set(core8.map((g) => g.lane)).size).toBe(2);
+    // single: 한 쪽 입구만(위·아래로는 갈림), 웨이브마다 좌↔우 번갈아.
+    expect(lanesOf(1)).toEqual(new Set([0, 1]));   // 좌측
+    expect(lanesOf(2)).toEqual(new Set([2, 3]));   // 우측
 
-    // both 페이즈: 양쪽 입구에서 fast 가 동시에 나온다.
-    const fast20 = endlessWave(20).groups.filter((g) => g.enemy === 'fast');
-    expect(new Set(fast20.map((g) => g.lane))).toEqual(new Set([0, 1]));
+    // split: 질주병은 좌측 열, 보병은 우측 열.
+    const w8 = endlessWave(8).groups;
+    expect(new Set(w8.filter((g) => g.enemy === 'fast').map((g) => g.lane))).toEqual(new Set([0, 1]));
+    expect(new Set(w8.filter((g) => g.enemy === 'normal').map((g) => g.lane))).toEqual(new Set([2, 3]));
+
+    // both: 사방에서 동시에.
+    expect(lanesOf(20)).toEqual(new Set([0, 1, 2, 3]));
   });
 
   it('endlessWaves returns the requested length', () => {
@@ -90,15 +90,20 @@ describe('endless stage', () => {
     for (const row of s.grid) expect(row).toHaveLength(GRID_COLS);
   });
 
-  it('has two entrances that both reach the goal', () => {
+  it('has four routes: left/right entrance x top/bottom goal, symmetric', () => {
     const s = endlessStage();
     const routes = new PathManager(s.path).routes();
-    expect(routes).toHaveLength(2);
-    // 서로 다른 스폰 지점.
-    expect(routes[0][0]).not.toEqual(routes[1][0]);
-    for (const r of routes) {
-      const end = r[r.length - 1];
-      expect(Math.hypot(end.x - s.goals[0].x, end.y - s.goals[0].y)).toBeLessThan(1);
-    }
+    expect(routes).toHaveLength(4);
+    const starts = routes.map((r) => r[0]);
+    const ends = routes.map((r) => r[r.length - 1]);
+    // 두 개의 스폰 지점(좌/우)만 존재.
+    expect(new Set(starts.map((p) => p.x)).size).toBe(2);
+    // 두 개의 목표(위 y=0 / 아래 y=GAME_HEIGHT)만 존재, 각각 두 루트가 도달.
+    const endYs = ends.map((p) => p.y).sort((a, b) => a - b);
+    expect(endYs).toEqual([0, 0, 1280, 1280]);
+    for (const p of ends) expect(Math.abs(p.x - s.goals[0].x)).toBeLessThan(1); // 모두 중앙 세로선
+    // 좌우 대칭: 스폰 x 가 중앙(352)을 기준으로 대칭.
+    const xs = [...new Set(starts.map((p) => p.x))].sort((a, b) => a - b);
+    expect((xs[0] + xs[1]) / 2).toBeCloseTo(s.goals[0].x, 0);
   });
 });

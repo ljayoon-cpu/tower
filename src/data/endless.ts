@@ -1,47 +1,41 @@
-import type { StageDef, Wave, WaveGroup } from '../core/types';
-import { TILE } from '../core/constants';
+import type { PathNode, StageDef, Wave, WaveGroup } from '../core/types';
+import { TILE, GAME_HEIGHT } from '../core/constants';
 import { parseGrid } from './stages/helpers';
 
-// 두 입구(좌 col1 / 우 col9)에서 나와 col5·row3 에서 합쳐지고, 그 뒤 긴 사행 트렁크로
-// 목표까지 내려간다. 그리드 11열 x 20행.
+// 좌우·상하 대칭 십자 맵. 적은 좌/우 가장자리에서 나와 중앙에서 위 목표와 아래 목표로
+// 갈라진다. 네 사분면이 전부 설치 구역. 그리드 11열 x 20행.
+const V = '.....#.....';        // 세로 척추 (col5)
+const H = '###########';        // 가로 십자대 (row9-10)
 const ROWS = [
-  '.#.......#.',
-  '.#.......#.',
-  '.#.......#.',
-  '.#########.',
-  '.....#.....',
-  '.....#.....',
-  '.#####.....',
-  '.#.........',
-  '.#.........',
-  '.#.........',
-  '.#########.',
-  '.........#.',
-  '.........#.',
-  '.........#.',
-  '.#########.',
-  '.#.........',
-  '.#.........',
-  '.#.........',
-  '.#########.',
-  '.........#.',
+  V, V, V, V, V, V, V, V, V,
+  H, H,
+  V, V, V, V, V, V, V, V, V,
 ];
 
 const px = (n: number) => n * TILE + TILE / 2;
+const CX = px(5);               // 352 — 중앙 세로선
+const CY = GAME_HEIGHT / 2;     // 640 — 십자대 중심(row9/row10 경계)
 
-// 합류점(col5,row3) 이후 공용 트렁크.
-const TRUNK = [
-  { x: px(5), y: px(3) }, { x: px(5), y: px(6) }, { x: px(1), y: px(6) },
-  { x: px(1), y: px(10) }, { x: px(9), y: px(10) }, { x: px(9), y: px(14) },
-  { x: px(1), y: px(14) }, { x: px(1), y: px(18) }, { x: px(9), y: px(18) },
-  { x: px(9), y: px(19) },
-];
+const LEFT = { x: 0, y: CY };
+const RIGHT = { x: px(10) + TILE / 2, y: CY }; // 704, 오른쪽 가장자리
+const CENTER = { x: CX, y: CY };
+const TOP_GOAL = { x: CX, y: 0 };
+const BOTTOM_GOAL = { x: CX, y: GAME_HEIGHT };
 
-const LANE_LEFT = [{ x: px(1), y: 0 }, { x: px(1), y: px(3) }, ...TRUNK];
-const LANE_RIGHT = [{ x: px(9), y: 0 }, { x: px(9), y: px(3) }, ...TRUNK];
+// 루트 4개: (좌|우) 진입 × (위|아래) 목표. lane 인덱스 = 0 좌·위 / 1 좌·아래 / 2 우·위 / 3 우·아래.
+const PATH: PathNode = {
+  points: [],
+  branches: [
+    { points: [LEFT, CENTER], branches: [{ points: [TOP_GOAL] }, { points: [BOTTOM_GOAL] }] },
+    { points: [RIGHT, CENTER], branches: [{ points: [TOP_GOAL] }, { points: [BOTTOM_GOAL] }] },
+  ],
+};
 
-/** 무한 모드 스폰 위상: 앞 웨이브는 한 입구씩 번갈아, 중반은 두 입구로 나눠서,
- *  뒤로 갈수록 양쪽에서 한꺼번에. */
+const LANES = {
+  left: [0, 1], right: [2, 3], up: [0, 2], down: [1, 3], all: [0, 1, 2, 3],
+} as const;
+
+/** 무한 모드 스폰 위상: 앞은 한 쪽 입구씩 번갈아, 중반은 좌우 열을 나눠서, 뒤는 사방에서. */
 export function endlessSpawnPhase(n: number): 'single' | 'split' | 'both' {
   if (n <= 5) return 'single';
   if (n <= 14) return 'split';
@@ -58,56 +52,54 @@ export function endlessWave(n: number): Wave {
   const phase = endlessSpawnPhase(n);
   const alt = (n - 1) % 2; // 이번 웨이브가 먼저 쓰는 입구
 
-  // 코어 스웜: fast + normal.
-  const fastCount = Math.round(swarm * fastShare);
-  const normalCount = Math.round(swarm * (1 - fastShare));
-  if (phase === 'both') {
-    // 양쪽 입구에서 절반씩 동시에.
-    for (const lane of [0, 1]) {
-      groups.push({ enemy: 'fast', count: Math.ceil(fastCount / 2), intervalMs: interval, startDelayMs: 0, lane });
-      groups.push({ enemy: 'normal', count: Math.ceil(normalCount / 2), intervalMs: interval + 60, startDelayMs: 400, lane });
-    }
+  let fastLanes: readonly number[];
+  let normalLanes: readonly number[];
+  let specialLanes: readonly number[];
+  let bossLanes: readonly number[];
+  if (phase === 'single') {
+    const side = alt === 0 ? LANES.left : LANES.right;
+    fastLanes = normalLanes = specialLanes = bossLanes = side;
   } else if (phase === 'split') {
-    // 한 입구는 질주병, 다른 입구는 보병.
-    groups.push({ enemy: 'fast', count: fastCount, intervalMs: interval, startDelayMs: 0, lane: alt });
-    groups.push({ enemy: 'normal', count: normalCount, intervalMs: interval + 60, startDelayMs: 400, lane: 1 - alt });
+    fastLanes = LANES.left;
+    normalLanes = LANES.right;
+    specialLanes = LANES.right;
+    bossLanes = LANES.left;
   } else {
-    // 한 입구에서만, 웨이브마다 번갈아.
-    groups.push({ enemy: 'fast', count: fastCount, intervalMs: interval, startDelayMs: 0, lane: alt });
-    groups.push({ enemy: 'normal', count: normalCount, intervalMs: interval + 60, startDelayMs: 400, lane: alt });
+    fastLanes = normalLanes = specialLanes = bossLanes = LANES.all;
   }
 
-  // 특수 적: split/both 에선 코어와 반대 입구로 들어와 압박을 나눈다.
-  const specialLane = phase === 'both' ? undefined : phase === 'split' ? alt : alt;
+  /** count 를 lanes 에 고르게 쪼개 그룹으로 넣는다(위·아래 목표로 갈라짐). */
+  const across = (lanes: readonly number[], enemy: string, count: number, extra: Partial<WaveGroup> = {}) => {
+    if (count <= 0) return;
+    const per = Math.max(1, Math.ceil(count / lanes.length));
+    for (const lane of lanes) {
+      groups.push({ enemy, count: per, intervalMs: interval, startDelayMs: 0, lane, ...extra });
+    }
+  };
+
+  across(fastLanes, 'fast', Math.round(swarm * fastShare));
+  across(normalLanes, 'normal', Math.round(swarm * (1 - fastShare)), { intervalMs: interval + 60, startDelayMs: 400 });
+
   if (n >= 3) {
-    groups.push({
-      enemy: 'tank', count: 2 + Math.floor(t / 3), intervalMs: 700,
-      startDelayMs: 900, hpMultiplier: 1 + t * 0.05, lane: specialLane,
+    across(specialLanes, 'tank', 2 + Math.floor(t / 3), {
+      intervalMs: 700, startDelayMs: 900, hpMultiplier: 1 + t * 0.05,
     });
   }
   if (n >= 5 && n % 2 === 1) {
-    groups.push({ enemy: 'shield', count: 3 + Math.floor(t / 4), intervalMs: 360, startDelayMs: 1400, lane: 1 - alt });
+    across(specialLanes, 'shield', 3 + Math.floor(t / 4), { intervalMs: 360, startDelayMs: 1400 });
   }
   if (n >= 7 && n % 3 === 0) {
-    groups.push({ enemy: 'regenerator', count: 3 + Math.floor(t / 6), intervalMs: 500, startDelayMs: 1600, lane: specialLane });
+    across(specialLanes, 'regenerator', 3 + Math.floor(t / 6), { intervalMs: 500, startDelayMs: 1600 });
   }
   if (n >= 9 && n % 4 === 0) {
-    groups.push({ enemy: 'summoner', count: 2 + Math.floor(t / 8), intervalMs: 900, startDelayMs: 1800, lane: 1 - alt });
+    across(specialLanes, 'summoner', 2 + Math.floor(t / 8), { intervalMs: 900, startDelayMs: 1800 });
   }
   if (n % 5 === 0) {
-    const bossCount = 1 + Math.floor(n / 25);
-    const bossMods = {
+    across(bossLanes, 'boss', 1 + Math.floor(n / 25), {
+      intervalMs: 3600, startDelayMs: 1200,
       hpMultiplier: 1 + Math.floor(n / 5) * 0.35,
       shieldMultiplier: 1 + Math.floor(n / 10) * 0.2,
-    };
-    if (phase === 'both') {
-      // 양쪽에서 협공.
-      for (const lane of [0, 1]) {
-        groups.push({ enemy: 'boss', count: Math.ceil(bossCount / 2), intervalMs: 3600, startDelayMs: 1200, lane, ...bossMods });
-      }
-    } else {
-      groups.push({ enemy: 'boss', count: bossCount, intervalMs: 3600, startDelayMs: 1200, lane: alt, ...bossMods });
-    }
+    });
   }
 
   return { groups, clearBonus: 18 + n * 3 };
@@ -124,10 +116,9 @@ export function endlessStage(): StageDef {
     id: ENDLESS_STAGE_ID,
     endless: true,
     grid: parseGrid(ROWS),
-    spawn: { x: px(1), y: 0 },
-    goals: [{ x: px(9), y: px(19) }],
-    // points 가 빈 루트 → 각 branch 가 서로 다른 입구에서 시작하는 독립 경로.
-    path: { points: [], branches: [{ points: LANE_LEFT }, { points: LANE_RIGHT }] },
+    spawn: LEFT,
+    goals: [TOP_GOAL, BOTTOM_GOAL],
+    path: PATH,
     startGold: 280,
     startLives: 20,
     starThresholds: [0.3, 0.6, 0.9],
