@@ -25,8 +25,9 @@ export class Tower {
   beamTickMs = 0;
   /** 씬이 소유·갱신하는 지속 빔 그래픽. */
   beamGfx?: Phaser.GameObjects.Line;
-  /** support(금광탑): 골드 생성까지 누적된 시간(ms). */
+  /** support(금광탑): 골드 생성까지 누적된 시간(ms), 뜨는 숫자용 누적 골드. */
   goldTimerMs = 0;
+  goldDisplayAcc = 0;
   readonly sprite: Phaser.GameObjects.Image;
   private ring: Phaser.GameObjects.Arc;
   private mergeHint: Phaser.GameObjects.Arc;

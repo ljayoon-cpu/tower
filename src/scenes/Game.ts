@@ -14,7 +14,7 @@ import { metaBonuses } from '../core/meta';
 import { Tutorial } from '../core/tutorial';
 import type { TutorialEvent } from '../core/tutorial';
 import { getEnemy } from '../data/enemies';
-import { getTower, TOWER_KEYS, cumulativeCost } from '../data/towers';
+import { getTower, TOWER_KEYS, cumulativeCost, upgradeCost } from '../data/towers';
 import {
   frostFreezeEffect, boltStaggerEffect, poisonArmorPierceEffect, sniperDamageMultiplier,
 } from '../data/mergeEffects';
@@ -70,6 +70,7 @@ export class Game extends Phaser.Scene {
   private pendingTile: TileCoord | null = null;
   private buildPreview: Phaser.GameObjects.Arc | null = null;
   private inspectText?: Phaser.GameObjects.Text;
+  private upgradeButton?: Phaser.GameObjects.Text;
   private selectedTower?: Tower;
   private lives = 0;
   private speedMul = 1;
@@ -165,6 +166,16 @@ export class Game extends Phaser.Scene {
       this.audio.play('click');
       this.showInspect(this.selectedTower);
     });
+
+    this.upgradeButton = this.add
+      .text(20, 148, '', {
+        fontFamily: 'monospace', fontSize: '19px', color: '#f2f2f7',
+        backgroundColor: '#2a5d3a', padding: { x: 8, y: 5 },
+      })
+      .setDepth(501)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+    this.upgradeButton.on('pointerup', () => this.tryUpgradeSelected());
 
     this.bus.on('enemy:killed', (p) => {
       this.eco.earn(p.bounty);
@@ -338,13 +349,13 @@ export class Game extends Phaser.Scene {
     if (!tower || !this.towers.includes(tower)) {
       this.selectedTower = undefined;
       this.inspectText.setVisible(false);
+      this.upgradeButton?.setVisible(false);
       return;
     }
     this.selectedTower = tower;
+    const def = getTower(tower.key);
     const info = towerInfo(tower.key, tower.level);
-    const sell = Math.floor(
-      cumulativeCost(getTower(tower.key), tower.level) * this.eco.sellRatio,
-    );
+    const sell = Math.floor(cumulativeCost(def, tower.level) * this.eco.sellRatio);
     const dpsLine = info.nextDps != null
       ? `DPS ${info.dps} → ${info.nextDps}`
       : `DPS ${info.dps} (최대)`;
@@ -356,6 +367,33 @@ export class Game extends Phaser.Scene {
         `${parts.join('   ')}\n표적: ${TARGET_PRIORITY_LABEL[tower.priority]} ▸ (눌러 변경)`,
       )
       .setVisible(true);
+
+    if (this.upgradeButton) {
+      if (tower.level >= tower.maxLevel) {
+        this.upgradeButton.setVisible(false);
+      } else {
+        const cost = upgradeCost(def, tower.level);
+        const afford = this.eco.gold >= cost;
+        this.upgradeButton
+          .setText(`⬆ Lv${tower.level + 1} 강화  ${cost}G`)
+          .setStyle({ backgroundColor: afford ? '#2a5d3a' : '#4a3030', color: afford ? '#f2f2f7' : '#a88' })
+          .setPosition(20, this.inspectText.y + this.inspectText.height + 6)
+          .setVisible(true);
+      }
+    }
+  }
+
+  private tryUpgradeSelected(): void {
+    const tower = this.selectedTower;
+    if (!this.running || this.paused || !tower || !this.towers.includes(tower)) return;
+    if (tower.level >= tower.maxLevel) return;
+    const cost = upgradeCost(getTower(tower.key), tower.level);
+    if (!this.eco.spend(cost)) { this.audio.play('click'); return; }
+    tower.setLevel(tower.level + 1);
+    this.mergePop(tower);
+    this.audio.play('merge');
+    if (tower.rangeVisible) tower.showRange(true);
+    this.showInspect(tower);
   }
 
   private setupDragInput(): void {
@@ -463,6 +501,7 @@ export class Game extends Phaser.Scene {
     t.destroy();
     if (this.selectedTower === t) this.selectedTower = undefined;
     this.inspectText?.setVisible(false);
+    this.upgradeButton?.setVisible(false);
   }
 
   private confirmSell(t: Tower): void {
@@ -646,15 +685,23 @@ export class Game extends Phaser.Scene {
     };
   }
 
-  /** 지원 타워(지휘탑·금광탑): 직접 공격 없음. 금광탑은 주기적으로 골드를 생성한다. */
+  /** 지원 타워(지휘탑·금광탑): 직접 공격 없음. 금광탑은 초당 골드를 생성한다.
+   *  골드는 매 틱 들어오지만, 뜨는 숫자·효과음은 ~3초마다 한 번만(스팸 방지). */
   private updateSupportTower(tower: Tower, s: TowerLevelStats, dtMs: number): void {
     if (s.goldIntervalMs == null || s.goldPerTick == null) return;
     tower.goldTimerMs += dtMs;
+    let pending = 0;
     while (tower.goldTimerMs >= s.goldIntervalMs) {
       tower.goldTimerMs -= s.goldIntervalMs;
       this.eco.earn(s.goldPerTick);
-      this.floatingGold(tower.homePos, s.goldPerTick);
+      pending += s.goldPerTick;
+    }
+    if (pending <= 0) return;
+    tower.goldDisplayAcc += pending;
+    if (tower.goldDisplayAcc >= s.goldPerTick * 3) {
+      this.floatingGold(tower.homePos, Math.round(tower.goldDisplayAcc));
       this.audio.play('mine');
+      tower.goldDisplayAcc = 0;
     }
   }
 

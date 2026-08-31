@@ -88,11 +88,11 @@ export const TOWERS: Record<string, TowerDef> = {
     // 타워를 뭉쳐 짓고 머지 위치를 고민하게 만든다.
     key: 'command', name: '지휘탑', attack: 'support', cost: 140, maxLevel: 5,
     levels: [
-      { damage: 4,  range: 128, fireRate: 1.0,  buffRadius: 128, buffDamagePct: 0.10, buffFireRatePct: 0.06 },
-      { damage: 8,  range: 134, fireRate: 1.05, buffRadius: 136, buffDamagePct: 0.14, buffFireRatePct: 0.09 },
-      { damage: 15, range: 142, fireRate: 1.1,  buffRadius: 146, buffDamagePct: 0.19, buffFireRatePct: 0.12, buffRangePct: 0.10 },
-      { damage: 29, range: 150, fireRate: 1.15, buffRadius: 158, buffDamagePct: 0.25, buffFireRatePct: 0.16, buffRangePct: 0.10 },
-      { damage: 56, range: 160, fireRate: 1.2,  buffRadius: 172, buffDamagePct: 0.32, buffFireRatePct: 0.20, buffRangePct: 0.18 },
+      { damage: 4,  range: 128, fireRate: 1.0,  buffRadius: 210, buffDamagePct: 0.10, buffFireRatePct: 0.06 },
+      { damage: 8,  range: 134, fireRate: 1.05, buffRadius: 230, buffDamagePct: 0.14, buffFireRatePct: 0.09 },
+      { damage: 15, range: 142, fireRate: 1.1,  buffRadius: 255, buffDamagePct: 0.19, buffFireRatePct: 0.12, buffRangePct: 0.10 },
+      { damage: 29, range: 150, fireRate: 1.15, buffRadius: 285, buffDamagePct: 0.25, buffFireRatePct: 0.16, buffRangePct: 0.10 },
+      { damage: 56, range: 160, fireRate: 1.2,  buffRadius: 320, buffDamagePct: 0.32, buffFireRatePct: 0.20, buffRangePct: 0.18 },
     ],
   },
   mine: {
@@ -100,11 +100,11 @@ export const TOWERS: Record<string, TowerDef> = {
     // 후반 자금이 커지지만 그만큼 방어를 늦게 세워야 한다.
     key: 'mine', name: '금광탑', attack: 'support', cost: 120, maxLevel: 5,
     levels: [
-      { damage: 3,  range: 110, fireRate: 0.9,  goldPerTick: 6,  goldIntervalMs: 5000 },
-      { damage: 6,  range: 116, fireRate: 0.95, goldPerTick: 11, goldIntervalMs: 4800 },
-      { damage: 12, range: 124, fireRate: 1.0,  goldPerTick: 19, goldIntervalMs: 4600, mineWaveBonus: 12 },
-      { damage: 23, range: 132, fireRate: 1.05, goldPerTick: 32, goldIntervalMs: 4400, mineWaveBonus: 12 },
-      { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 52, goldIntervalMs: 4200, mineWaveBonus: 28 },
+      { damage: 3,  range: 110, fireRate: 0.9,  goldPerTick: 1,  goldIntervalMs: 1000 },
+      { damage: 6,  range: 116, fireRate: 0.95, goldPerTick: 2,  goldIntervalMs: 1000 },
+      { damage: 12, range: 124, fireRate: 1.0,  goldPerTick: 4,  goldIntervalMs: 1000, mineWaveBonus: 12 },
+      { damage: 23, range: 132, fireRate: 1.05, goldPerTick: 7,  goldIntervalMs: 1000, mineWaveBonus: 12 },
+      { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 12, goldIntervalMs: 1000, mineWaveBonus: 28 },
     ],
   },
 };
@@ -120,4 +120,13 @@ export function getTower(key: string): TowerDef {
 /** 판매 기준액은 레벨과 무관하게 Lv1 설치비. 머지에 쓴 비용은 회수하지 못한다. */
 export function cumulativeCost(def: TowerDef, _level: number): number {
   return def.cost;
+}
+
+/**
+ * 머지 대신 골드로 바로 다음 레벨(level → level+1)로 올리는 비용.
+ * 머지 상당 비용(2^(level-1) × 설치비) + 레벨당 10G 프리미엄. 머지가 살짝 이득이지만
+ * 자리·타워가 없어도 즉시 강화할 수 있다.
+ */
+export function upgradeCost(def: TowerDef, level: number): number {
+  return def.cost * 2 ** (level - 1) + 10 * level;
 }

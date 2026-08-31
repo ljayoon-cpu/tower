@@ -119,12 +119,12 @@ export function endlessWave(n: number): Wave {
     across(specialLanes, 'summoner', 1 + Math.floor(t / 10), { intervalMs: 900, startDelayMs: 1800 });
   }
   if (n >= 10 && n % 5 === 0) {
-    // 15웨이브까지는 한 입구에서만, 그 뒤 사방 협공.
+    // 15웨이브까지는 한 입구에서만, 그 뒤 사방 협공. 첫 보스는 기본 체력보다 약하게 시작.
     const bossFrom = phase === 'both' ? bossLanes : [alt === 0 ? 0 : 3];
-    across(bossFrom, 'boss', 1 + Math.floor((n - 10) / 30), {
+    across(bossFrom, 'boss', 1 + Math.max(0, Math.floor((n - 20) / 30)), {
       intervalMs: 3600, startDelayMs: 1200,
-      hpMultiplier: 1 + Math.floor((n - 10) / 5) * 0.3,
-      shieldMultiplier: 1 + Math.floor((n - 10) / 10) * 0.2,
+      hpMultiplier: 0.6 + Math.floor((n - 10) / 5) * 0.2,
+      shieldMultiplier: 1 + Math.max(0, Math.floor((n - 20) / 10)) * 0.2,
     });
   }
 
