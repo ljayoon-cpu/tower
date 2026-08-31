@@ -25,6 +25,25 @@ export function beamDamage(base: number, stacks: number, rampPct: number, rampMa
 }
 
 /**
+ * 화살탑 멀티샷 표적 선택. 현재 표적을 반드시 포함하고, 그 주변에서 사거리 안의
+ * 가까운 유효 표적을 더 골라 최대 `shotCount` 명까지. 같은 적을 두 번 쏘지 않는다.
+ */
+export function buildMultiShot(
+  primary: Targetable,
+  all: Targetable[],
+  origin: Vec2,
+  range: number,
+  shotCount: number,
+): Targetable[] {
+  const r2 = range * range;
+  const extras = all
+    .filter((e) => e.alive && e.id !== primary.id && dist2(origin, e.pos) <= r2)
+    .sort((a, b) => dist2(primary.pos, a.pos) - dist2(primary.pos, b.pos) || a.id - b.id)
+    .slice(0, Math.max(0, shotCount - 1));
+  return [primary, ...extras];
+}
+
+/**
  * 지휘탑 버프 배율. 여러 오라가 겹쳐도 중첩되지 않고 가장 강한 값만 적용한다.
  * `auras` 는 각 지휘탑이 주는 비율(0.1 = +10%). 빈 배열이면 1.
  */

@@ -1,5 +1,7 @@
 import { getTower } from '../data/towers';
-import { frostFreezeEffect } from '../data/mergeEffects';
+import {
+  frostFreezeEffect, boltStaggerEffect, poisonArmorPierceEffect, sniperExecuteEffect,
+} from '../data/mergeEffects';
 import type { TowerLevelStats } from './types';
 
 export interface TowerInfo {
@@ -31,11 +33,21 @@ function dpsOf(stats: TowerLevelStats, attack: string): number {
     // 램프가 최대로 쌓인 상태의 단일 대상 지속 피해.
     return Math.round(stats.damage * stats.fireRate * (stats.beamRampMax ?? 1));
   }
-  return Math.round(stats.damage * stats.fireRate);
+  // 화살탑 멀티샷: 전체 발사량 기준(단일 대상엔 1발만 맞지만 화력 총량을 보여준다).
+  const volley = (stats.projectileCount ?? 1) * (stats.projectileDamageMultiplier ?? 1);
+  return Math.round(stats.damage * stats.fireRate * volley);
 }
 
 function noteOf(key: string, level: number, stats: TowerLevelStats, attack: string): string {
-  if (attack === 'splash') return `광역 반경 ${stats.splashRadius ?? 0}`;
+  if ((stats.projectileCount ?? 1) > 1) {
+    return `멀티샷 ${stats.projectileCount}발 · 발당 ${Math.round((stats.projectileDamageMultiplier ?? 1) * 100)}%`;
+  }
+  if (attack === 'splash') {
+    const base = `광역 반경 ${stats.splashRadius ?? 0}`;
+    return (stats.armorBreakPercent ?? 0) > 0
+      ? `${base} · 방어 -${Math.round((stats.armorBreakPercent ?? 0) * 100)}%`
+      : base;
+  }
   if (attack === 'slow') {
     const freeze = frostFreezeEffect(level);
     const slow = `감속 ${Math.round((1 - (stats.slowMul ?? 1)) * 100)}%`;
@@ -43,8 +55,22 @@ function noteOf(key: string, level: number, stats: TowerLevelStats, attack: stri
       ? `${slow} · ${freeze.hits}타 빙결 ${freeze.durationMs / 1000}초`
       : slow;
   }
-  if (attack === 'chain') return `연쇄 ${(stats.chainTargets ?? 0) + 1}타`;
-  if (attack === 'poison') return `독 지속 ${stats.poisonDps ?? 0}/초`;
+  if (attack === 'chain') {
+    const chain = `연쇄 ${(stats.chainTargets ?? 0) + 1}타`;
+    const stagger = key === 'bolt' ? boltStaggerEffect(level) : undefined;
+    return stagger ? `${chain} · 경직 ${stagger.durationMs / 1000}초` : chain;
+  }
+  if (attack === 'poison') {
+    const poison = `독 지속 ${stats.poisonDps ?? 0}/초`;
+    const pierce = key === 'poison' ? poisonArmorPierceEffect(level) : undefined;
+    return pierce ? `${poison} · 방어 무시 ${pierce.armorPierce}` : poison;
+  }
+  if (attack === 'single' && key === 'sniper') {
+    const exec = sniperExecuteEffect(level);
+    return exec
+      ? `체력 ${Math.round(exec.healthRatio * 100)}% 이하 처형 ×${exec.damageMultiplier}`
+      : '';
+  }
   if (attack === 'beam') return `집중 시 최대 ${Math.round((stats.beamRampMax ?? 1) * 100)}% 피해`;
   if (attack === 'support') {
     if (stats.goldPerTick != null) {

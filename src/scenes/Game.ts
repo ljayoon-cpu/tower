@@ -15,7 +15,9 @@ import { Tutorial } from '../core/tutorial';
 import type { TutorialEvent } from '../core/tutorial';
 import { getEnemy } from '../data/enemies';
 import { getTower, TOWER_KEYS, cumulativeCost } from '../data/towers';
-import { frostFreezeEffect } from '../data/mergeEffects';
+import {
+  frostFreezeEffect, boltStaggerEffect, poisonArmorPierceEffect, sniperDamageMultiplier,
+} from '../data/mergeEffects';
 import { canMerge, mergeResultLevel } from '../systems/MergeController';
 import { towerInfo } from '../core/towerInfo';
 import { TARGET_PRIORITY_LABEL } from '../systems/TargetingSystem';
@@ -33,7 +35,7 @@ import { Tower } from '../entities/Tower';
 import { Projectile } from '../entities/Projectile';
 import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius } from '../systems/TargetingSystem';
-import { chainDamages, buildChain, beamDamage, buffMultiplier } from '../systems/combat';
+import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot } from '../systems/combat';
 import { BuildMenu } from '../ui/BuildMenu';
 import { audioFor } from '../ui/audio';
 import type { SoundEffects } from '../core/audio';
@@ -714,51 +716,74 @@ export class Game extends Phaser.Scene {
             // Determine jumps on impact, using current positions and living targets.
             const chain = buildChain(enemy, this.enemies, s.chainRange ?? 0, s.chainTargets ?? 0);
             const dmgs = chainDamages(s.damage, s.chainFalloff ?? 1, chain.length - 1);
+            const stagger = boltStaggerEffect(tower.level);
             chain.forEach((hit, i) => {
               const e = this.enemies.find((x) => x.id === hit.id);
-              e?.takeDamage(dmgs[i]);
-              if (e) this.impactFlash(e.pos, COLORS.bolt, 'light');
+              if (!e) return;
+              e.takeDamage(dmgs[i]);
+              const stunned = stagger ? e.applyStagger(stagger.durationMs, stagger.cooldownMs) : false;
+              this.impactFlash(e.pos, COLORS.bolt, stunned ? 'stagger' : 'light');
             });
           },
         });
         continue;
       }
 
-      this.fireProjectile(tower.homePos, {
-        speed: 520,
-        textureKey: PROJECTILE_TEXTURE[tower.key],
-        targetPos: () => (enemy.alive ? enemy.pos : null),
-        onHit: (hitPos) => {
-          if (def.attack === 'poison') {
-            this.impactFlash(hitPos, COLORS.poison, 'light');
-            for (const hit of enemiesInRadius(hitPos, s.poisonRadius ?? 0, this.enemies)) {
-              const affected = this.enemies.find((e) => e.id === hit.id);
-              affected?.takeDamage(s.damage);
-              affected?.applyPoison(s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
-            }
-          } else if (def.attack === 'splash') {
-            this.impactFlash(hitPos, COLORS.cannon, 'heavy');
-            for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0,
-              this.enemies)) {
-              this.enemies.find((e) => e.id === hit.id)?.takeDamage(s.damage);
-            }
-          } else {
-            if (!enemy.alive) return;
-            enemy.takeDamage(def.key === 'sniper'
-              ? { amount: s.damage, armorPierce: s.armorPierce ?? 0 }
-              : s.damage);
-            this.impactFlash(enemy.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
-              def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');
-            if (def.attack === 'slow') {
-              enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
-              const freeze = frostFreezeEffect(tower.level);
-              if (freeze && enemy.applyFreezeHit(freeze.hits, freeze.durationMs, freeze.cooldownMs)) {
-                this.impactFlash(enemy.pos, COLORS.frost, 'heavy');
+      // 화살탑 3·5합 멀티샷: 근처 표적에 여러 발(발당 피해 감소). 그 외는 현재 표적 한 발.
+      const multi = def.key === 'arrow' && (s.projectileCount ?? 1) > 1;
+      const shots = multi
+        ? buildMultiShot(enemy, this.enemies, tower.homePos, s.range, s.projectileCount ?? 1)
+          .map((tg) => ({ id: tg.id, damage: Math.round(s.damage * (s.projectileDamageMultiplier ?? 1)) }))
+        : [{ id: enemy.id, damage: s.damage }];
+
+      for (const shot of shots) {
+        this.fireProjectile(tower.homePos, {
+          speed: 520,
+          textureKey: PROJECTILE_TEXTURE[tower.key],
+          targetPos: () => {
+            const e = this.enemies.find((x) => x.id === shot.id);
+            return e && e.alive ? e.pos : null;
+          },
+          onHit: (hitPos) => {
+            if (def.attack === 'poison') {
+              this.impactFlash(hitPos, COLORS.poison, 'light');
+              const pierce = poisonArmorPierceEffect(tower.level)?.armorPierce ?? 0;
+              for (const hit of enemiesInRadius(hitPos, s.poisonRadius ?? 0, this.enemies)) {
+                const affected = this.enemies.find((e) => e.id === hit.id);
+                affected?.takeDamage(pierce > 0 ? { amount: s.damage, armorPierce: pierce } : s.damage);
+                affected?.applyPoison(s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
+              }
+            } else if (def.attack === 'splash') {
+              this.impactFlash(hitPos, COLORS.cannon, 'heavy');
+              for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0, this.enemies)) {
+                const affected = this.enemies.find((e) => e.id === hit.id);
+                affected?.takeDamage(s.damage);
+                affected?.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
+              }
+            } else {
+              const e = this.enemies.find((x) => x.id === shot.id);
+              if (!e || !e.alive) return;
+              if (def.key === 'sniper') {
+                e.takeDamage({
+                  amount: shot.damage * sniperDamageMultiplier(tower.level, e.healthRatio),
+                  armorPierce: s.armorPierce ?? 0,
+                });
+              } else {
+                e.takeDamage(shot.damage);
+              }
+              this.impactFlash(e.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
+                def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');
+              if (def.attack === 'slow') {
+                e.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
+                const freeze = frostFreezeEffect(tower.level);
+                if (freeze && e.applyFreezeHit(freeze.hits, freeze.durationMs, freeze.cooldownMs)) {
+                  this.impactFlash(e.pos, COLORS.frost, 'heavy');
+                }
               }
             }
-          }
-        },
-      });
+          },
+        });
+      }
     }
   }
 
@@ -769,18 +794,21 @@ export class Game extends Phaser.Scene {
   }
 
   /** 공격마다 다른 짧은 명중 효과. 강한 한 방만 아주 약하게 화면을 흔든다. */
-  private impactFlash(pos: Vec2, color: number, force: 'light' | 'heavy' | 'frost' = 'light'): void {
+  private impactFlash(
+    pos: Vec2, color: number, force: 'light' | 'heavy' | 'frost' | 'stagger' = 'light',
+  ): void {
     if (!this.tweens) return;
     const heavy = force === 'heavy';
+    const burst = force === 'frost' || force === 'stagger';
     const ring = this.add.circle(pos.x, pos.y, heavy ? 9 : 6, color, heavy ? 0.9 : 0.7).setDepth(25);
     this.tweens.add({
       targets: ring,
-      scale: heavy ? 3.8 : force === 'frost' ? 3.1 : 2.6,
+      scale: heavy ? 3.8 : burst ? 3.1 : 2.6,
       alpha: 0,
       duration: heavy ? 230 : 180,
       onComplete: () => ring.destroy(),
     });
-    if (force === 'frost') {
+    if (burst) {
       for (const [dx, dy] of [[-10, -8], [11, -5], [-5, 11], [9, 10]]) {
         const shard = this.add.circle(pos.x + dx, pos.y + dy, 3, color, 0.9).setDepth(25);
         this.tweens.add({ targets: shard, x: pos.x + dx * 2.2, y: pos.y + dy * 2.2, alpha: 0,

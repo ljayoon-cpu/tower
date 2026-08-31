@@ -27,6 +27,13 @@ export interface TowerLevelStats {
 
   armorPierce?: number;   // 방어력에서 무시할 수치
 
+  // 화살탑 머지 3·5합: 한 번에 여러 발을 근처 표적에 쏜다.
+  projectileCount?: number;
+  projectileDamageMultiplier?: number;   // 멀티샷 한 발의 피해 배율
+  // 대포 머지 3·5합: 광역 피격 적의 방어력을 잠시 낮춘다.
+  armorBreakPercent?: number;            // 0.1 = 10%
+  armorBreakDurationMs?: number;
+
   // beam(레이저탑): 같은 대상을 연속 명중할수록 데미지가 누적 증가한다.
   beamRampPct?: number;   // 연속 명중마다 더해지는 데미지 비율 (0.15 = +15%p)
   beamRampMax?: number;   // 누적 데미지 배율 상한 (3 = 최대 300%)

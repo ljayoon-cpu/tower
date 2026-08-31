@@ -31,6 +31,18 @@ describe('towerInfo', () => {
     expect(towerInfo('frost', 1).note).toContain('감속');
   });
 
+  it('surfaces the merge (3/5) tower abilities in the note', () => {
+    expect(towerInfo('arrow', 2).note).toBe('');
+    expect(towerInfo('arrow', 3).note).toContain('멀티샷');
+    expect(towerInfo('cannon', 2).note).not.toContain('방어');
+    expect(towerInfo('cannon', 3).note).toContain('방어 -');
+    expect(towerInfo('bolt', 3).note).toContain('경직');
+    expect(towerInfo('poison', 3).note).toContain('방어 무시');
+    expect(towerInfo('sniper', 2).note).toBe('');
+    expect(towerInfo('sniper', 3).note).toContain('처형');
+    expect(towerInfo('sniper', 5).note).toContain('처형');
+  });
+
   it('notes and scores the support / beam towers', () => {
     expect(towerInfo('laser', 1).note).toContain('집중');
     const l = TOWERS.laser.levels[0];

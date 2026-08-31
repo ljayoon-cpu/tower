@@ -101,6 +101,27 @@ describe('tower definitions', () => {
     expect(mine.levels[4].goldPerTick!).toBeGreaterThan(mine.levels[0].goldPerTick!);
   });
 
+  it('gives arrow multishot and cannon armor-break only at merge levels 3+', () => {
+    const arrow = getTower('arrow');
+    expect(arrow.levels[1].projectileCount ?? 1).toBe(1);
+    expect(arrow.levels[2].projectileCount).toBeGreaterThan(1);
+    expect(arrow.levels[4].projectileCount!).toBeGreaterThanOrEqual(arrow.levels[2].projectileCount!);
+    for (const l of arrow.levels) {
+      if (l.projectileCount && l.projectileCount > 1) {
+        expect(l.projectileDamageMultiplier!).toBeGreaterThan(0);
+        expect(l.projectileDamageMultiplier!).toBeLessThan(1); // 발당 피해는 감소
+      }
+    }
+
+    const cannon = getTower('cannon');
+    expect(cannon.levels[1].armorBreakPercent ?? 0).toBe(0);
+    expect(cannon.levels[2].armorBreakPercent!).toBeGreaterThan(0);
+    expect(cannon.levels[4].armorBreakPercent!).toBeGreaterThanOrEqual(cannon.levels[2].armorBreakPercent!);
+    for (const l of cannon.levels) {
+      if (l.armorBreakPercent) expect(l.armorBreakDurationMs!).toBeGreaterThan(0);
+    }
+  });
+
   it('getTower throws on unknown key', () => {
     expect(() => getTower('nope')).toThrow();
   });

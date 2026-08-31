@@ -34,6 +34,10 @@ export class EnemyState {
   freezeLeftMs = 0;
   private freezeHits = 0;
   private freezeCooldownLeftMs = 0;
+  private staggerLeftMs = 0;
+  private staggerCooldownLeftMs = 0;
+  /** 대포 방어구 파괴: 겹치면 가장 강한 것만 적용, 각자 지속시간을 따로 센다. */
+  private armorBreaks: { percent: number; leftMs: number }[] = [];
 
   private readonly armor: number;
   private readonly regenPerSecond: number;
@@ -64,8 +68,13 @@ export class EnemyState {
     return this.maxShield === 0 ? 0 : this.shield / this.maxShield;
   }
 
+  /** 서리 빙결 또는 번개 경직 — 어느 쪽이든 이동이 멈춘 상태. */
   get frozen(): boolean {
-    return this.freezeLeftMs > 0;
+    return this.freezeLeftMs > 0 || this.staggerLeftMs > 0;
+  }
+
+  get armorBreakPercent(): number {
+    return this.armorBreaks.reduce((hi, e) => Math.max(hi, e.percent), 0);
   }
 
   restoreShield(ratio: number): void {
@@ -82,7 +91,8 @@ export class EnemyState {
     }
 
     const afterShield = incoming - shieldDamage;
-    const armorBlocked = Math.min(afterShield, Math.max(0, this.armor - armorPierce));
+    const effectiveArmor = this.armor * (1 - this.armorBreakPercent);
+    const armorBlocked = Math.min(afterShield, Math.max(0, effectiveArmor - armorPierce));
     const healthDamage = Math.min(this.hp, afterShield - armorBlocked);
     this.hp -= healthDamage;
 
@@ -111,12 +121,38 @@ export class EnemyState {
     return true;
   }
 
+  /** 번개 경직: 같은 적에게 연달아 걸리지 않도록 재발동 대기시간을 둔다. */
+  applyStagger(durationMs: number, cooldownMs: number): boolean {
+    const duration = Math.max(0, durationMs);
+    if (!this.alive || duration === 0 || this.staggerCooldownLeftMs > 0) return false;
+    this.staggerLeftMs = duration;
+    this.staggerCooldownLeftMs = Math.max(0, cooldownMs);
+    return true;
+  }
+
+  /** 같은 강도의 파괴는 지속만 갱신하고, 더 강한 파괴는 따로 보존한다. */
+  applyArmorBreak(percent: number, durationMs: number): void {
+    const p = Math.max(0, Math.min(1, percent));
+    const d = Math.max(0, durationMs);
+    if (this.armor === 0 || p === 0 || d === 0) return;
+    const existing = this.armorBreaks.find((e) => e.percent === p);
+    if (existing) { existing.leftMs = Math.max(existing.leftMs, d); return; }
+    this.armorBreaks.push({ percent: p, leftMs: d });
+  }
+
   /** 상태를 경과시키고, 이번 시간 동안 이동이 멈춘 밀리초를 반환한다. */
   update(dtMs: number): number {
     const dt = Math.max(0, dtMs);
     const frozenForMs = Math.min(dt, this.freezeLeftMs);
     this.freezeLeftMs = Math.max(0, this.freezeLeftMs - dt);
     this.freezeCooldownLeftMs = Math.max(0, this.freezeCooldownLeftMs - dt);
+    const staggeredForMs = Math.min(dt, this.staggerLeftMs);
+    this.staggerLeftMs = Math.max(0, this.staggerLeftMs - dt);
+    this.staggerCooldownLeftMs = Math.max(0, this.staggerCooldownLeftMs - dt);
+    this.armorBreaks = this.armorBreaks
+      .map((e) => ({ percent: e.percent, leftMs: e.leftMs - dt }))
+      .filter((e) => e.leftMs > 0);
+    const stoppedForMs = Math.max(frozenForMs, staggeredForMs);
     const poisonedForMs = Math.min(dt, this.poisonLeftMs);
 
     if (poisonedForMs > 0 && this.alive) {
@@ -132,7 +168,7 @@ export class EnemyState {
       this.hp = Math.min(this.maxHp, this.hp + (this.regenPerSecond * dt) / 1000);
     }
 
-    if (this.shield >= this.maxShield || this.maxShield === 0 || dt === 0) return frozenForMs;
+    if (this.shield >= this.maxShield || this.maxShield === 0 || dt === 0) return stoppedForMs;
 
     const delayConsumed = Math.min(dt, this.shieldRechargeLeftMs);
     this.shieldRechargeLeftMs -= delayConsumed;
@@ -140,6 +176,6 @@ export class EnemyState {
     if (rechargeMs > 0 && this.shieldRechargeLeftMs === 0) {
       this.shield = Math.min(this.maxShield, this.shield + (this.shieldRechargePerSecond * rechargeMs) / 1000);
     }
-    return frozenForMs;
+    return stoppedForMs;
   }
 }

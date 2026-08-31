@@ -66,6 +66,37 @@ describe('EnemyState', () => {
     expect(enemy.applyFreezeHit(3, 350, 4000)).toBe(true);
   });
 
+  it('bolt stagger halts movement briefly and returns stopped-ms, honoring its cooldown', () => {
+    const enemy = new EnemyState({ ...shieldedDef, shield: undefined });
+
+    expect(enemy.applyStagger(120, 1800)).toBe(true);
+    expect(enemy.frozen).toBe(true);
+    expect(enemy.update(120)).toBe(120); // 120ms 이동 정지
+    expect(enemy.frozen).toBe(false);
+    expect(enemy.applyStagger(120, 1800)).toBe(false); // 쿨다운 중
+
+    enemy.update(1800);
+    expect(enemy.applyStagger(120, 1800)).toBe(true);
+  });
+
+  it('cannon armor break lowers effective armor for a while, strongest break wins', () => {
+    const mk = () => new EnemyState({ ...shieldedDef, shield: undefined }); // armor 6
+
+    const a = mk();
+    a.applyArmorBreak(0.5, 1500); // armor 6 -> 3
+    expect(a.applyDamage({ amount: 10 }).armorBlocked).toBe(3);
+
+    const b = mk();
+    b.applyArmorBreak(0.1, 1500);
+    b.applyArmorBreak(0.5, 1500); // 더 강한 파괴가 적용됨
+    expect(b.applyDamage({ amount: 10 }).armorBlocked).toBe(3);
+
+    const c = mk();
+    c.applyArmorBreak(0.5, 300);
+    c.update(400); // 만료
+    expect(c.applyDamage({ amount: 10 }).armorBlocked).toBe(6);
+  });
+
   it('stops regeneration while poisoned, then resumes when the poison expires', () => {
     const enemy = new EnemyState({
       ...shieldedDef,

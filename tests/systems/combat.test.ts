@@ -1,4 +1,6 @@
-import { chainDamages, buildChain, beamDamage, buffMultiplier } from '../../src/systems/combat';
+import {
+  chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot,
+} from '../../src/systems/combat';
 import type { Targetable } from '../../src/systems/TargetingSystem';
 
 const mk = (id: number, x: number, y: number, alive = true): Targetable =>
@@ -32,6 +34,20 @@ describe('buffMultiplier', () => {
   it('takes the strongest aura, never stacking', () => {
     expect(buffMultiplier([0.1, 0.3, 0.2])).toBeCloseTo(1.3);
     expect(buffMultiplier([0.25])).toBeCloseTo(1.25);
+  });
+});
+
+describe('buildMultiShot', () => {
+  it('always includes the primary, then nearest in-range extras, no repeats', () => {
+    const primary = mk(1, 100, 0);
+    const all = [primary, mk(2, 120, 0), mk(3, 160, 0), mk(4, 400, 0), mk(5, 90, 0, false)];
+    const origin = { x: 0, y: 0 };
+    // range 200: enemy 4 (dist 400) out of range, enemy 5 dead
+    expect(buildMultiShot(primary, all, origin, 200, 3).map((t) => t.id)).toEqual([1, 2, 3]);
+    // shotCount 1 -> just the primary
+    expect(buildMultiShot(primary, all, origin, 200, 1).map((t) => t.id)).toEqual([1]);
+    // more shots than available targets -> everything valid
+    expect(buildMultiShot(primary, all, origin, 999, 9).map((t) => t.id)).toEqual([1, 2, 3, 4]);
   });
 });
 
