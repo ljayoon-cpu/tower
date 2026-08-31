@@ -1,5 +1,9 @@
 # 머지 타워디펜스 Implementation Plan
 
+> **상태 (2026-08-31): Task 1~22 완료.** 이후 작업과 방향은 [/CLAUDE.md](../../../CLAUDE.md)와
+> [/docs/ROADMAP.md](../../ROADMAP.md)를 본다. 이 문서는 초기 구현 기록으로 남긴다.
+> (체크박스는 실제 진행과 무관하게 갱신되지 않았다 — 완료 여부는 git 로그 기준.)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 고전 타워디펜스에 머지 업그레이드를 결합한 세로 화면 모바일 게임(v1: 월드 1, 스테이지 1-1~1-5)을 PWA로 완성한다.

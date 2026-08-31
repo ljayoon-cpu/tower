@@ -2,6 +2,8 @@
 
 Phaser 3, TypeScript, Vite로 만든 세로형 모바일 머지 타워디펜스입니다.
 
+개발/이어작업 가이드는 [CLAUDE.md](CLAUDE.md), 앞으로의 방향은 [docs/ROADMAP.md](docs/ROADMAP.md)에 있습니다.
+
 ## 조작
 
 - 빈 칸을 누르고 타워를 골라 설치합니다. 회색으로 표시된 타워는 골드가 부족합니다.
