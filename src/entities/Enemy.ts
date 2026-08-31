@@ -4,6 +4,13 @@ import { PathManager } from '../systems/PathManager';
 import { EnemyState, type DamagePacket, type EnemyModifiers } from '../systems/EnemyState';
 
 let nextId = 1;
+const FAST_WALK_FRAME_MS = 90;
+const FAST_WALK_FRAME_COUNT = 4;
+
+/** 질주병의 이동 시간에 해당하는 스프라이트 시트 프레임. */
+export function fastWalkFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / FAST_WALK_FRAME_MS) % FAST_WALK_FRAME_COUNT;
+}
 
 export class Enemy {
   readonly id = nextId++;
@@ -19,6 +26,7 @@ export class Enemy {
   private readonly armorBreakAura: Phaser.GameObjects.Arc;
   private readonly barWidth: number;
   private traveled = 0;
+  private fastWalkElapsedMs = 0;
   private slowMul = 1;
   private slowLeftMs = 0;
   private summonLeftMs: number;
@@ -45,8 +53,8 @@ export class Enemy {
     this.summonLeftMs = def.summon?.intervalMs ?? Infinity;
     const start = polyline[0];
     this.sprite = scene.add.image(start.x, start.y, `enemy_${def.key}`);
-    // 원본 아트를 길 타일 안에서 읽히는 44px 크기로 축소한다.
-    if (def.key === 'fast') this.sprite.setScale(0.035);
+    // 128px 프레임을 길 타일 안에서 읽히는 약 45px 크기로 표시한다.
+    if (def.key === 'fast') this.sprite.setScale(0.5);
     this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
@@ -200,6 +208,13 @@ export class Enemy {
     this.summonedAlive = Math.max(0, this.summonedAlive - 1);
   }
 
+  private updateFastWalk(movingMs: number): void {
+    if (this.def.key !== 'fast' || movingMs <= 0) return;
+    this.fastWalkElapsedMs += movingMs;
+    const sprite = this.sprite as Phaser.GameObjects.Image & { setFrame?: (frame: number) => unknown };
+    sprite.setFrame?.(fastWalkFrameAt(this.fastWalkElapsedMs));
+  }
+
   update(dtMs: number, speedMul: number): void {
     if (!this.alive) return;
     const simulationMs = dtMs * speedMul;
@@ -208,6 +223,7 @@ export class Enemy {
     if (!this.alive) { this.hideIndicators(); return; }
 
     const movingMs = simulationMs - frozenMs;
+    this.updateFastWalk(movingMs);
     const slowedMs = Math.min(movingMs, Math.max(0, this.slowLeftMs));
     this.traveled += this.state.speed * this.bossSpeedMultiplier * (slowedMs * this.slowMul + movingMs - slowedMs) / 1000;
     this.slowLeftMs = Math.max(0, this.slowLeftMs - simulationMs);
