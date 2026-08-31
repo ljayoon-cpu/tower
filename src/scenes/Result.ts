@@ -7,6 +7,8 @@ export interface ResultData {
   stageId: string;
   won: boolean;
   stars: number;
+  /** 이 판 이전의 최고 별점. 갱신 시 "신기록" 표시. */
+  prevStars?: number;
   lives: number;
   startLives: number;
 }
@@ -29,7 +31,15 @@ export class Result extends Phaser.Scene {
     this.add.text(cx, 480, '★'.repeat(data.stars) + '☆'.repeat(3 - data.stars), {
       fontFamily: 'monospace', fontSize: '60px', color: '#ffcc44',
     }).setOrigin(0.5);
-    this.add.text(cx, 555, `남은 라이프 ${data.lives} / ${data.startLives}`, {
+
+    const best = Math.max(data.prevStars ?? 0, data.stars);
+    const isRecord = data.won && data.stars > (data.prevStars ?? 0);
+    this.add.text(cx, 528, isRecord ? '⭐ 신기록!' : `최고 ★${best}`, {
+      fontFamily: 'monospace', fontSize: '22px',
+      color: isRecord ? '#ffdd55' : '#8d98bb',
+    }).setOrigin(0.5);
+
+    this.add.text(cx, 575, `남은 라이프 ${data.lives} / ${data.startLives}`, {
       fontFamily: 'monospace', fontSize: '24px', color: '#b7bdd5',
     }).setOrigin(0.5);
 

@@ -26,8 +26,13 @@ export class StageSelect extends Phaser.Scene {
     this.dragged = false;
     const save = loadSave();
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0f1020);
-    this.add.text(GAME_WIDTH / 2, 90, '스테이지 선택', {
+    this.add.text(GAME_WIDTH / 2, 84, '스테이지 선택', {
       fontFamily: 'monospace', fontSize: '44px', color: '#f2f2f7',
+    }).setOrigin(0.5);
+
+    const earned = STAGES.reduce((n, s) => n + (save.stages[s.id]?.stars ?? 0), 0);
+    this.add.text(GAME_WIDTH / 2, 124, `★ ${earned} / ${STAGES.length * 3}`, {
+      fontFamily: 'monospace', fontSize: '22px', color: '#ffcc44',
     }).setOrigin(0.5);
 
     const list = this.add.container(0, 0);

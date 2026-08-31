@@ -6,7 +6,7 @@ import type { GameEvents, StageDef, TileCoord, Vec2 } from '../core/types';
 import { Pool } from '../core/pool';
 import { getStage, nextStageId } from '../data/stages';
 import { starsFor } from '../core/stars';
-import { recordResult } from '../core/save';
+import { loadSave, recordResult } from '../core/save';
 import { getEnemy } from '../data/enemies';
 import { getTower, TOWER_KEYS, cumulativeCost } from '../data/towers';
 import { canMerge, mergeResultLevel } from '../systems/MergeController';
@@ -492,11 +492,12 @@ export class Game extends Phaser.Scene {
     this.input.enabled = false;
     this.sellTimer?.remove();
     const stars = starsFor(this.lives, this.stage.startLives, this.stage.starThresholds, won);
+    const prevStars = loadSave().stages[this.stage.id]?.stars ?? 0;
     recordResult(this.stage.id, stars, nextStageId(this.stage.id));
     if (won) this.bus.emit('stage:won', { stars });
     else this.bus.emit('stage:lost', {});
     this.scene.start('result', {
-      stageId: this.stage.id, won, stars,
+      stageId: this.stage.id, won, stars, prevStars,
       lives: this.lives, startLives: this.stage.startLives,
     });
   }
