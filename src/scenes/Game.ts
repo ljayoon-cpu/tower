@@ -25,6 +25,7 @@ import { WaveManager } from '../systems/WaveManager';
 import { EconomyManager } from '../systems/EconomyManager';
 import { Rng } from '../core/rng';
 import { chooseTowerBan, isTowerBanned } from '../core/runRules';
+import { poisonArmorPierceEffect } from '../data/poisonMergeEffects';
 
 import { Enemy } from '../entities/Enemy';
 import type { EnemyModifiers } from '../systems/EnemyState';
@@ -639,9 +640,10 @@ export class Game extends Phaser.Scene {
         onHit: (hitPos) => {
           if (def.attack === 'poison') {
             this.impactFlash(hitPos, COLORS.poison, 'light');
+            const armorPierce = poisonArmorPierceEffect(tower.level)?.armorPierce ?? 0;
             for (const hit of enemiesInRadius(hitPos, s.poisonRadius ?? 0, this.enemies)) {
               const affected = this.enemies.find((e) => e.id === hit.id);
-              affected?.takeDamage(s.damage);
+              affected?.takeDamage({ amount: s.damage, armorPierce });
               affected?.applyPoison(s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
             }
           } else if (def.attack === 'splash') {

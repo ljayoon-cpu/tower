@@ -67,4 +67,11 @@ describe('EnemyState', () => {
     enemy.update(1000);
     expect(enemy.hp).toBe(60);
   });
+
+  it('allows an armor-piercing poison hit without weakening later attacks', () => {
+    const enemy = new EnemyState({ ...shieldedDef, shield: undefined });
+
+    expect(enemy.applyDamage({ amount: 10, armorPierce: 8 }).armorBlocked).toBe(0);
+    expect(enemy.applyDamage({ amount: 10 }).armorBlocked).toBe(6);
+  });
 });
