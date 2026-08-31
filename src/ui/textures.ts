@@ -105,13 +105,7 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.lineBetween(16, 2, 14, 16); g.lineBetween(14, 16, 16, 30); g.lineBetween(14, 16, 3, 12); g.lineBetween(14, 16, 28, 20);
   g.generateTexture('enemy_splitter', 32, 32);
   g.clear(); g.fillStyle(0xf0a85a, 1); g.fillTriangle(9, 3, 17, 16, 1, 16); g.generateTexture('enemy_splitterling', 18, 18);
-  // 광전사: 붉은 톱니 원.
-  g.clear(); g.fillStyle(0xd1362f, 1);
-  g.fillPoints(Array.from({ length: 10 }, (_, i) => {
-    const a = (i / 10) * Math.PI * 2; const r = i % 2 ? 9 : 16;
-    return new Phaser.Math.Vector2(16 + Math.cos(a) * r, 16 + Math.sin(a) * r);
-  }), true);
-  g.fillStyle(0xffd0b0, 1); g.fillCircle(16, 16, 5); g.generateTexture('enemy_berserker', 32, 32);
+  // 과부하 병기는 화로 코어와 대검이 보이는 애니메이션 시트를 Preload에서 로드한다.
   // 파쇄기: 두꺼운 강철 육각 + 톱니 테두리.
   g.clear(); g.fillStyle(0x6b7686, 1);
   g.fillPoints([new Phaser.Math.Vector2(22, 3), new Phaser.Math.Vector2(41, 14), new Phaser.Math.Vector2(41, 30), new Phaser.Math.Vector2(22, 41), new Phaser.Math.Vector2(3, 30), new Phaser.Math.Vector2(3, 14)], true);

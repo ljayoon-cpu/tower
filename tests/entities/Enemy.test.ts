@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import {
-  Enemy, fastWalkFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
+  berserkerWalkFrameAt, Enemy, fastWalkFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
   shieldWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt,
 } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
@@ -90,6 +90,12 @@ describe('regenerator / summoner walk animation', () => {
   });
   it('summoner drifts on a four-frame cycle', () => {
     expect([0, 204, 205, 410, 615, 820].map(summonerWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+  });
+});
+
+describe('berserker walk animation', () => {
+  it('loops through the furnace flare after three heavy steps', () => {
+    expect([0, 209, 210, 420, 630, 840].map(berserkerWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
   });
 });
 
