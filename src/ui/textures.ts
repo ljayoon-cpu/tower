@@ -78,7 +78,12 @@ export function buildTextures(scene: Phaser.Scene): void {
   circle('enemy_normal', COLORS.enemyNormal, 14);
   circle('enemy_fast', COLORS.enemyFast, 11);
   circle('enemy_tank', COLORS.enemyTank, 20);
-  square('enemy_boss', COLORS.enemyBoss, 40);
+  // 왕관·방패·어깨 장갑을 써서, 화면에 나타나는 순간 보스임을 알아보게 한다.
+  g.clear(); g.fillStyle(0x5d1727, 1); g.fillCircle(28, 32, 25);
+  g.fillStyle(COLORS.enemyBoss, 1); g.fillCircle(28, 30, 19);
+  g.fillStyle(0xffd65c, 1); g.fillTriangle(10, 20, 18, 4, 26, 20); g.fillTriangle(22, 20, 30, 1, 38, 20); g.fillTriangle(34, 20, 42, 6, 50, 20);
+  g.fillStyle(0x35111b, 1); g.fillRect(16, 27, 24, 17); g.fillStyle(0xffc4cd, 1); g.fillCircle(22, 32, 3); g.fillCircle(34, 32, 3);
+  g.lineStyle(3, 0xffe6a3, 0.9); g.strokeCircle(28, 30, 24); g.generateTexture('enemy_boss', 56, 56);
 
   circle('projectile', COLORS.text, 5);
   square('tile', 0xffffff, TILE); // tint 로 색 입힘

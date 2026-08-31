@@ -55,6 +55,17 @@ export interface EnemySummonDef {
   maxAlive: number;
 }
 
+/** 보스 체력이 지정 비율 이하가 될 때 한 번만 발동하는 전투 단계. */
+export interface BossPhaseDef {
+  name: string;
+  atHealthRatio: number;
+  speedMultiplier: number;
+  /** 최대 보호막의 이 비율까지 즉시 회복한다. */
+  shieldRestoreRatio?: number;
+  /** 즉시 부르는 증원군. 일반 소환사의 생존 수 제한과는 별개다. */
+  summon?: { enemyKey: string; count: number };
+}
+
 export interface EnemyDef {
   key: string;
   name: string;
@@ -72,6 +83,8 @@ export interface EnemyDef {
   /** 직접 타격 투사체가 우선 조준하는 보호 유닛 여부. */
   intercepts?: boolean;
   summon?: EnemySummonDef;
+  /** 체력 구간별 이동·보호막·증원 패턴. isBoss 적에서만 사용한다. */
+  bossPhases?: BossPhaseDef[];
 }
 
 export interface WaveGroup {
@@ -124,6 +137,7 @@ export type GameEvents = {
   'pause:changed': { paused: boolean };
   'boss:spawned': { name: string };
   'boss:health': { ratio: number };
+  'boss:phase': { name: string; phaseName: string };
   'boss:cleared': Record<string, never>;
   /** 다음 웨이브 자동 시작까지 남은 초. null = 카운트다운 없음(진행 중 / 종료). */
   'wave:countdown': { seconds: number | null };

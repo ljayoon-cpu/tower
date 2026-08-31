@@ -61,6 +61,10 @@ export class EnemyState {
     return this.maxShield === 0 ? 0 : this.shield / this.maxShield;
   }
 
+  restoreShield(ratio: number): void {
+    this.shield = Math.max(this.shield, this.maxShield * Math.max(0, Math.min(1, ratio)));
+  }
+
   applyDamage({ amount, armorPierce = 0 }: DamagePacket): DamageReport {
     const incoming = Math.max(0, amount);
     const shieldDamage = Math.min(this.shield, incoming);

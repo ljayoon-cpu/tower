@@ -29,7 +29,15 @@ export const ENEMIES: Record<string, EnemyDef> = {
     key: 'minion', name: '호위 부하', hp: 24, speed: 92, bounty: 2, lifeDamage: 1, movementLayer: 'ground', intercepts: true,
   },
   boss: {
-    key: 'boss', name: '공성 지휘관', hp: 1800, speed: 38, bounty: 150, lifeDamage: 6, isBoss: true, movementLayer: 'ground', armor: 9,
+    key: 'boss', name: '공성 지휘관', hp: 1800, speed: 90, bounty: 150, lifeDamage: 6, isBoss: true, movementLayer: 'ground', armor: 9,
+    shield: { energy: 180, rechargeDelayMs: 3800, rechargePerSecond: 18 },
+    bossPhases: [
+      { name: '돌격', atHealthRatio: 0.65, speedMultiplier: 1.5 },
+      {
+        name: '최후 방어선', atHealthRatio: 0.35, speedMultiplier: 1.9, shieldRestoreRatio: 1,
+        summon: { enemyKey: 'minion', count: 3 },
+      },
+    ],
   },
 };
 

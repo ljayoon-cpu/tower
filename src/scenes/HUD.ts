@@ -164,6 +164,10 @@ export class HUD extends Phaser.Scene {
       bossBar.setVisible(true);
     });
     on('boss:health', ({ ratio }) => { bossFill.width = bossMaxW * Math.max(0, ratio); });
+    on('boss:phase', ({ name, phaseName }) => {
+      bossLabel.setText(`${name} · ${phaseName}!`);
+      this.tweens.add({ targets: bossBar, scaleX: 1.05, scaleY: 1.05, duration: 90, yoyo: true });
+    });
     on('boss:cleared', () => bossBar.setVisible(false));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => cleanups.forEach((off) => off()));
   }

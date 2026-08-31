@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { EnemyDef, Vec2 } from '../core/types';
+import type { BossPhaseDef, EnemyDef, Vec2 } from '../core/types';
 import { PathManager } from '../systems/PathManager';
 import { EnemyState, type DamagePacket, type EnemyModifiers } from '../systems/EnemyState';
 
@@ -21,6 +21,10 @@ export class Enemy {
   private slowLeftMs = 0;
   private summonLeftMs: number;
   private summonedAlive = 0;
+  private bossPhaseIndex = 0;
+  private bossSpeedMultiplier = 1;
+  private readonly triggeredBossPhases: BossPhaseDef[] = [];
+  private readonly pendingBossSummons: string[] = [];
   private _done = false;
   private _progress = 0;
   private _freed = false;
@@ -39,7 +43,7 @@ export class Enemy {
     this.summonLeftMs = def.summon?.intervalMs ?? Infinity;
     const start = polyline[0];
     this.sprite = scene.add.image(start.x, start.y, `enemy_${def.key}`);
-    this.barWidth = def.isBoss ? 40 : 22;
+    this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.slowAura = scene.add
@@ -60,17 +64,38 @@ export class Enemy {
   get reachedGoal(): boolean { return this._done; }
   get progress(): number { return this._progress; }
   get intercepts(): boolean { return this.def.intercepts === true; }
+  get movementSpeedMultiplier(): number { return this.bossSpeedMultiplier; }
   /** 0~1. 남은 체력 비율(음수는 0으로 고정). */
   get healthRatio(): number { return Math.max(0, this.state.hp) / this.state.maxHp; }
 
   takeDamage(packet: number | DamagePacket, flash = true): void {
     if (!this.alive) return;
     this.state.applyDamage(typeof packet === 'number' ? { amount: packet } : packet);
+    this.advanceBossPhases();
     if (!this.alive) {
       this.hideIndicators();
     } else {
       if (flash) this.flashHit();
       this.drawBars();
+    }
+  }
+
+  /** 새로 발동한 보스 단계를 한 번만 반환한다. HUD가 경고 문구를 표시할 때 사용한다. */
+  collectBossPhases(): BossPhaseDef[] {
+    return this.triggeredBossPhases.splice(0);
+  }
+
+  private advanceBossPhases(): void {
+    if (!this.alive) return;
+    const phases = this.def.bossPhases ?? [];
+    while (this.bossPhaseIndex < phases.length && this.healthRatio <= phases[this.bossPhaseIndex].atHealthRatio) {
+      const phase = phases[this.bossPhaseIndex++];
+      this.bossSpeedMultiplier = phase.speedMultiplier;
+      if (phase.shieldRestoreRatio !== undefined) this.state.restoreShield(phase.shieldRestoreRatio);
+      for (let i = 0; i < (phase.summon?.count ?? 0); i++) this.pendingBossSummons.push(phase.summon!.enemyKey);
+      this.triggeredBossPhases.push(phase);
+      const sprite = this.sprite as Phaser.GameObjects.Image & { setTint?: (color: number) => unknown };
+      sprite.setTint?.(this.bossPhaseIndex === 1 ? 0xffd65c : 0xc987ff);
     }
   }
 
@@ -95,7 +120,7 @@ export class Enemy {
     const ratio = this.healthRatio;
     const w = this.barWidth;
     const x = this.sprite.x - w / 2;
-    const y = this.sprite.y - (this.def.isBoss ? 30 : 18);
+    const y = this.sprite.y - (this.def.isBoss ? 40 : 18);
     if (ratio >= 1 || !this.alive) {
       this.healthBar.setVisible(false);
     } else {
@@ -128,8 +153,12 @@ export class Enemy {
 
   /** 소환수만 별도 카운트하므로, 웨이브 완료 판정은 부하 처치에 막히지 않는다. */
   collectSummons(): string[] {
-    if (!this.alive || !this.def.summon) return [];
-    const out: string[] = [];
+    if (!this.alive) {
+      this.pendingBossSummons.length = 0;
+      return [];
+    }
+    const out = this.pendingBossSummons.splice(0);
+    if (!this.def.summon) return out;
     while (this.summonLeftMs <= 0 && this.summonedAlive < this.def.summon.maxAlive) {
       out.push(this.def.summon.enemyKey);
       this.summonedAlive++;
@@ -146,10 +175,11 @@ export class Enemy {
     if (!this.alive) return;
     const simulationMs = dtMs * speedMul;
     this.state.update(simulationMs);
+    this.advanceBossPhases();
     if (!this.alive) { this.hideIndicators(); return; }
 
     const slowedMs = Math.min(simulationMs, Math.max(0, this.slowLeftMs));
-    this.traveled += this.state.speed * (slowedMs * this.slowMul + simulationMs - slowedMs) / 1000;
+    this.traveled += this.state.speed * this.bossSpeedMultiplier * (slowedMs * this.slowMul + simulationMs - slowedMs) / 1000;
     this.slowLeftMs = Math.max(0, this.slowLeftMs - simulationMs);
     if (this.slowLeftMs === 0) this.slowMul = 1;
     this.summonLeftMs -= simulationMs;

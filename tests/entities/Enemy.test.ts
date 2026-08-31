@@ -72,3 +72,37 @@ describe('enemy summons', () => {
     expect(e.collectSummons()).toEqual(['minion']);
   });
 });
+
+describe('boss phases', () => {
+  it('speeds up once at each health threshold, restores its shield, and calls reinforcements', () => {
+    const boss = makeEnemy(100, {
+      isBoss: true,
+      speed: 100,
+      shield: { energy: 10, rechargeDelayMs: 5000, rechargePerSecond: 0 },
+      bossPhases: [
+        { name: '돌격', atHealthRatio: 0.65, speedMultiplier: 1.8 },
+        {
+          name: '최후 방어선', atHealthRatio: 0.35, speedMultiplier: 2.3,
+          shieldRestoreRatio: 1,
+          summon: { enemyKey: 'minion', count: 2 },
+        },
+      ],
+    });
+
+    boss.takeDamage(45); // 10 shield + 35 HP = first threshold
+    expect(boss.collectBossPhases().map((phase) => phase.name)).toEqual(['돌격']);
+    expect(boss.movementSpeedMultiplier).toBe(1.8);
+    boss.update(1000, 1);
+    expect(boss.pos.y).toBeCloseTo(180);
+
+    boss.takeDamage(30); // 65% -> 35%, second threshold
+    expect(boss.collectBossPhases().map((phase) => phase.name)).toEqual(['최후 방어선']);
+    expect(boss.movementSpeedMultiplier).toBe(2.3);
+    expect(boss.state.shield).toBe(10);
+    expect(boss.collectSummons()).toEqual(['minion', 'minion']);
+
+    // Already-crossed phases never repeat on later damage.
+    boss.takeDamage(1);
+    expect(boss.collectBossPhases()).toEqual([]);
+  });
+});

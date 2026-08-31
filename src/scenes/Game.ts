@@ -739,6 +739,9 @@ export class Game extends Phaser.Scene {
     const summoned: Array<{ enemyKey: string; parentId: number }> = [];
     for (const e of this.enemies) {
       e.update(dtMsRaw, this.speedMul);
+      for (const phase of e.collectBossPhases()) {
+        this.bus.emit('boss:phase', { name: e.def.name, phaseName: phase.name });
+      }
       for (const enemyKey of e.collectSummons()) summoned.push({ enemyKey, parentId: e.id });
       if (e.reachedGoal) {
         this.bus.emit('enemy:reachedGoal', { lifeDamage: e.def.lifeDamage });

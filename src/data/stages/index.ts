@@ -11,10 +11,12 @@ import { stage21 } from './stage-2-1';
 import { stage22 } from './stage-2-2';
 import { stage23 } from './stage-2-3';
 import { stage24 } from './stage-2-4';
+import { stage25 } from './stage-2-5';
 
 export const STAGES: StageDef[] = [
   stage11, stage12, stage13, stage14, stage15, stage16, stage17, stage18,
   stage21, stage22, stage23, stage24,
+  stage25,
 ];
 export const STAGE_IDS: string[] = STAGES.map((s) => s.id);
 
