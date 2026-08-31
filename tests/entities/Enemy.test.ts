@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { Enemy, fastWalkFrameAt, normalWalkFrameAt } from '../../src/entities/Enemy';
+import { Enemy, fastWalkFrameAt, normalWalkFrameAt, tankWalkFrameAt } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
 
 // Minimal rendering boundary; movement and status effects use the real Enemy.
@@ -66,6 +66,12 @@ describe('normal soldier walk animation', () => {
     const soldier = makeEnemy();
     soldier.update(160, 1);
     expect((soldier.sprite as unknown as { frame: number }).frame).toBe(1);
+  });
+});
+
+describe('tank walk animation', () => {
+  it('uses the slowest four-frame cycle', () => {
+    expect([0, 219, 220, 440, 660, 880].map(tankWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
   });
 });
 
