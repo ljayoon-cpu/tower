@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import {
-  Enemy, fastWalkFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
+  crusherWalkFrameAt, Enemy, fastWalkFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
   shieldWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt,
 } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
@@ -90,6 +90,12 @@ describe('regenerator / summoner walk animation', () => {
   });
   it('summoner drifts on a four-frame cycle', () => {
     expect([0, 204, 205, 410, 615, 820].map(summonerWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+  });
+});
+
+describe('crusher walk animation', () => {
+  it('loops through four slow tread frames', () => {
+    expect([0, 259, 260, 520, 780, 1040].map(crusherWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
   });
 });
 

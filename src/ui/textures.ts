@@ -112,11 +112,7 @@ export function buildTextures(scene: Phaser.Scene): void {
     return new Phaser.Math.Vector2(16 + Math.cos(a) * r, 16 + Math.sin(a) * r);
   }), true);
   g.fillStyle(0xffd0b0, 1); g.fillCircle(16, 16, 5); g.generateTexture('enemy_berserker', 32, 32);
-  // 파쇄기: 두꺼운 강철 육각 + 톱니 테두리.
-  g.clear(); g.fillStyle(0x6b7686, 1);
-  g.fillPoints([new Phaser.Math.Vector2(22, 3), new Phaser.Math.Vector2(41, 14), new Phaser.Math.Vector2(41, 30), new Phaser.Math.Vector2(22, 41), new Phaser.Math.Vector2(3, 30), new Phaser.Math.Vector2(3, 14)], true);
-  g.fillStyle(0x2c333d, 1); g.fillCircle(22, 22, 11);
-  g.lineStyle(4, 0xc7d0dc, 1); g.strokeCircle(22, 22, 18); g.generateTexture('enemy_crusher', 44, 44);
+  // 파쇄 전차는 강철 궤도와 전면 분쇄기가 보이는 애니메이션 시트를 Preload에서 로드한다.
   // 왕관·방패·어깨 장갑을 써서, 화면에 나타나는 순간 보스임을 알아보게 한다.
   g.clear(); g.fillStyle(0x5d1727, 1); g.fillCircle(28, 32, 25);
   g.fillStyle(COLORS.enemyBoss, 1); g.fillCircle(28, 30, 19);
