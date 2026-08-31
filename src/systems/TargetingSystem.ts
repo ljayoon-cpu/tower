@@ -66,6 +66,19 @@ export function pickTarget(
   return best;
 }
 
+/** 타워가 조준 가능한 레이어 집합. 기본은 지상+공중. */
+export function towerLayers(targetsGround = true, targetsAir = true): ReadonlySet<MovementLayer> {
+  const s = new Set<MovementLayer>();
+  if (targetsGround) s.add('ground');
+  if (targetsAir) s.add('air');
+  return s;
+}
+
+/** layers에 속하는 표적만 남긴다. */
+export function eligibleTargets<T extends Targetable>(list: T[], layers: ReadonlySet<MovementLayer>): T[] {
+  return list.filter((e) => layers.has(e.layer ?? 'ground'));
+}
+
 export function enemiesInRadius(
   center: Vec2,
   radius: number,
