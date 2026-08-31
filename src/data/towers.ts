@@ -16,7 +16,7 @@ export const TOWERS: Record<string, TowerDef> = {
   },
   cannon: {
     // 광역. 단일 화력·연사는 화살보다 낮지만 뭉친 적을 한 번에 친다.
-    key: 'cannon', name: '대포', attack: 'splash', cost: 110, maxLevel: 5,
+    key: 'cannon', name: '파열탑', attack: 'splash', cost: 110, maxLevel: 5,
     levels: [
       { damage: 24,  range: 132, fireRate: 0.58, splashRadius: 58 },
       { damage: 44,  range: 138, fireRate: 0.62, splashRadius: 66 },
@@ -62,7 +62,7 @@ export const TOWERS: Record<string, TowerDef> = {
   poison: {
     // 좁은 반경에 중독을 갱신하는 지속 피해형. 스웜엔 훌륭하지만 단일 대상 화력이
     // 낮아 보스전은 혼자 못 끝낸다.
-    key: 'poison', name: '독 타워', attack: 'poison', cost: 90, maxLevel: 5,
+    key: 'poison', name: '역병탑', attack: 'poison', cost: 90, maxLevel: 5,
     levels: [
       { damage: 2,  range: 148, fireRate: 1.3, poisonDps: 8,  poisonDurationMs: 1500, poisonRadius: 52 },
       { damage: 4,  range: 158, fireRate: 1.4, poisonDps: 15, poisonDurationMs: 1600, poisonRadius: 60 },
@@ -74,7 +74,7 @@ export const TOWERS: Record<string, TowerDef> = {
   laser: {
     // 집중포화. 같은 대상을 계속 쏘면 데미지가 점점 오른다 — 보스·장갑병 상대로 최강,
     // 표적이 자주 바뀌는 스웜에는 램프가 안 쌓여 약하다.
-    key: 'laser', name: '레이저탑', attack: 'beam', cost: 115, maxLevel: 5,
+    key: 'laser', name: '마광탑', attack: 'beam', cost: 115, maxLevel: 5,
     levels: [
       { damage: 15,  range: 176, fireRate: 1.4, beamRampPct: 0.10, beamRampMax: 2.0 },
       { damage: 27,  range: 188, fireRate: 1.5, beamRampPct: 0.11, beamRampMax: 2.2 },
@@ -98,7 +98,7 @@ export const TOWERS: Record<string, TowerDef> = {
   mine: {
     // 경제형. 직접 공격은 미약하지만 일정 주기마다 골드를 생성한다. 초반에 깔수록
     // 후반 자금이 커지지만 그만큼 방어를 늦게 세워야 한다.
-    key: 'mine', name: '금광탑', attack: 'support', cost: 120, maxLevel: 5,
+    key: 'mine', name: '연금탑', attack: 'support', cost: 120, maxLevel: 5,
     levels: [
       { damage: 3,  range: 110, fireRate: 0.9,  goldPerTick: 1,  goldIntervalMs: 1000 },
       { damage: 6,  range: 116, fireRate: 0.95, goldPerTick: 2,  goldIntervalMs: 1000 },

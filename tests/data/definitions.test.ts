@@ -58,7 +58,7 @@ describe('tower definitions', () => {
     const poison = getTower('poison');
     const arrow = getTower('arrow');
 
-    expect(poison).toMatchObject({ key: 'poison', name: '독 타워', attack: 'poison', cost: 90, maxLevel: 5 });
+    expect(poison).toMatchObject({ key: 'poison', name: '역병탑', attack: 'poison', cost: 90, maxLevel: 5 });
     expect(poison.levels[4].poisonDps!).toBeGreaterThan(poison.levels[0].poisonDps!);
     expect(poison.levels[0].poisonRadius).toBeGreaterThan(0);
     expect(poison.levels[0].poisonDurationMs).toBeGreaterThan(0);
@@ -69,9 +69,9 @@ describe('tower definitions', () => {
       expect(poisonPerGold).toBeLessThan(arrowPerGold);
     }
   });
-  it('adds a ramping beam tower (레이저탑) that is swarm-weak by design', () => {
+  it('adds a ramping beam tower (마광탑) that is swarm-weak by design', () => {
     const laser = getTower('laser');
-    expect(laser).toMatchObject({ key: 'laser', name: '레이저탑', attack: 'beam', maxLevel: 5 });
+    expect(laser).toMatchObject({ key: 'laser', name: '마광탑', attack: 'beam', maxLevel: 5 });
     for (const l of laser.levels) {
       expect(l.beamRampPct!).toBeGreaterThan(0);
       expect(l.beamRampMax!).toBeGreaterThan(1);
