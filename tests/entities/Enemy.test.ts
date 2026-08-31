@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { Enemy, fastWalkFrameAt } from '../../src/entities/Enemy';
+import { Enemy, fastWalkFrameAt, normalWalkFrameAt } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
 
 // Minimal rendering boundary; movement and status effects use the real Enemy.
@@ -54,6 +54,18 @@ describe('fast hound walk animation', () => {
     hound.applyFreezeHit(3, 180, 1000);
     hound.update(180, 1);
     expect((hound.sprite as unknown as { frame: number }).frame).toBe(1);
+  });
+});
+
+describe('normal soldier walk animation', () => {
+  it('uses a slower four-frame cycle than the fast hound', () => {
+    expect([0, 159, 160, 319, 320, 480, 640].map(normalWalkFrameAt)).toEqual([0, 0, 1, 1, 2, 3, 0]);
+  });
+
+  it('updates the rendered frame as the soldier walks', () => {
+    const soldier = makeEnemy();
+    soldier.update(160, 1);
+    expect((soldier.sprite as unknown as { frame: number }).frame).toBe(1);
   });
 });
 
