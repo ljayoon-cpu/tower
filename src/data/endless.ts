@@ -73,9 +73,16 @@ export function endlessSpawnPhase(n: number): 'single' | 'split' | 'both' {
 export function endlessWave(n: number): Wave {
   const t = n - 1;
   const groups: WaveGroup[] = [];
-  const swarm = 6 + Math.floor(t * 0.9);
-  const interval = Math.max(110, 340 - t * 6);
-  const fastShare = Math.min(0.6, 0.18 + t * 0.025);
+  // 머지로 오른 타워 화력은 지수적으로 커진다 — 그래서 후반 적 체력도 지수적으로 키운다.
+  const late = Math.max(0, n - 12);
+  const swarm = 6 + Math.floor(t * 0.9) + Math.floor(late ** 1.3 * 0.1);
+  const interval = Math.max(85, 340 - t * 6);
+  const fastShare = Math.min(0.62, 0.18 + t * 0.025);
+  // 웨이브 전체 체력 배율: 12웨이브까진 1.0, 그 뒤 웨이브당 복리 +5%.
+  const hpFactor = 1.05 ** late;
+  // 25웨이브부터 스웜 이동속도도 서서히 오른다(타워 사격 시간 압박).
+  const spd = 1 + Math.max(0, n - 25) * 0.018;
+  const withHp = (m = 1): Partial<WaveGroup> => ({ hpMultiplier: m * hpFactor });
   const phase = endlessSpawnPhase(n);
   const alt = (n - 1) % 2; // 이번 웨이브가 먼저 쓰는 입구
 
@@ -105,29 +112,30 @@ export function endlessWave(n: number): Wave {
     });
   };
 
-  across(fastLanes, 'fast', Math.round(swarm * fastShare));
-  across(normalLanes, 'normal', Math.round(swarm * (1 - fastShare)), { intervalMs: interval + 60, startDelayMs: 400 });
+  across(fastLanes, 'fast', Math.round(swarm * fastShare), { ...withHp(), speedMultiplier: spd });
+  across(normalLanes, 'normal', Math.round(swarm * (1 - fastShare)), { intervalMs: interval + 60, startDelayMs: 400, ...withHp(), speedMultiplier: spd });
 
   if (n >= 5) {
     across(specialLanes, 'tank', 1 + Math.floor((n - 5) / 5), {
-      intervalMs: 900, startDelayMs: 1000, hpMultiplier: 1 + t * 0.022,
+      intervalMs: 900, startDelayMs: 1000, ...withHp(1 + t * 0.022),
     });
   }
   if (n >= 7 && n % 2 === 1) {
-    across(specialLanes, 'shield', 2 + Math.floor(t / 6), { intervalMs: 400, startDelayMs: 1400 });
+    across(specialLanes, 'shield', 2 + Math.floor(t / 6), { intervalMs: 400, startDelayMs: 1400, ...withHp() });
   }
   if (n >= 9 && n % 3 === 0) {
-    across(specialLanes, 'regenerator', 2 + Math.floor(t / 8), { intervalMs: 540, startDelayMs: 1600 });
+    across(specialLanes, 'regenerator', 2 + Math.floor(t / 8), { intervalMs: 540, startDelayMs: 1600, ...withHp() });
   }
   if (n >= 12 && n % 4 === 0) {
-    across(specialLanes, 'summoner', 1 + Math.floor(t / 10), { intervalMs: 900, startDelayMs: 1800 });
+    across(specialLanes, 'summoner', 1 + Math.floor(t / 10), { intervalMs: 900, startDelayMs: 1800, ...withHp() });
   }
   if (n >= 10 && n % 5 === 0) {
     // 15웨이브까지는 한 입구에서만, 그 뒤 사방 협공. 첫 보스는 기본 체력보다 약하게 시작.
     const bossFrom = phase === 'both' ? bossLanes : [alt === 0 ? 0 : 3];
-    across(bossFrom, 'boss', 1 + Math.max(0, Math.floor((n - 20) / 30)), {
+    const bossCount = n >= 45 ? 3 : n >= 25 ? 2 : 1;
+    across(bossFrom, 'boss', bossCount, {
       intervalMs: 3600, startDelayMs: 1200,
-      hpMultiplier: 0.6 + Math.floor((n - 10) / 5) * 0.2,
+      hpMultiplier: (0.55 + Math.floor((n - 10) / 5) * 0.18) * hpFactor,
       shieldMultiplier: 1 + Math.max(0, Math.floor((n - 20) / 10)) * 0.2,
     });
   }
