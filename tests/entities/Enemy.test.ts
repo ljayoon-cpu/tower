@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
 import {
   Enemy, fastWalkFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
-  shieldWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt,
+  shieldWalkFrameAt, splitterWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt,
 } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
 
@@ -90,6 +90,12 @@ describe('regenerator / summoner walk animation', () => {
   });
   it('summoner drifts on a four-frame cycle', () => {
     expect([0, 204, 205, 410, 615, 820].map(summonerWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+  });
+});
+
+describe('disassembly unit walk animation', () => {
+  it('cycles four frames as its shard pods shift in formation', () => {
+    expect([0, 174, 175, 350, 525, 700].map(splitterWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
   });
 });
 
