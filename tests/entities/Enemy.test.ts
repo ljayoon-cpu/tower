@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { Enemy, fastWalkFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt, shieldWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt } from '../../src/entities/Enemy';
+import { Enemy, fastWalkFrameAt, minionHoverFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt, shieldWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
 
 // Minimal rendering boundary; movement and status effects use the real Enemy.
@@ -90,6 +90,12 @@ describe('regenerator walk animation', () => {
 describe('rift summoner walk animation', () => {
   it('cycles four frames during its floating stride', () => {
     expect([0, 204, 205, 410, 615, 820].map(summonerWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+  });
+});
+
+describe('assembly drone hover animation', () => {
+  it('cycles four frames through its fast hover rhythm', () => {
+    expect([0, 119, 120, 240, 360, 480].map(minionHoverFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
   });
 });
 

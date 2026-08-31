@@ -98,8 +98,7 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.clear(); g.fillStyle(COLORS.poison, 1); g.fillCircle(16, 18, 10); g.fillTriangle(10, 12, 16, 2, 22, 12); g.fillStyle(0xd7ff9e, 1); g.fillCircle(12, 16, 3); g.generateTexture('projectile_poison', 32, 32);
 
   // 적도 실루엣만 봐도 대처법을 짐작할 수 있게 만든다.
-  // 청록 육각형=방어막, 은색 외곽=장갑, 초록 고리=재생, 보라 룬=소환, 작은 마름모=호위 부하다.
-  g.clear(); g.fillStyle(0xffd75a, 1); g.fillPoints([new Phaser.Math.Vector2(10, 1), new Phaser.Math.Vector2(19, 10), new Phaser.Math.Vector2(10, 19), new Phaser.Math.Vector2(1, 10)], true); g.lineStyle(2, 0xfff1ad, 1); g.strokePoints([new Phaser.Math.Vector2(10, 1), new Phaser.Math.Vector2(19, 10), new Phaser.Math.Vector2(10, 19), new Phaser.Math.Vector2(1, 10)], true); g.generateTexture('enemy_minion', 20, 20);
+  // 청록 육각형=방어막, 은색 외곽=장갑, 초록 고리=재생, 보라 룬=소환.
   // 왕관·방패·어깨 장갑을 써서, 화면에 나타나는 순간 보스임을 알아보게 한다.
   g.clear(); g.fillStyle(0x5d1727, 1); g.fillCircle(28, 32, 25);
   g.fillStyle(COLORS.enemyBoss, 1); g.fillCircle(28, 30, 19);
