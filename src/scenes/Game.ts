@@ -345,7 +345,17 @@ export class Game extends Phaser.Scene {
             return;
           }
         }
-        // 머지 실패 또는 빈 타일 → 원위치(이동 배치는 v1 비포함).
+        // 빈 BUILDABLE 타일 → 이동 배치. 골드 무료, 타일 수는 그대로라 자원 압박은 유지.
+        if (dropTile.col !== dragged.tile.col || dropTile.row !== dragged.tile.row) {
+          if (this.grid.canPlace(dropTile)) {
+            this.grid.release(dragged.tile);
+            this.grid.occupy(dropTile, dragged.id);
+            dragged.relocate(dropTile, this.grid.tileToPixelCenter(dropTile));
+            this.audio.play('place');
+            return;
+          }
+        }
+        // 경로·점유·범위 밖 → 원위치.
         this.snapHome(dragged);
       },
     );

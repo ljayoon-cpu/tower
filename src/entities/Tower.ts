@@ -98,6 +98,16 @@ export class Tower {
     return this.priority;
   }
 
+  /** 빈 타일로 이동 배치. 레벨·비용은 그대로. */
+  relocate(tile: TileCoord, pos: Vec2): void {
+    this.tile = tile;
+    this.homePos.x = pos.x;
+    this.homePos.y = pos.y;
+    this.sprite.setPosition(pos.x, pos.y).setDepth(10);
+    this.ring.setPosition(pos.x, pos.y);
+    this.mergeHint.setPosition(pos.x, pos.y);
+  }
+
   /** 드래그 중 유효한 머지 대상임을 알리는 초록 링. */
   showMergeHint(v: boolean): void {
     this.mergeHint.setVisible(v);
