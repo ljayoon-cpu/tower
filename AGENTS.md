@@ -33,7 +33,9 @@
 - **무한 모드**(`src/data/endless.ts`, `save.endlessBest`) — 절차적 무한 웨이브.
 - **타워 9종** — 기존 6종 + 레이저(`beam`, 집중 램프)·지휘탑(`support`, 주변 버프)·
   금광탑(`support`, 골드 생성). 초기 수치는 Claude 스캐폴딩, **밸런싱은 Codex**.
-  램프/버프 순수 함수는 `src/systems/combat.ts`(`beamDamage`, `buffMultiplier`).
+  램프/버프 순수 함수는 `src/systems/combat.ts`(`beamDamage`, `buffMultiplier`, `buildMultiShot`).
+- **머지 3·5합 능력** 6종 전부 완료 — `src/data/mergeEffects.ts` 한 파일에 테이블.
+  화살 멀티샷·대포 방어구 파괴는 `TowerLevelStats` 필드(towers.ts). Codex 브랜치 5개 재구현·병합됨.
 - 실기기(안드로이드/iOS) 검증은 아직 안 됨.
 
 ## 명령어
