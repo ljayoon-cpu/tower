@@ -97,9 +97,10 @@ export class Game extends Phaser.Scene {
     this.waves = new WaveManager(this.stage.waves, this.bus);
     // 튜토리얼 중에는 자동 웨이브를 보류 — 플레이어가 첫 웨이브를 직접 시작한다.
     this.tutorial = this.stage.id === '1-1' && !loadSave().tutorialDone ? new Tutorial() : undefined;
-    // 첫 튜토리얼은 화살탑 설치를 요구하므로 그때만 화살탑을 추첨에서 제외한다.
-    const banCandidates = this.tutorial ? TOWER_KEYS.filter((key) => key !== 'arrow') : TOWER_KEYS;
-    this.bannedTowerKey = chooseTowerBan(banCandidates, this.rng);
+    // 타워 봉인은 보스전에서만. (튜토리얼 스테이지는 보스전이 아니므로 항상 봉인 없음.)
+    this.bannedTowerKey = this.stage.bossStage
+      ? chooseTowerBan(TOWER_KEYS, this.rng)
+      : null;
     if (!this.tutorial) this.waves.enableAutoAdvance(Game.WAVE_GAP_MS);
     this.lastCountdown = -1;
     this.eco = new EconomyManager(this.stage.startGold, this.bus);
@@ -182,7 +183,7 @@ export class Game extends Phaser.Scene {
       totalWaves: this.waves.totalWaves,
       waves: this.stage.waves,
       tutorialText: this.tutorial?.text ?? null,
-      bannedTowerName: getTower(this.bannedTowerKey).name,
+      bannedTowerName: this.bannedTowerKey ? getTower(this.bannedTowerKey).name : '',
       onSkipTutorial: () => this.finishTutorial(),
       onNextWave: () => { if (this.running && !this.paused) this.waves.startNextWave(); },
       getRoster: () => this.towers.map((t) => ({ key: t.key, level: t.level })),

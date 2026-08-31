@@ -17,6 +17,11 @@ describe('run tower ban', () => {
     expect(isTowerBanned('arrow', 'cannon')).toBe(false);
   });
 
+  it('nothing is banned when there is no ban (non-boss stage)', () => {
+    expect(isTowerBanned('cannon', null)).toBe(false);
+    expect(isTowerBanned('arrow', null)).toBe(false);
+  });
+
   it('rejects a run with no towers to ban', () => {
     expect(() => chooseTowerBan([], new Rng(1))).toThrow('tower keys');
   });

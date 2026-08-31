@@ -50,6 +50,7 @@ export const stage25: StageDef = {
   startGold: 360,
   startLives: 20,
   starThresholds: [0.3, 0.6, 0.9],
+  bossStage: true,
   waves: [
     { clearBonus: 30, groups: [{ enemy: 'normal', count: 18, intervalMs: 320, startDelayMs: 0 }] },
     {

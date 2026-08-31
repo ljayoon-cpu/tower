@@ -80,9 +80,11 @@ export class HUD extends Phaser.Scene {
     const preview = this.add.text(20, 120, previewText(data.waves, 0), {
       ...style, fontSize: '18px', color: '#d6b3ff',
     });
-    this.add.text(20, 142, `봉인  이번 판: ${data.bannedTowerName}`, {
-      ...style, fontSize: '18px', color: '#ff9bad',
-    });
+    if (data.bannedTowerName) {
+      this.add.text(20, 142, `보스전 봉인: ${data.bannedTowerName}`, {
+        ...style, fontSize: '18px', color: '#ff9bad',
+      });
+    }
 
     // 보스 체력바 — 필드에 보스가 있을 때만 표시.
     const bossBar = this.add.container(GAME_WIDTH / 2, 188).setDepth(1500).setVisible(false);

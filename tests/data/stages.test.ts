@@ -68,6 +68,10 @@ describe('stage definitions', () => {
     expect(nextStageId('2-5')).toBeNull();
   });
 
+  it('marks only the boss-showdown stages as bossStage', () => {
+    expect(STAGES.filter((s) => s.bossStage).map((s) => s.id)).toEqual(['1-8', '2-5']);
+  });
+
   it('ends world 2 with a dedicated commander boss stage', () => {
     const stage = getStage('2-5');
     const finalWave = stage.waves[stage.waves.length - 1];

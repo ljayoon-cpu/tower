@@ -113,6 +113,8 @@ export interface StageDef {
   startLives: number;
   waves: Wave[];
   starThresholds: [number, number, number]; // 남은 라이프 비율 하한 [1별,2별,3별], 오름차순
+  /** 보스전. 이 스테이지에서만 타워 1종이 랜덤 봉인된다. */
+  bossStage?: boolean;
 }
 
 export interface StageProgress { stars: number; unlocked: boolean; }
