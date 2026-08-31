@@ -107,6 +107,18 @@ export const TOWERS: Record<string, TowerDef> = {
       { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 6, goldIntervalMs: 1000, mineWaveBonus: 14 },
     ],
   },
+  ballista: {
+    // 대공 전용. 공중에 압도적, 지상엔 약하다. 3·5합 = 공중 다중 사격.
+    key: 'ballista', name: '창공탑', attack: 'single', cost: 105, maxLevel: 5,
+    targetsGround: true, targetsAir: true,
+    levels: [
+      { damage: 12,  range: 210, fireRate: 1.3, armorPierce: 2,  airDamageMultiplier: 3.4 },
+      { damage: 22,  range: 224, fireRate: 1.4, armorPierce: 3,  airDamageMultiplier: 3.6 },
+      { damage: 42,  range: 240, fireRate: 1.5, armorPierce: 5,  airDamageMultiplier: 3.8, projectileCount: 2, projectileDamageMultiplier: 0.6 },
+      { damage: 82,  range: 256, fireRate: 1.6, armorPierce: 7,  airDamageMultiplier: 4.1, projectileCount: 2, projectileDamageMultiplier: 0.6 },
+      { damage: 160, range: 274, fireRate: 1.7, armorPierce: 10, airDamageMultiplier: 4.5, projectileCount: 3, projectileDamageMultiplier: 0.45 },
+    ],
+  },
 };
 
 export const TOWER_KEYS = Object.keys(TOWERS);

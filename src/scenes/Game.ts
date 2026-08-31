@@ -53,6 +53,7 @@ const PROJECTILE_TEXTURE: Record<string, string> = {
   laser: 'projectile_laser',
   command: 'projectile_command',
   mine: 'projectile_mine',
+  ballista: 'projectile_ballista',
 };
 
 const ENEMY_BURST_COLOR: Record<string, number> = {
@@ -887,8 +888,11 @@ export class Game extends Phaser.Scene {
       tower.faceToward(enemy.pos);
       if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
         this.audio.play(tower.key);
+      } else if (tower.key === 'ballista') {
+        this.audio.play('sniper');
       }
-      this.muzzleFlash(tower.homePos, def.key === 'sniper' ? COLORS.sniper : def.attack === 'poison' ? COLORS.poison :
+      this.muzzleFlash(tower.homePos, def.key === 'ballista' ? COLORS.ballista :
+        def.key === 'sniper' ? COLORS.sniper : def.attack === 'poison' ? COLORS.poison :
         def.attack === 'splash' ? COLORS.cannon : def.attack === 'slow' ? COLORS.frost :
           def.attack === 'chain' ? COLORS.bolt : COLORS.arrow);
 
@@ -918,7 +922,7 @@ export class Game extends Phaser.Scene {
       }
 
       // 화살탑 3·5합 멀티샷: 근처 표적에 여러 발(발당 피해 감소). 그 외는 현재 표적 한 발.
-      const multi = def.key === 'arrow' && (s.projectileCount ?? 1) > 1;
+      const multi = (def.key === 'arrow' || def.key === 'ballista') && (s.projectileCount ?? 1) > 1;
       const shots = multi
         ? buildMultiShot(enemy, this.enemies, tower.homePos, s.range, s.projectileCount ?? 1)
           .map((tg) => ({ id: tg.id, damage: Math.round(s.damage * (s.projectileDamageMultiplier ?? 1)) }))
@@ -966,8 +970,13 @@ export class Game extends Phaser.Scene {
               }
               if (def.key === 'arrow' && e.alive) this.knockbackEnemy(e);
               if (def.key === 'sniper') this.startHitstop();
-              this.impactFlash(e.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
-                def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');
+              this.impactFlash(e.pos,
+                def.key === 'ballista' ? COLORS.ballista
+                : def.attack === 'slow' ? COLORS.frost
+                : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
+                def.key === 'ballista' ? 'light'
+                : def.attack === 'slow' ? 'frost'
+                : def.key === 'sniper' ? 'heavy' : 'light');
               if (def.attack === 'slow') {
                 e.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
                 const freeze = frostFreezeEffect(tower.level);

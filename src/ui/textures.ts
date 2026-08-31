@@ -86,6 +86,15 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.fillStyle(0xfff2c4, 1); g.fillRect(12, 27, 5, 3); g.fillRect(25, 27, 5, 3); g.fillRect(18, 16, 5, 3);
   g.generateTexture('tower_mine', 48, 48);
 
+  // 창공탑: 하늘빛 석궁 — 위로 겨눈 활 + 화살.
+  g.clear();
+  g.fillStyle(0x14324a, 1); g.fillCircle(24, 24, 22);
+  g.lineStyle(4, COLORS.ballista, 1); g.beginPath();
+  g.arc(24, 30, 15, Math.PI * 1.15, Math.PI * 1.85, false); g.strokePath();
+  g.fillStyle(COLORS.ballista, 1); g.fillTriangle(24, 3, 30, 18, 18, 18); g.fillRect(22, 14, 4, 18);
+  g.lineStyle(2, 0xdff2ff, 0.9); g.strokeCircle(24, 24, 20);
+  g.generateTexture('tower_ballista', 48, 48);
+
   g.clear(); g.fillStyle(COLORS.laser, 1); g.fillRect(2, 13, 30, 6); g.fillStyle(0xffe0e6, 1); g.fillRect(24, 12, 10, 8); g.generateTexture('projectile_laser', 36, 32);
   g.clear(); g.fillStyle(COLORS.command, 1); g.fillCircle(16, 16, 8); g.fillStyle(0xfff0c8, 1); g.fillCircle(13, 13, 3); g.generateTexture('projectile_command', 32, 32);
   g.clear(); g.fillStyle(COLORS.mine, 1); g.fillCircle(16, 16, 8); g.fillStyle(0xfff2c4, 1); g.fillCircle(13, 13, 3); g.generateTexture('projectile_mine', 32, 32);
@@ -96,6 +105,8 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.clear(); g.fillStyle(COLORS.bolt, 1); g.fillPoints([new Phaser.Math.Vector2(23, 2), new Phaser.Math.Vector2(8, 17), new Phaser.Math.Vector2(17, 17), new Phaser.Math.Vector2(11, 30), new Phaser.Math.Vector2(28, 12), new Phaser.Math.Vector2(19, 12)], true); g.generateTexture('projectile_bolt', 32, 32);
   g.clear(); g.fillStyle(COLORS.sniper, 1); g.fillRect(3, 12, 28, 8); g.fillStyle(0xffffff, 1); g.fillRect(24, 13, 10, 6); g.generateTexture('projectile_sniper', 36, 32);
   g.clear(); g.fillStyle(COLORS.poison, 1); g.fillCircle(16, 18, 10); g.fillTriangle(10, 12, 16, 2, 22, 12); g.fillStyle(0xd7ff9e, 1); g.fillCircle(12, 16, 3); g.generateTexture('projectile_poison', 32, 32);
+  g.clear(); g.fillStyle(COLORS.ballista, 1); g.fillTriangle(34, 8, 34, 24, 6, 16); g.fillRect(2, 14, 24, 4);
+  g.fillStyle(0xffffff, 1); g.fillRect(26, 14, 6, 4); g.generateTexture('projectile_ballista', 36, 32);
 
   // 지상 보병 + 재생충 + 소환사는 걷기 스프라이트 시트를 Preload에서 로드한다.
   // 나머지 적은 실루엣만 봐도 대처법을 짐작하게 도형으로. (마름모=호위 부하)

@@ -122,6 +122,26 @@ describe('tower definitions', () => {
     }
   });
 
+  it('adds 창공탑 (ballista) as an anti-air specialist: air-strong, ground-weak', () => {
+    const ballista = getTower('ballista');
+    expect(ballista).toMatchObject({
+      key: 'ballista', name: '창공탑', attack: 'single', cost: 105, maxLevel: 5,
+      targetsGround: true, targetsAir: true,
+    });
+    for (const l of ballista.levels) {
+      expect(l.airDamageMultiplier!).toBeGreaterThan(1);
+      expect(l.armorPierce!).toBeGreaterThan(0);
+    }
+    expect(ballista.levels[4].airDamageMultiplier!).toBeGreaterThan(ballista.levels[0].airDamageMultiplier!);
+    // 지상 기본 화력(배수 없음)은 저격탑보다 한참 약하다 — 대공 특화의 대가.
+    expect(ballista.levels[4].damage).toBeLessThan(getTower('sniper').levels[4].damage);
+    // 3·5합에서 공중 다중 사격.
+    expect(ballista.levels[1].projectileCount ?? 1).toBe(1);
+    expect(ballista.levels[2].projectileCount!).toBeGreaterThan(1);
+    // 대공 노트가 towerInfo에 노출된다.
+    expect(towerInfo('ballista', 1).note).toContain('대공');
+  });
+
   it('getTower throws on unknown key', () => {
     expect(() => getTower('nope')).toThrow();
   });

@@ -65,6 +65,9 @@ function noteOf(key: string, level: number, stats: TowerLevelStats, attack: stri
     const pierce = key === 'poison' ? poisonArmorPierceEffect(level) : undefined;
     return pierce ? `${poison} · 방어 무시 ${pierce.armorPierce}` : poison;
   }
+  if ((stats.airDamageMultiplier ?? 1) > 1) {
+    return `대공 피해 x${stats.airDamageMultiplier}`;
+  }
   if (attack === 'single' && key === 'sniper') {
     const exec = sniperExecuteEffect(level);
     return exec

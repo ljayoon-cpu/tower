@@ -33,6 +33,7 @@ export const COLORS = {
   laser: 0xff5a7a,
   command: 0xffd27d,
   mine: 0xd7b45a,
+  ballista: 0x8ad0ff,
   enemyNormal: 0xff6688,
   enemyFast: 0x66ff99,
   enemyTank: 0xaa88ff,
