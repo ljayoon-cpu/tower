@@ -5,6 +5,7 @@ import { TOWER_KEYS, getTower } from '../data/towers';
 export interface BuildMenuOpts {
   onPick: (key: string) => void;
   canAfford: (key: string) => boolean;
+  isBanned: (key: string) => boolean;
 }
 
 const ROW_H = 64;
@@ -32,26 +33,31 @@ export class BuildMenu {
       const def = getTower(key);
       const yy = -((TOWER_KEYS.length - 1) / 2) * ROW_H + i * ROW_H;
       const afford = this.opts.canAfford(key);
+      const banned = this.opts.isBanned(key);
+      const selectable = afford && !banned;
 
       const icon = this.scene.add
         .image(-80, yy, `tower_${key}`)
         .setScale(0.7)
-        .setAlpha(afford ? 1 : 0.35);
-      const label = this.scene.add.text(-52, yy - 14, `${def.name}\n${def.cost}G`, {
+        .setAlpha(selectable ? 1 : banned ? 0.2 : 0.35);
+      const label = this.scene.add.text(-52, yy - 14, banned ? `${def.name}\n이번 판 봉인` : `${def.name}\n${def.cost}G`, {
         fontFamily: 'monospace',
         fontSize: '18px',
-        color: afford ? '#f2f2f7' : '#777777',
+        color: banned ? '#ff7799' : afford ? '#f2f2f7' : '#777777',
       });
+      const lock = banned
+        ? this.scene.add.text(82, yy, '봉인', { fontFamily: 'monospace', fontSize: '16px', color: '#ff7799' }).setOrigin(0.5)
+        : undefined;
       const hit = this.scene.add
-        .rectangle(0, yy, MENU_W - 10, ROW_H - 4, 0xffffff, 0.001)
-        .setInteractive({ useHandCursor: true });
-      if (afford) {
+        .rectangle(0, yy, MENU_W - 10, ROW_H - 4, 0xffffff, 0.001);
+      if (selectable) {
+        hit.setInteractive({ useHandCursor: true });
         hit.on('pointerup', () => {
           this.opts.onPick(key);
           this.close();
         });
       }
-      this.container.add([icon, label, hit]);
+      this.container.add(lock ? [icon, label, lock, hit] : [icon, label, hit]);
     });
 
     const cx = Phaser.Math.Clamp(x, MENU_W / 2 + 10, GAME_WIDTH - MENU_W / 2 - 10);

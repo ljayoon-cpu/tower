@@ -16,6 +16,8 @@ export interface HudInit {
   waves: Wave[];
   /** 튜토리얼 초기 안내 문구. null이면 튜토리얼 비활성. */
   tutorialText: string | null;
+  /** 이번 판에 설치할 수 없는 타워 이름. */
+  bannedTowerName: string;
   onSkipTutorial: () => void;
   onNextWave: () => void;
   onToggleSpeed: () => void;
@@ -46,7 +48,7 @@ export class HUD extends Phaser.Scene {
   create(data: HudInit) {
     const audio = audioFor(this);
     const style = { fontFamily: 'monospace', fontSize: '26px', color: '#f2f2f7' };
-    this.add.rectangle(GAME_WIDTH / 2, 70, GAME_WIDTH, 140, 0x0f1020, 0.96).setInteractive();
+    this.add.rectangle(GAME_WIDTH / 2, 80, GAME_WIDTH, 160, 0x0f1020, 0.96).setInteractive();
     const goldText = this.add.text(20, 12, `골드 ${data.gold}`, { ...style, color: '#ffcc44' });
     const lifeText = this.add.text(20, 48, `라이프 ${data.lives}`, { ...style, color: '#ff8899' });
     const waveText = this.add.text(GAME_WIDTH - 20, 12, `웨이브 -/${data.totalWaves}`, style).setOrigin(1, 0);
@@ -78,9 +80,12 @@ export class HUD extends Phaser.Scene {
     const preview = this.add.text(20, 120, previewText(data.waves, 0), {
       ...style, fontSize: '18px', color: '#d6b3ff',
     });
+    this.add.text(20, 142, `봉인  이번 판: ${data.bannedTowerName}`, {
+      ...style, fontSize: '18px', color: '#ff9bad',
+    });
 
     // 보스 체력바 — 필드에 보스가 있을 때만 표시.
-    const bossBar = this.add.container(GAME_WIDTH / 2, 168).setDepth(1500).setVisible(false);
+    const bossBar = this.add.container(GAME_WIDTH / 2, 188).setDepth(1500).setVisible(false);
     const bossTrack = this.add.rectangle(0, 0, GAME_WIDTH - 40, 16, 0x000000, 0.55).setStrokeStyle(1, 0xff5566, 0.6);
     const bossFill = this.add.rectangle(-(GAME_WIDTH - 44) / 2, 0, GAME_WIDTH - 44, 12, 0xff3355).setOrigin(0, 0.5);
     const bossLabel = this.add.text(0, -18, '', { ...style, fontSize: '16px', color: '#ff8899' }).setOrigin(0.5);
