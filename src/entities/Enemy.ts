@@ -45,6 +45,8 @@ export class Enemy {
     this.summonLeftMs = def.summon?.intervalMs ?? Infinity;
     const start = polyline[0];
     this.sprite = scene.add.image(start.x, start.y, `enemy_${def.key}`);
+    // 원본 아트를 길 타일 안에서 읽히는 44px 크기로 축소한다.
+    if (def.key === 'fast') this.sprite.setScale(0.035);
     this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
