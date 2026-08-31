@@ -66,6 +66,10 @@ export class Game extends Phaser.Scene {
   private sellPanelBackdrop?: Phaser.GameObjects.Rectangle;
   /** 드래그 직후 발생하는 pointerup 이 빌드메뉴/사거리 토글을 켜지 않도록 억제. */
   private suppressTapUntil = 0;
+  /** 마지막으로 HUD에 알린 카운트다운 초. 값이 바뀔 때만 emit. */
+  private lastCountdown: number | null = -1;
+
+  private static readonly WAVE_GAP_MS = 8000;
 
   constructor() { super('game'); }
 
@@ -80,6 +84,8 @@ export class Game extends Phaser.Scene {
     this.grid = new GridManager(this.stage.grid);
     this.path = new PathManager(this.stage.path);
     this.waves = new WaveManager(this.stage.waves, this.bus);
+    this.waves.enableAutoAdvance(Game.WAVE_GAP_MS);
+    this.lastCountdown = -1;
     this.eco = new EconomyManager(this.stage.startGold, this.bus);
     this.lives = this.stage.startLives;
     this.enemies = [];
@@ -658,6 +664,12 @@ export class Game extends Phaser.Scene {
     const dtMs = dtMsRaw * this.speedMul;
 
     for (const req of this.waves.update(dtMs)) this.spawnEnemy(req.enemyKey);
+
+    const secs = this.waves.secondsToNextWave();
+    if (secs !== this.lastCountdown) {
+      this.lastCountdown = secs;
+      this.bus.emit('wave:countdown', { seconds: secs });
+    }
 
     this.updateTowers(dtMs);
     let activeShots = 0;

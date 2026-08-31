@@ -88,4 +88,6 @@ export type GameEvents = {
   'boss:spawned': { name: string };
   'boss:health': { ratio: number };
   'boss:cleared': Record<string, never>;
+  /** 다음 웨이브 자동 시작까지 남은 초. null = 카운트다운 없음(진행 중 / 종료). */
+  'wave:countdown': { seconds: number | null };
 };

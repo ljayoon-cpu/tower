@@ -18,20 +18,37 @@ export class WaveManager {
   private spawnedCount = 0;
   private removedCount = 0;
   private waveActive = false;
+  private autoAdvanceMs: number | null = null;
+  private countdownMs = 0;
 
   constructor(private readonly waves: Wave[], private readonly bus: EventBus<GameEvents>) {}
 
   get waveIndex(): number { return this._waveIndex; }
   get totalWaves(): number { return this.waves.length; }
   get isWaveActive(): boolean { return this.waveActive; }
+
+  private get hasNextWave(): boolean { return this._waveIndex < this.waves.length - 1; }
+
+  /** 웨이브 사이 자동 진행. betweenMs 카운트다운 후 다음 웨이브가 저절로 시작된다. */
+  enableAutoAdvance(betweenMs = 8000): void {
+    this.autoAdvanceMs = betweenMs;
+    this.countdownMs = betweenMs;
+  }
+
+  /** 자동 시작까지 남은 초. 자동진행 꺼짐 / 웨이브 진행 중 / 다음 웨이브 없음이면 null. */
+  secondsToNextWave(): number | null {
+    if (this.autoAdvanceMs === null || this.waveActive || !this.hasNextWave) return null;
+    return Math.max(0, Math.ceil(this.countdownMs / 1000));
+  }
   get isFinished(): boolean {
     return this._waveIndex >= this.waves.length - 1 && this.isWaveComplete();
   }
 
   startNextWave(): boolean {
     if (this.waveActive) return false;
-    if (this._waveIndex >= this.waves.length - 1) return false;
+    if (!this.hasNextWave) return false;
     this._waveIndex++;
+    if (this.autoAdvanceMs !== null) this.countdownMs = this.autoAdvanceMs;
     this.elapsedMs = 0;
     this.spawnedCount = 0;
     this.removedCount = 0;
@@ -49,7 +66,13 @@ export class WaveManager {
   }
 
   update(dtMs: number): SpawnRequest[] {
-    if (!this.waveActive) return [];
+    if (!this.waveActive) {
+      if (this.autoAdvanceMs !== null && this.hasNextWave) {
+        this.countdownMs -= dtMs;
+        if (this.countdownMs <= 0) this.startNextWave();
+      }
+      if (!this.waveActive) return [];
+    }
     this.elapsedMs += dtMs;
     const out: SpawnRequest[] = [];
     for (const g of this.groups) {

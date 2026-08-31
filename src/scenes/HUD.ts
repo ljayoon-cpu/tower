@@ -93,16 +93,24 @@ export class HUD extends Phaser.Scene {
     on('wave:started', ({ index, total }) => {
       waveText.setText(`웨이브 ${index + 1}/${total}`);
       next.bg.disableInteractive().setAlpha(0.4);
-      next.text.setAlpha(0.4);
+      next.text.setAlpha(0.4).setText('▶ 다음 웨이브');
       hint.setText('같은 타워를 겹치면 합체');
       preview.setText(previewText(data.waves, index + 1));
     });
     on('wave:cleared', ({ index }) => {
-      if (index + 1 >= data.totalWaves) { preview.setText('마지막 웨이브 클리어'); return; }
-      next.bg.setInteractive({ useHandCursor: true }).setAlpha(1);
-      next.text.setAlpha(1);
       hint.setText('길게 눌러 타워 판매');
-      preview.setText(previewText(data.waves, index + 1));
+      if (index + 1 >= data.totalWaves) preview.setText('마지막 웨이브 클리어');
+      else preview.setText(previewText(data.waves, index + 1));
+    });
+    // 웨이브 사이 카운트다운: 버튼이 "지금 시작"으로 바뀌며 남은 초를 보여준다.
+    on('wave:countdown', ({ seconds }) => {
+      if (seconds === null) {
+        next.bg.disableInteractive().setAlpha(0.4);
+        next.text.setAlpha(0.4).setText('▶ 다음 웨이브');
+      } else {
+        next.bg.setInteractive({ useHandCursor: true }).setAlpha(1);
+        next.text.setAlpha(1).setText(`▶ 지금 시작  ${seconds}`);
+      }
     });
     on('speed:changed', ({ multiplier }) => speed.text.setText(`${multiplier}x`));
     on('pause:changed', ({ paused }) => overlay.setVisible(paused));

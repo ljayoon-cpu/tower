@@ -72,6 +72,62 @@ describe('WaveManager', () => {
     expect(wm.startNextWave()).toBe(true);   // now wave 1 is allowed
   });
 
+  it('auto-advance starts wave 0 after the between-wave delay, and re-arms after a clear', () => {
+    const { wm, started } = setup();
+    let spawned = 0;
+    const step = (ms: number) => {
+      const reqs = wm.update(ms);
+      spawned += reqs.length;
+      reqs.forEach(() => wm.notifyEnemySpawned());
+    };
+
+    wm.enableAutoAdvance(3000);
+    expect(wm.secondsToNextWave()).toBe(3);
+    step(1000);                                     // 2s left, no wave yet
+    expect(wm.secondsToNextWave()).toBe(2);
+    expect(wm.isWaveActive).toBe(false);
+    step(2500);                                     // countdown past 0 -> wave 0 auto-starts
+    expect(wm.isWaveActive).toBe(true);
+    expect(started).toEqual([0]);
+    expect(wm.secondsToNextWave()).toBeNull();      // no countdown during an active wave
+
+    for (let i = 0; i < 60 && wm.isWaveActive; i++) step(200);
+    for (let i = 0; i < spawned; i++) wm.notifyEnemyRemoved();
+    expect(wm.isWaveActive).toBe(false);
+    expect(wm.secondsToNextWave()).toBe(3);         // countdown re-armed for wave 1
+    step(3000);
+    expect(started).toEqual([0, 1]);
+  });
+
+  it('manual startNextWave skips the auto countdown', () => {
+    const { wm, started } = setup();
+    wm.enableAutoAdvance(8000);
+    wm.update(1000);
+    expect(wm.isWaveActive).toBe(false);
+    expect(wm.startNextWave()).toBe(true);
+    expect(started).toEqual([0]);
+    expect(wm.secondsToNextWave()).toBeNull();
+  });
+
+  it('no auto countdown once the last wave has started', () => {
+    const { wm } = setup();
+    wm.enableAutoAdvance(1000);
+    wm.startNextWave();  // wave 0
+    const drain = () => {
+      let spawned = 0;
+      for (let i = 0; i < 60; i++) {
+        const reqs = wm.update(200);
+        spawned += reqs.length;
+        reqs.forEach(() => wm.notifyEnemySpawned());
+      }
+      for (let i = 0; i < spawned; i++) wm.notifyEnemyRemoved();
+    };
+    drain();
+    wm.update(1000);     // auto-advance to wave 1 (the last)
+    drain();
+    expect(wm.secondsToNextWave()).toBeNull();
+  });
+
   it('startNextWave returns false past the last wave', () => {
     const { wm, started } = setup();
     const drain = () => {
