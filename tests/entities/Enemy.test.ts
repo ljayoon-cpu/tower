@@ -46,4 +46,14 @@ describe('enemy simulation time', () => {
     expect(normal.pos.y).toBeCloseTo(150);
     expect(fast.pos.y).toBeCloseTo(150);
   });
+  it('applies poison damage over simulation time and stops when the effect expires', () => {
+    const e = makeEnemy();
+    e.applyPoison(10, 1000);
+    e.update(500, 1);
+    expect(e.hp).toBeCloseTo(95);
+    e.update(500, 1);
+    expect(e.hp).toBeCloseTo(90);
+    e.update(100, 1);
+    expect(e.hp).toBeCloseTo(90);
+  });
 });

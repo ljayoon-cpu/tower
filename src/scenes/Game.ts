@@ -35,6 +35,7 @@ const PROJECTILE_TEXTURE: Record<string, string> = {
   frost: 'projectile_frost',
   bolt: 'projectile_bolt',
   sniper: 'projectile_sniper',
+  poison: 'projectile_poison',
 };
 
 export class Game extends Phaser.Scene {
@@ -525,10 +526,10 @@ export class Game extends Phaser.Scene {
       if (!enemy) continue;
       const def = getTower(tower.key);
       tower.faceToward(enemy.pos);
-      if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper') {
+      if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
         this.audio.play(tower.key);
       }
-      this.muzzleFlash(tower.homePos, def.key === 'sniper' ? COLORS.sniper :
+      this.muzzleFlash(tower.homePos, def.key === 'sniper' ? COLORS.sniper : def.attack === 'poison' ? COLORS.poison :
         def.attack === 'splash' ? COLORS.cannon : def.attack === 'slow' ? COLORS.frost :
           def.attack === 'chain' ? COLORS.bolt : COLORS.arrow);
 
@@ -557,7 +558,14 @@ export class Game extends Phaser.Scene {
         textureKey: PROJECTILE_TEXTURE[tower.key],
         targetPos: () => (enemy.alive ? enemy.pos : null),
         onHit: (hitPos) => {
-          if (def.attack === 'splash') {
+          if (def.attack === 'poison') {
+            this.impactFlash(hitPos, COLORS.poison, 'light');
+            for (const hit of enemiesInRadius(hitPos, s.poisonRadius ?? 0, this.enemies)) {
+              const affected = this.enemies.find((e) => e.id === hit.id);
+              affected?.takeDamage(s.damage);
+              affected?.applyPoison(s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
+            }
+          } else if (def.attack === 'splash') {
             this.impactFlash(hitPos, COLORS.cannon, 'heavy');
             for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0,
               this.enemies)) {

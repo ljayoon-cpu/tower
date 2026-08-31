@@ -53,11 +53,18 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.fillStyle(0xf4ddff, 1); g.fillCircle(24, 14, 7); g.fillCircle(24, 14, 3);
   g.lineStyle(2, 0xf4ddff, 0.9); g.strokeCircle(24, 14, 10); g.generateTexture('tower_sniper', 48, 48);
 
+  g.clear();
+  g.fillStyle(0x173c2b, 1); g.fillCircle(24, 24, 22);
+  g.fillStyle(COLORS.poison, 1); g.fillCircle(24, 29, 14); g.fillRect(17, 8, 14, 17);
+  g.fillStyle(0xc8ff8d, 1); g.fillCircle(19, 28, 4); g.fillCircle(28, 34, 3);
+  g.fillStyle(0xe9ffd3, 1); g.fillRect(19, 5, 10, 5); g.generateTexture('tower_poison', 48, 48);
+
   g.clear(); g.fillStyle(COLORS.arrow, 1); g.fillTriangle(34, 10, 34, 22, 8, 16); g.fillRect(2, 13, 23, 6); g.generateTexture('projectile_arrow', 36, 32);
   g.clear(); g.fillStyle(COLORS.cannon, 1); g.fillCircle(16, 16, 11); g.fillStyle(0xffe3bd, 1); g.fillCircle(12, 11, 4); g.generateTexture('projectile_cannon', 32, 32);
   g.clear(); g.fillStyle(COLORS.frost, 1); g.fillPoints([new Phaser.Math.Vector2(16, 2), new Phaser.Math.Vector2(22, 10), new Phaser.Math.Vector2(30, 16), new Phaser.Math.Vector2(22, 22), new Phaser.Math.Vector2(16, 30), new Phaser.Math.Vector2(10, 22), new Phaser.Math.Vector2(2, 16), new Phaser.Math.Vector2(10, 10)], true); g.generateTexture('projectile_frost', 32, 32);
   g.clear(); g.fillStyle(COLORS.bolt, 1); g.fillPoints([new Phaser.Math.Vector2(23, 2), new Phaser.Math.Vector2(8, 17), new Phaser.Math.Vector2(17, 17), new Phaser.Math.Vector2(11, 30), new Phaser.Math.Vector2(28, 12), new Phaser.Math.Vector2(19, 12)], true); g.generateTexture('projectile_bolt', 32, 32);
   g.clear(); g.fillStyle(COLORS.sniper, 1); g.fillRect(3, 12, 28, 8); g.fillStyle(0xffffff, 1); g.fillRect(24, 13, 10, 6); g.generateTexture('projectile_sniper', 36, 32);
+  g.clear(); g.fillStyle(COLORS.poison, 1); g.fillCircle(16, 18, 10); g.fillTriangle(10, 12, 16, 2, 22, 12); g.fillStyle(0xd7ff9e, 1); g.fillCircle(12, 16, 3); g.generateTexture('projectile_poison', 32, 32);
 
   circle('enemy_normal', COLORS.enemyNormal, 14);
   circle('enemy_fast', COLORS.enemyFast, 11);

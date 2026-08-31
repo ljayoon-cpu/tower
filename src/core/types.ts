@@ -9,7 +9,7 @@ export interface PathNode {
   branches?: PathNode[];
 }
 
-export type AttackKind = 'single' | 'splash' | 'slow' | 'chain';
+export type AttackKind = 'single' | 'splash' | 'slow' | 'chain' | 'poison';
 
 export interface TowerLevelStats {
   damage: number;
@@ -21,6 +21,9 @@ export interface TowerLevelStats {
   chainTargets?: number;  // 1차 대상 외에 추가로 튀는 적 수 (chain)
   chainFalloff?: number;  // 점프마다 곱해지는 데미지 배율 (0.65 = 매 점프 65%)
   chainRange?: number;    // 마지막 피격 적으로부터 다음 체인 대상 탐색 반경(px)
+  poisonDps?: number;     // 중독 중 초당 피해
+  poisonDurationMs?: number; // 중독 지속 시간
+  poisonRadius?: number;  // 중독 투사체의 적용 반경(px)
 }
 
 export interface TowerDef {
