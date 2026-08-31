@@ -11,6 +11,7 @@ interface WorldBackgroundTheme {
 const BACKGROUND_THEMES: Record<string, WorldBackgroundTheme> = {
   '1': { sky: 0x101b35, horizon: 0x1a3153, silhouette: 0x142641, accent: 0x7bd7ff },
   '2': { sky: 0x241315, horizon: 0x4a2420, silhouette: 0x35191b, accent: 0xff9a57 },
+  '3': { sky: 0x0e1a2c, horizon: 0x24405e, silhouette: 0x172b40, accent: 0x9fd8ff },
 };
 
 /** 월드 번호에 따라 전투 맵 뒤에 놓을 절차적 배경 팔레트. */

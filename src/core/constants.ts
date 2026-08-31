@@ -44,4 +44,5 @@ export const COLORS = {
 export const WORLD_THEMES: Record<string, { path: number; buildable: number }> = {
   '1': { path: COLORS.path, buildable: COLORS.buildable },
   '2': { path: 0x5c4034, buildable: 0x2c211d }, // 붉은 바위 동굴
+  '3': { path: 0x3a4a63, buildable: 0x1e2740 }, // 구름 위 강철 통로
 };
