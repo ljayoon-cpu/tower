@@ -104,7 +104,7 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.clear(); g.fillStyle(0xe8963a, 1); g.fillCircle(16, 16, 15); g.lineStyle(2, 0x3a1f0c, 1);
   g.lineBetween(16, 2, 14, 16); g.lineBetween(14, 16, 16, 30); g.lineBetween(14, 16, 3, 12); g.lineBetween(14, 16, 28, 20);
   g.generateTexture('enemy_splitter', 32, 32);
-  g.clear(); g.fillStyle(0xf0a85a, 1); g.fillTriangle(9, 3, 17, 16, 1, 16); g.generateTexture('enemy_splitterling', 18, 18);
+  // 분해 파편은 금 간 코어와 궤도 조각이 보이는 애니메이션 시트를 Preload에서 로드한다.
   // 광전사: 붉은 톱니 원.
   g.clear(); g.fillStyle(0xd1362f, 1);
   g.fillPoints(Array.from({ length: 10 }, (_, i) => {
