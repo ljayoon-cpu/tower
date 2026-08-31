@@ -17,11 +17,11 @@ export const TOWERS: Record<string, TowerDef> = {
   cannon: {
     key: 'cannon', name: '대포', attack: 'splash', cost: 110, maxLevel: 5,
     levels: [
-      { damage: 22,  range: 130, fireRate: 0.7,  splashRadius: 55 },
-      { damage: 40,  range: 136, fireRate: 0.75, splashRadius: 62 },
-      { damage: 78,  range: 144, fireRate: 0.8,  splashRadius: 70 },
-      { damage: 155, range: 152, fireRate: 0.85, splashRadius: 80 },
-      { damage: 310, range: 162, fireRate: 0.9,  splashRadius: 92 },
+      { damage: 22,  range: 130, fireRate: 0.42, splashRadius: 55 },
+      { damage: 40,  range: 136, fireRate: 0.46, splashRadius: 62 },
+      { damage: 78,  range: 144, fireRate: 0.5,  splashRadius: 70 },
+      { damage: 155, range: 152, fireRate: 0.55, splashRadius: 80 },
+      { damage: 310, range: 162, fireRate: 0.6,  splashRadius: 92 },
     ],
   },
   frost: {

@@ -26,6 +26,10 @@ describe('tower definitions', () => {
     expect(TOWERS.bolt.levels[0].chainRange).toBeGreaterThan(0);
   });
 
+  it('keeps cannon shots deliberately slow to reward clustered enemies', () => {
+    expect(TOWERS.cannon.levels.map((level) => level.fireRate)).toEqual([0.42, 0.46, 0.5, 0.55, 0.6]);
+  });
+
   it('bolt chain gets more targets and gentler falloff as it levels', () => {
     const lv = TOWERS.bolt.levels;
     expect(lv[4].chainTargets!).toBeGreaterThanOrEqual(lv[0].chainTargets!);
