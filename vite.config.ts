@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// 로컬 dev/build 는 상대경로('./'). GitHub Pages 빌드는 BASE_PATH=/tower/ 를 넘겨 서브경로에 맞춘다.
 export default defineConfig({
-  base: './',
+  base: process.env.BASE_PATH ?? './',
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
