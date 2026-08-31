@@ -6,7 +6,12 @@ import { TARGET_PRIORITIES } from '../systems/TargetingSystem';
 import type { TargetPriority } from '../systems/TargetingSystem';
 
 let nextId = 1;
-const ANIMATED_TOWER_KEYS = new Set(['arrow', 'cannon', 'frost']);
+const ANIMATED_TOWER_KEYS = new Set(['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'poison']);
+const TOWER_ART_ROTATION_OFFSET: Readonly<Record<string, number>> = {
+  arrow: 0,
+  sniper: 0,
+  poison: Math.PI,
+};
 
 /**
  * 배치된 타워 1기. Phaser 스프라이트 + 사거리 표시 링을 감싼 얇은 래퍼.
@@ -108,7 +113,8 @@ export class Tower {
   faceToward(target: Vec2): void {
     if (this.key === 'cannon') return;
     this.sprite.setRotation(
-      Math.atan2(target.y - this.sprite.y, target.x - this.sprite.x) + (this.key === 'arrow' ? 0 : Math.PI / 2),
+      Math.atan2(target.y - this.sprite.y, target.x - this.sprite.x)
+        + (TOWER_ART_ROTATION_OFFSET[this.key] ?? Math.PI / 2),
     );
   }
 
