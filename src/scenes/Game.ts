@@ -180,8 +180,9 @@ export class Game extends Phaser.Scene {
     this.selectedTower = undefined;
     this.inspectText = this.add
       .text(20, 162, '', {
-        fontFamily: 'monospace', fontSize: '19px', color: '#cdd6f4',
-        lineSpacing: 3, backgroundColor: '#0f1020cc', padding: { x: 8, y: 5 },
+        fontFamily: 'monospace', fontSize: '24px', fontStyle: 'bold', color: '#ffffff',
+        stroke: '#000000', strokeThickness: 4,
+        lineSpacing: 6, backgroundColor: '#0b0c16f2', padding: { x: 12, y: 9 },
       })
       .setDepth(500)
       .setVisible(false)
@@ -194,8 +195,8 @@ export class Game extends Phaser.Scene {
 
     this.upgradeButton = this.add
       .text(20, 148, '', {
-        fontFamily: 'monospace', fontSize: '19px', color: '#f2f2f7',
-        backgroundColor: '#2a5d3a', padding: { x: 8, y: 5 },
+        fontFamily: 'monospace', fontSize: '21px', fontStyle: 'bold', color: '#f2f2f7',
+        backgroundColor: '#2a5d3a', padding: { x: 10, y: 7 },
       })
       .setDepth(501)
       .setVisible(false)
@@ -204,8 +205,8 @@ export class Game extends Phaser.Scene {
 
     this.sellButton = this.add
       .text(20, 148, '', {
-        fontFamily: 'monospace', fontSize: '19px', color: '#f2f2f7',
-        backgroundColor: '#5a2a2a', padding: { x: 8, y: 5 },
+        fontFamily: 'monospace', fontSize: '21px', fontStyle: 'bold', color: '#f2f2f7',
+        backgroundColor: '#5a2a2a', padding: { x: 10, y: 7 },
       })
       .setDepth(501)
       .setVisible(false)
@@ -425,7 +426,7 @@ export class Game extends Phaser.Scene {
     // Phaser Text.height는 한글 라인 높이를 실제보다 낮게 잡아 버튼이 설명을 덮었다.
     // 줄 수 기준으로 넉넉히 띄운다.
     const lineCount = this.inspectText.text.split('\n').length;
-    const y = this.inspectText.y + lineCount * 27 + 18;
+    const y = this.inspectText.y + lineCount * 36 + 22;
     const maxed = tower.level >= tower.maxLevel;
     if (maxed) {
       this.upgradeButton.setVisible(false);
