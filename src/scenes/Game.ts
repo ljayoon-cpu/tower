@@ -325,6 +325,7 @@ export class Game extends Phaser.Scene {
         img.setAlpha(0.98);
       }
     }
+    mapPainter.drawStageLandmarks(this.stage);
   }
 
   private setupBuildInput() {

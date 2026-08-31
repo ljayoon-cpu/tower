@@ -5,11 +5,12 @@ import { loadSave, isUnlocked } from '../core/save';
 import type { StageDef } from '../core/types';
 import { audioFor } from '../ui/audio';
 import { attachPressFeedback, fadeInFromBlack, fadeToScene } from '../ui/interactionFeedback';
+import { WorldProgressMap } from '../ui/WorldProgressMap';
 import { worldLabel, worldMapTheme } from '../ui/worldMap';
 
 const CARD_H = 104;
 const CARD_GAP = 16;
-const LIST_TOP = 170;
+const LIST_TOP = 190;
 const LIST_BOTTOM = GAME_HEIGHT - 130;
 
 function stageBrief(stage: StageDef): string {
@@ -76,6 +77,8 @@ export class StageSelect extends Phaser.Scene {
     this.add.rectangle(
       GAME_WIDTH / 2, (LIST_BOTTOM + 8 + GAME_HEIGHT) / 2, GAME_WIDTH, GAME_HEIGHT - LIST_BOTTOM - 8, 0x0f1020,
     ).setDepth(5);
+
+    new WorldProgressMap(this, STAGES, save).draw();
 
     this.add.text(GAME_WIDTH / 2, 84, '스테이지 선택', {
       fontFamily: 'monospace', fontSize: '44px', color: '#f2f2f7',
