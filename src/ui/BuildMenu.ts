@@ -66,7 +66,7 @@ export class BuildMenu {
     });
 
     const cx = Phaser.Math.Clamp(x, MENU_W / 2 + 10, GAME_WIDTH - MENU_W / 2 - 10);
-    const cy = Phaser.Math.Clamp(y, h / 2 + 140, GAME_HEIGHT - h / 2 - 10);
+    const cy = Phaser.Math.Clamp(y, h / 2 + 168, GAME_HEIGHT - h / 2 - 10);
     this.container.setPosition(cx, cy).setVisible(true);
     this.visible = true;
     this.refresh();
