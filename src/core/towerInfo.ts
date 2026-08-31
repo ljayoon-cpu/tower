@@ -25,6 +25,7 @@ function dpsOf(stats: TowerLevelStats, attack: string): number {
     for (let i = 0; i <= jumps; i++) sum += Math.round(stats.damage * falloff ** i);
     return Math.round(sum * stats.fireRate);
   }
+  if (attack === 'poison') return Math.round(stats.damage * stats.fireRate + (stats.poisonDps ?? 0));
   return Math.round(stats.damage * stats.fireRate);
 }
 
@@ -32,6 +33,7 @@ function noteOf(stats: TowerLevelStats, attack: string): string {
   if (attack === 'splash') return `광역 반경 ${stats.splashRadius ?? 0}`;
   if (attack === 'slow') return `감속 ${Math.round((1 - (stats.slowMul ?? 1)) * 100)}%`;
   if (attack === 'chain') return `연쇄 ${(stats.chainTargets ?? 0) + 1}타`;
+  if (attack === 'poison') return `독 지속 ${stats.poisonDps ?? 0}/초`;
   return '';
 }
 

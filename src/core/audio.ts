@@ -1,6 +1,6 @@
 import { SOUND_ENABLED } from './constants';
 
-export const SFX_KEYS = ['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'hit', 'leak', 'place', 'merge', 'sell', 'wave', 'clear', 'lose', 'click'] as const;
+export const SFX_KEYS = ['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'poison', 'hit', 'leak', 'place', 'merge', 'sell', 'wave', 'clear', 'lose', 'click'] as const;
 export type SfxKey = typeof SFX_KEYS[number];
 export interface SoundBackend {
   play(key: SfxKey): boolean;
@@ -9,7 +9,7 @@ export interface SoundBackend {
 type SettingsStorage = Pick<Storage, 'getItem' | 'setItem'>;
 const MUTE_KEY = 'mtd:muted';
 const INTERVAL: Record<SfxKey, number> = {
-  arrow: 100, cannon: 160, frost: 140, bolt: 140, sniper: 240, hit: 120, leak: 250,
+  arrow: 100, cannon: 160, frost: 140, bolt: 140, sniper: 240, poison: 170, hit: 120, leak: 250,
   place: 70, merge: 100, sell: 100, wave: 300, clear: 1000, lose: 1000, click: 60,
 };
 

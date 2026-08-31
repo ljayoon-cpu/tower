@@ -13,6 +13,7 @@ const effects = {
   frost: [note(0,.2,1900,1250,.28),note(.04,.23,2600,1800,.17)],
   bolt: [note(0,.13,850,180,.3,'saw'), note(.015,.12,0,0,.24,'noise')],
   sniper: [note(0,.055,1800,520,.32,'triangle'), note(.02,.11,520,140,.22,'saw')],
+  poison: [note(0,.18,240,120,.26,'sine'), note(.04,.16,0,0,.11,'noise')],
   hit: [note(0,.08,380,120,.24,'triangle')],
   leak: [note(0,.17,330,220,.3,'triangle'),note(.18,.2,220,147,.27,'triangle')],
   place: [note(0,.08,440,620,.3,'triangle'),note(.065,.12,880,880,.25,'triangle')],

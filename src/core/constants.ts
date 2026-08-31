@@ -22,6 +22,7 @@ export const COLORS = {
   frost: 0x99e6ff,
   bolt: 0xffe066,
   sniper: 0xd59cff,
+  poison: 0x71d957,
   enemyNormal: 0xff6688,
   enemyFast: 0x66ff99,
   enemyTank: 0xaa88ff,

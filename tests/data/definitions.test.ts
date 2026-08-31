@@ -47,6 +47,21 @@ describe('tower definitions', () => {
     }
   });
 
+  it('adds poison as a damage-over-time splash tower without beating arrow gold efficiency', () => {
+    const poison = getTower('poison');
+    const arrow = getTower('arrow');
+
+    expect(poison).toMatchObject({ key: 'poison', name: '독 타워', attack: 'poison', cost: 90, maxLevel: 5 });
+    expect(poison.levels.map((level) => level.poisonDps)).toEqual([8, 16, 33, 67, 135]);
+    expect(poison.levels[0].poisonRadius).toBeGreaterThan(0);
+    expect(poison.levels[0].poisonDurationMs).toBeGreaterThan(0);
+
+    for (let level = 1; level <= poison.maxLevel; level++) {
+      const poisonPerGold = towerInfo('poison', level).dps / (poison.cost * 2 ** (level - 1));
+      const arrowPerGold = towerInfo('arrow', level).dps / (arrow.cost * 2 ** (level - 1));
+      expect(poisonPerGold).toBeLessThan(arrowPerGold);
+    }
+  });
   it('getTower throws on unknown key', () => {
     expect(() => getTower('nope')).toThrow();
   });

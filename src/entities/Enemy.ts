@@ -9,11 +9,14 @@ export class Enemy {
   readonly sprite: Phaser.GameObjects.Image;
   private readonly healthBar: Phaser.GameObjects.Graphics;
   private readonly slowAura: Phaser.GameObjects.Arc;
+  private readonly poisonAura: Phaser.GameObjects.Arc;
   private readonly barWidth: number;
   private traveled = 0;
   private _hp: number;
   private slowMul = 1;
   private slowLeftMs = 0;
+  private poisonDps = 0;
+  private poisonLeftMs = 0;
   private _done = false;
   private _progress = 0;
   private _freed = false;
@@ -33,6 +36,11 @@ export class Enemy {
       .setStrokeStyle(2, 0x99e6ff, 0.85)
       .setDepth(4)
       .setVisible(false);
+    this.poisonAura = scene.add
+      .circle(start.x, start.y, def.isBoss ? 25 : 15, 0x71d957, 0.14)
+      .setStrokeStyle(2, 0x71d957, 0.82)
+      .setDepth(4)
+      .setVisible(false);
   }
 
   get pos(): Vec2 { return { x: this.sprite.x, y: this.sprite.y }; }
@@ -47,15 +55,16 @@ export class Enemy {
     return Math.max(0, this._hp) / this.def.hp;
   }
 
-  takeDamage(n: number): void {
+  takeDamage(n: number, flash = true): void {
     if (!this.alive) return;
     this._hp -= n;
     if (this._hp <= 0) {
       // 스프라이트는 destroy()의 소멸 트윈이 처리한다. 여기선 부가 표시만 정리.
       this.healthBar.setVisible(false);
       this.slowAura.setVisible(false);
+      this.poisonAura.setVisible(false);
     } else {
-      this.flashHit();
+      if (flash) this.flashHit();
       this.drawHealthBar();
     }
   }
@@ -90,9 +99,20 @@ export class Enemy {
     this.slowLeftMs = Math.max(this.slowLeftMs, durationMs);
   }
 
+  /** 더 강한 독을 우선하고, 같은 적을 다시 맞히면 지속시간만 갱신한다. */
+  applyPoison(dps: number, durationMs: number): void {
+    this.poisonDps = Math.max(this.poisonDps, dps);
+    this.poisonLeftMs = Math.max(this.poisonLeftMs, durationMs);
+  }
+
   update(dtMs: number, speedMul: number): void {
     if (!this.alive) return;
     const simulationMs = dtMs * speedMul;
+    const poisonedMs = Math.min(simulationMs, Math.max(0, this.poisonLeftMs));
+    if (poisonedMs > 0) this.takeDamage(this.poisonDps * poisonedMs / 1000, false);
+    this.poisonLeftMs = Math.max(0, this.poisonLeftMs - simulationMs);
+    if (this.poisonLeftMs === 0) this.poisonDps = 0;
+    if (!this.alive) return;
     const slowedMs = Math.min(simulationMs, Math.max(0, this.slowLeftMs));
     this.traveled += this.def.speed * (slowedMs * this.slowMul + simulationMs - slowedMs) / 1000;
     this.slowLeftMs = Math.max(0, this.slowLeftMs - simulationMs);
@@ -105,11 +125,15 @@ export class Enemy {
       this.sprite.setVisible(false);
       this.healthBar.setVisible(false);
       this.slowAura.setVisible(false);
+      this.poisonAura.setVisible(false);
     } else {
       this.drawHealthBar();
       const slowed = this.slowLeftMs > 0;
+      const poisoned = this.poisonLeftMs > 0;
       this.slowAura.setVisible(slowed);
+      this.poisonAura.setVisible(poisoned);
       if (slowed) this.slowAura.setPosition(a.pos.x, a.pos.y);
+      if (poisoned) this.poisonAura.setPosition(a.pos.x, a.pos.y);
     }
   }
 
@@ -118,6 +142,7 @@ export class Enemy {
     this._freed = true;
     this.healthBar.destroy();
     this.slowAura.destroy();
+    this.poisonAura.destroy();
     const tweens = (this.scene as Phaser.Scene & { tweens?: Phaser.Tweens.TweenManager }).tweens;
     if (tweens && this._hp <= 0 && !this._done) {
       // 처치: 짧게 부풀며 사라진다. 목표 도달(_done)은 조용히 제거.

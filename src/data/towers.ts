@@ -57,6 +57,17 @@ export const TOWERS: Record<string, TowerDef> = {
       { damage: 450, range: 280, fireRate: 1.01 },
     ],
   },
+  poison: {
+    // 좁은 반경에 중독을 갱신하는 지속 피해형. 단일 목표 골드 효율은 화살보다 낮다.
+    key: 'poison', name: '독 타워', attack: 'poison', cost: 90, maxLevel: 5,
+    levels: [
+      { damage: 4,  range: 145, fireRate: 1.2, poisonDps: 8,   poisonDurationMs: 1600, poisonRadius: 42 },
+      { damage: 8,  range: 155, fireRate: 1.3, poisonDps: 16,  poisonDurationMs: 1800, poisonRadius: 48 },
+      { damage: 16, range: 165, fireRate: 1.4, poisonDps: 33,  poisonDurationMs: 2000, poisonRadius: 54 },
+      { damage: 32, range: 176, fireRate: 1.5, poisonDps: 67,  poisonDurationMs: 2200, poisonRadius: 61 },
+      { damage: 65, range: 188, fireRate: 1.6, poisonDps: 135, poisonDurationMs: 2400, poisonRadius: 68 },
+    ],
+  },
 };
 
 export const TOWER_KEYS = Object.keys(TOWERS);
