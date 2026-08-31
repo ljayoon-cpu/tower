@@ -89,6 +89,7 @@ export class Game extends Phaser.Scene {
   private buildPreview: Phaser.GameObjects.Arc | null = null;
   private inspectText?: Phaser.GameObjects.Text;
   private upgradeButton?: Phaser.GameObjects.Text;
+  private sellButton?: Phaser.GameObjects.Text;
   private selectedTower?: Tower;
   private lives = 0;
   private speedMul = 1;
@@ -200,6 +201,18 @@ export class Game extends Phaser.Scene {
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
     attachPressFeedback(this, this.upgradeButton, [this.upgradeButton], this.audio, () => this.tryUpgradeSelected());
+
+    this.sellButton = this.add
+      .text(20, 148, '', {
+        fontFamily: 'monospace', fontSize: '19px', color: '#f2f2f7',
+        backgroundColor: '#5a2a2a', padding: { x: 8, y: 5 },
+      })
+      .setDepth(501)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+    attachPressFeedback(this, this.sellButton, [this.sellButton], this.audio, () => {
+      if (this.selectedTower && this.towers.includes(this.selectedTower)) this.showSellPrompt(this.selectedTower);
+    });
 
     this.bus.on('enemy:killed', (p) => {
       this.eco.earn(p.bounty);
@@ -377,19 +390,18 @@ export class Game extends Phaser.Scene {
       this.selectedTower = undefined;
       this.inspectText.setVisible(false);
       this.upgradeButton?.setVisible(false);
+      this.sellButton?.setVisible(false);
       return;
     }
     this.selectedTower = tower;
-    const def = getTower(tower.key);
     const info = towerInfo(tower.key, tower.level);
-    const sell = Math.floor(cumulativeCost(def, tower.level) * this.eco.sellRatio);
     const buffRadius = tower.stats().buffRadius;
     const dpsLine = buffRadius != null
       ? `버프 범위 ${Math.round((buffRadius * 2) / TILE)}칸`
       : info.nextDps != null
         ? `DPS ${info.dps} → ${info.nextDps}`
         : `DPS ${info.dps} (최대)`;
-    const parts = [buffRadius != null ? `사거리 ${buffRadius}` : `사거리 ${info.range}`, `판매 +${sell}G`];
+    const parts = [buffRadius != null ? `사거리 ${buffRadius}` : `사거리 ${info.range}`];
     if (info.note) parts.push(info.note);
     const priorityLine = getTower(tower.key).attack === 'support'
       ? ''
@@ -401,20 +413,33 @@ export class Game extends Phaser.Scene {
     this.refreshUpgradeButton();
   }
 
-  /** 골드 상황에 맞춰 강화 버튼 색·문구를 갱신한다. 선택된 타워가 있는 동안 매 프레임 호출. */
+  /** 골드 상황에 맞춰 강화·판매 버튼을 갱신한다. 선택된 타워가 있는 동안 매 프레임 호출. */
   private refreshUpgradeButton(): void {
     const tower = this.selectedTower;
-    if (!this.upgradeButton || !this.inspectText) return;
-    if (!tower || !this.towers.includes(tower) || tower.level >= tower.maxLevel) {
+    if (!this.upgradeButton || !this.sellButton || !this.inspectText) return;
+    if (!tower || !this.towers.includes(tower)) {
       this.upgradeButton.setVisible(false);
+      this.sellButton.setVisible(false);
       return;
     }
-    const cost = upgradeCost(getTower(tower.key), tower.level);
-    const afford = this.eco.gold >= cost;
-    this.upgradeButton
-      .setText(`⬆ Lv${tower.level + 1} 강화  ${cost}G`)
-      .setStyle({ backgroundColor: afford ? '#2a5d3a' : '#4a3030', color: afford ? '#f2f2f7' : '#a88' })
-      .setPosition(20, this.inspectText.y + this.inspectText.height + 6)
+    const y = this.inspectText.y + this.inspectText.height + 6;
+    const maxed = tower.level >= tower.maxLevel;
+    if (maxed) {
+      this.upgradeButton.setVisible(false);
+    } else {
+      const cost = upgradeCost(getTower(tower.key), tower.level);
+      const afford = this.eco.gold >= cost;
+      this.upgradeButton
+        .setText(`⬆ Lv${tower.level + 1} 강화  ${cost}G`)
+        .setStyle({ backgroundColor: afford ? '#2a5d3a' : '#4a3030', color: afford ? '#f2f2f7' : '#a88' })
+        .setPosition(20, y)
+        .setVisible(true);
+    }
+    const refund = Math.floor(cumulativeCost(getTower(tower.key), tower.level) * this.eco.sellRatio);
+    const sellX = maxed ? 20 : 20 + this.upgradeButton.width + 8;
+    this.sellButton
+      .setText(`⌫ 판매 +${refund}G`)
+      .setPosition(sellX, y)
       .setVisible(true);
   }
 
@@ -548,6 +573,7 @@ export class Game extends Phaser.Scene {
     if (this.selectedTower === t) this.selectedTower = undefined;
     this.inspectText?.setVisible(false);
     this.upgradeButton?.setVisible(false);
+    this.sellButton?.setVisible(false);
   }
 
   private confirmSell(t: Tower): void {
