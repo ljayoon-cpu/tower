@@ -70,16 +70,16 @@ export class BuildMenu {
     this.refresh();
   }
 
-  /** 골드가 바뀌면 매 프레임 호출 — 열려 있는 동안 구매 가능 여부를 갱신한다. */
+  /** 열려 있는 동안 매 프레임 호출 — 골드 상황에 맞춰 각 줄의 구매 가능 여부를 갱신한다. */
   refresh(): void {
     if (!this.visible) return;
     for (const row of this.rows) {
       const afford = this.opts.canAfford(row.key);
       const selectable = afford && !row.banned;
-      if (selectable === row.selectable) continue;
-      row.selectable = selectable;
       row.icon.setAlpha(selectable ? 1 : row.banned ? 0.2 : 0.35);
       if (!row.banned) row.label.setColor(afford ? '#f2f2f7' : '#777777');
+      if (selectable === row.selectable) continue; // 상호작용 토글만 변화 시에.
+      row.selectable = selectable;
       if (selectable) row.hit.setInteractive({ useHandCursor: true });
       else row.hit.disableInteractive();
     }
