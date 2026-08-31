@@ -1,8 +1,7 @@
 import type Phaser from 'phaser';
 import {
-  Enemy, fastWalkFrameAt, minionHoverFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
+  berserkerWalkFrameAt, Enemy, fastWalkFrameAt, minionHoverFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
   shieldWalkFrameAt, splitterWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt,
-
 } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
 
@@ -107,6 +106,12 @@ describe('assembly drone hover animation', () => {
 describe('disassembly unit walk animation', () => {
   it('cycles four frames as its shard pods shift in formation', () => {
     expect([0, 174, 175, 350, 525, 700].map(splitterWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+  });
+});
+
+describe('berserker walk animation', () => {
+  it('loops through the furnace flare after three heavy steps', () => {
+    expect([0, 209, 210, 420, 630, 840].map(berserkerWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
   });
 });
 
