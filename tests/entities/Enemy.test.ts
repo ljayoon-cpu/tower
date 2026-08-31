@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { Enemy, fastWalkFrameAt, normalWalkFrameAt, shieldWalkFrameAt, tankWalkFrameAt } from '../../src/entities/Enemy';
+import { Enemy, fastWalkFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt, shieldWalkFrameAt, tankWalkFrameAt } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
 
 // Minimal rendering boundary; movement and status effects use the real Enemy.
@@ -78,6 +78,12 @@ describe('tank walk animation', () => {
 describe('shield soldier walk animation', () => {
   it('cycles four frames at its steady walking cadence', () => {
     expect([0, 139, 140, 280, 420, 560].map(shieldWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+  });
+});
+
+describe('regenerator walk animation', () => {
+  it('cycles four frames at its slow crawling cadence', () => {
+    expect([0, 184, 185, 370, 555, 740].map(regeneratorWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
   });
 });
 
