@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import type { EventBus } from '../core/eventBus';
 import type { GameEvents, Wave } from '../core/types';
 import { audioFor } from '../ui/audio';
+import { attachPressFeedback, fadeInFromBlack } from '../ui/interactionFeedback';
 import { waveSummary } from '../core/waveInfo';
 import { getEnemy } from '../data/enemies';
 import { getTower } from '../data/towers';
@@ -49,6 +50,7 @@ export class HUD extends Phaser.Scene {
 
   create(data: HudInit) {
     const audio = audioFor(this);
+    fadeInFromBlack(this);
     const style = { fontFamily: 'monospace', fontSize: '26px', color: '#f2f2f7' };
     this.add.rectangle(GAME_WIDTH / 2, 80, GAME_WIDTH, 160, 0x0f1020, 0.96).setInteractive();
     const goldText = this.add.text(20, 12, `골드 ${data.gold}`, { ...style, color: '#ffcc44' });
@@ -58,14 +60,7 @@ export class HUD extends Phaser.Scene {
     const button = (x: number, y: number, w: number, label: string, action: () => void) => {
       const bg = this.add.rectangle(x, y, w, 48, 0x242943).setInteractive({ useHandCursor: true });
       const text = this.add.text(x, y, label, { ...style, fontSize: '23px' }).setOrigin(0.5);
-      let pressed = false;
-      bg.on('pointerdown', () => { pressed = true; });
-      bg.on('pointerout', () => { pressed = false; });
-      bg.on('pointerup', () => {
-        if (!pressed) return;
-        pressed = false;
-        action();
-      });
+      attachPressFeedback(this, bg, [bg, text], audio, action);
       return { bg, text };
     };
     const next = button(GAME_WIDTH - 125, 64, 210, '▶ 다음 웨이브', data.onNextWave);
@@ -74,7 +69,6 @@ export class HUD extends Phaser.Scene {
     const sound = button(340, 64, 140, '', () => {
       audio.toggle();
       sound.text.setText(audio.muted ? '소리 꺼짐' : '소리 켜짐');
-      audio.play('click');
     });
     sound.text.setText(audio.muted ? '소리 꺼짐' : '소리 켜짐');
     const hint = this.add.text(20, 95, '빈 칸을 눌러 타워 설치', {
@@ -119,7 +113,7 @@ export class HUD extends Phaser.Scene {
     const coachSkip = this.add.text(0, 28, '건너뛰기', {
       ...style, fontSize: '17px', color: '#8d98bb',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    coachSkip.on('pointerup', () => data.onSkipTutorial());
+    attachPressFeedback(this, coachSkip, [coachSkip], audio, data.onSkipTutorial);
     coach.add([coachText, coachSkip]);
     coach.setVisible(data.tutorialText !== null);
 

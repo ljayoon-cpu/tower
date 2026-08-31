@@ -39,6 +39,7 @@ import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot } 
 import { BuildMenu } from '../ui/BuildMenu';
 import { audioFor } from '../ui/audio';
 import { WorldBackground } from '../ui/worldBackground';
+import { attachPressFeedback, fadeInFromBlack, fadeToScene } from '../ui/interactionFeedback';
 import type { SoundEffects } from '../core/audio';
 import type { HudInit } from './HUD';
 
@@ -121,6 +122,7 @@ export class Game extends Phaser.Scene {
   create() {
     this.audio = audioFor(this);
     this.audio.stop();
+    fadeInFromBlack(this);
     this.bus = createEventBus<GameEvents>();
     this.grid = new GridManager(this.stage.grid);
     this.path = new PathManager(this.stage.path);
@@ -183,10 +185,9 @@ export class Game extends Phaser.Scene {
       .setDepth(500)
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
-    this.inspectText.on('pointerup', () => {
+    attachPressFeedback(this, this.inspectText, [this.inspectText], this.audio, () => {
       if (!this.running || this.paused || !this.selectedTower) return;
       this.selectedTower.cyclePriority();
-      this.audio.play('click');
       this.showInspect(this.selectedTower);
     });
 
@@ -198,7 +199,7 @@ export class Game extends Phaser.Scene {
       .setDepth(501)
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
-    this.upgradeButton.on('pointerup', () => this.tryUpgradeSelected());
+    attachPressFeedback(this, this.upgradeButton, [this.upgradeButton], this.audio, () => this.tryUpgradeSelected());
 
     this.bus.on('enemy:killed', (p) => {
       this.eco.earn(p.bounty);
@@ -244,7 +245,7 @@ export class Game extends Phaser.Scene {
         this.running = false;
         this.audio.stop();
         this.scene.stop('hud');
-        this.scene.start('stageselect');
+        fadeToScene(this, 'stageselect');
       },
     };
     this.scene.launch('hud', hudInit);
@@ -608,12 +609,11 @@ export class Game extends Phaser.Scene {
     for (const control of [sell, cancel, backdrop]) {
       control.on('pointerdown', () => { armed = control; });
     }
-    sell.on('pointerup', () => {
-      if (armed !== sell) return;
+    attachPressFeedback(this, sell, [sell], this.audio, () => {
       this.confirmSell(tower);
       close();
-    });
-    cancel.on('pointerup', () => { if (armed === cancel) close(); });
+    }, () => armed === sell);
+    attachPressFeedback(this, cancel, [cancel], this.audio, close, () => armed === cancel);
     // 백드롭 = 바깥 탭 닫기. 단, 롱프레스에서 손 떼는 그 pointerup 은 무시
     // (그 순간 포인터가 백드롭 위에 있으므로 즉시 닫히는 것을 방지).
     backdrop.on('pointerup', () => {
@@ -687,7 +687,7 @@ export class Game extends Phaser.Scene {
       const best = recordEndless(reached);
       if (won) this.bus.emit('stage:won', { stars: 3 });
       else this.bus.emit('stage:lost', {});
-      this.scene.start('result', {
+      fadeToScene(this, 'result', {
         stageId: this.stage.id, won, stars: 0,
         lives: this.lives, startLives: this.stage.startLives,
         endless: { reached, best, prevBest },
@@ -700,7 +700,7 @@ export class Game extends Phaser.Scene {
     recordResult(this.stage.id, stars, nextStageId(this.stage.id));
     if (won) this.bus.emit('stage:won', { stars });
     else this.bus.emit('stage:lost', {});
-    this.scene.start('result', {
+    fadeToScene(this, 'result', {
       stageId: this.stage.id, won, stars, prevStars,
       lives: this.lives, startLives: this.stage.startLives,
     });

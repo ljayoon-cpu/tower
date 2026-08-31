@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import { nextStageId } from '../data/stages';
 import { audioFor } from '../ui/audio';
+import { attachPressFeedback, fadeInFromBlack, fadeToScene } from '../ui/interactionFeedback';
 
 export interface ResultData {
   stageId: string;
@@ -20,6 +21,7 @@ export class Result extends Phaser.Scene {
 
   create(data: ResultData) {
     const audio = audioFor(this);
+    fadeInFromBlack(this);
     audio.play(data.won ? 'clear' : 'lose');
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => audio.stop());
     const cx = GAME_WIDTH / 2;
@@ -45,13 +47,13 @@ export class Result extends Phaser.Scene {
       const eButton = (y: number, label: string, onClick: () => void) => {
         const bg = this.add.rectangle(cx, y, 390, 76, 0x1b1d33)
           .setStrokeStyle(2, 0x66ccff).setInteractive({ useHandCursor: true });
-        this.add.text(cx, y, label, {
+        const text = this.add.text(cx, y, label, {
           fontFamily: 'monospace', fontSize: '28px', color: '#f2f2f7',
         }).setOrigin(0.5);
-        bg.on('pointerup', onClick);
+        attachPressFeedback(this, bg, [bg, text], audio, onClick);
       };
-      eButton(720, '다시 도전', () => this.scene.start('game', { stageId: data.stageId }));
-      eButton(820, '메인 메뉴', () => this.scene.start('mainmenu'));
+      eButton(720, '다시 도전', () => fadeToScene(this, 'game', { stageId: data.stageId }));
+      eButton(820, '메인 메뉴', () => fadeToScene(this, 'mainmenu'));
       return;
     }
 
@@ -79,19 +81,19 @@ export class Result extends Phaser.Scene {
     const button = (y: number, label: string, onClick: () => void) => {
       const bg = this.add.rectangle(cx, y, 390, 76, 0x1b1d33)
         .setStrokeStyle(2, 0x66ccff).setInteractive({ useHandCursor: true });
-      this.add.text(cx, y, label, {
+      const text = this.add.text(cx, y, label, {
         fontFamily: 'monospace', fontSize: '28px', color: '#f2f2f7',
       }).setOrigin(0.5);
-      bg.on('pointerup', onClick);
+      attachPressFeedback(this, bg, [bg, text], audio, onClick);
     };
     let y = 680;
     const next = nextStageId(data.stageId);
     if (data.won && next) {
-      button(y, '다음 스테이지 ▶', () => this.scene.start('game', { stageId: next }));
+      button(y, '다음 스테이지 ▶', () => fadeToScene(this, 'game', { stageId: next }));
       y += 100;
     }
-    button(y, '다시 하기', () => this.scene.start('game', { stageId: data.stageId }));
-    button(y + 100, '스테이지 선택', () => this.scene.start('stageselect'));
+    button(y, '다시 하기', () => fadeToScene(this, 'game', { stageId: data.stageId }));
+    button(y + 100, '스테이지 선택', () => fadeToScene(this, 'stageselect'));
     if (data.won && !next) {
       this.add.text(cx, 1080, '모든 스테이지를 클리어했습니다!', {
         fontFamily: 'monospace', fontSize: '24px', color: '#66ccff',

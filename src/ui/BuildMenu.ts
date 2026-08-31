@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import { TOWER_KEYS, getTower } from '../data/towers';
+import { audioFor } from './audio';
+import { attachPressFeedback } from './interactionFeedback';
 
 export interface BuildMenuOpts {
   onPick: (key: string) => void;
@@ -53,7 +55,7 @@ export class BuildMenu {
         ? this.scene.add.text(82, yy, '봉인', { fontFamily: 'monospace', fontSize: '16px', color: '#ff7799' }).setOrigin(0.5)
         : undefined;
       const hit = this.scene.add.rectangle(0, yy, MENU_W - 10, ROW_H - 4, 0xffffff, 0.001);
-      hit.on('pointerup', () => {
+      attachPressFeedback(this.scene, hit, [icon, label], audioFor(this.scene), () => {
         if (!this.rows.find((r) => r.key === key)?.selectable) return;
         this.opts.onPick(key);
         this.close();
