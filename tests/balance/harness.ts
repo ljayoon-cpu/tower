@@ -32,6 +32,7 @@ class DisplayObject {
   setRadius() { return this; }
   setActive() { return this; }
   setTexture() { return this; }
+  setFrame() { return this; }
   clear() { return this; }
   fillStyle() { return this; }
   fillRect() { return this; }

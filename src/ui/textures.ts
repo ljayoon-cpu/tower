@@ -13,30 +13,6 @@ export function buildTextures(scene: Phaser.Scene): void {
     g.generateTexture(key, s, s);
   };
 
-  // 실루엣만 보고도 역할을 짐작할 수 있도록 포탑과 탄환을 같은 모티프로 만든다.
-  g.clear();
-  g.fillStyle(0x172845, 1); g.fillCircle(24, 24, 22);
-  g.fillStyle(COLORS.arrow, 1); g.fillTriangle(24, 3, 40, 30, 24, 25);
-  g.fillRect(21, 21, 6, 18); g.fillTriangle(21, 35, 15, 43, 21, 40); g.fillTriangle(27, 35, 33, 43, 27, 40);
-  g.lineStyle(2, 0xd8f2ff, 0.9); g.strokeCircle(24, 24, 20); g.generateTexture('tower_arrow', 48, 48);
-
-  g.clear();
-  g.fillStyle(0x3f2618, 1); g.fillCircle(24, 24, 22);
-  g.fillStyle(COLORS.cannon, 1); g.fillCircle(24, 29, 15); g.fillCircle(24, 29, 7);
-  g.fillStyle(0xffd28d, 1); g.fillRect(20, 5, 8, 22); g.fillCircle(24, 6, 5);
-  g.lineStyle(2, 0xffe0b3, 0.9); g.strokeCircle(24, 29, 15); g.generateTexture('tower_cannon', 48, 48);
-
-  g.clear();
-  g.fillStyle(0x183247, 1); g.fillCircle(24, 24, 22);
-  g.fillStyle(COLORS.frost, 1);
-  g.fillPoints([
-    new Phaser.Math.Vector2(24, 2), new Phaser.Math.Vector2(31, 16), new Phaser.Math.Vector2(45, 24),
-    new Phaser.Math.Vector2(31, 32), new Phaser.Math.Vector2(24, 46), new Phaser.Math.Vector2(17, 32),
-    new Phaser.Math.Vector2(3, 24), new Phaser.Math.Vector2(17, 16),
-  ], true);
-  g.fillStyle(0xe8fbff, 1); g.fillCircle(24, 24, 7); g.fillRect(21, 8, 6, 32); g.fillRect(8, 21, 32, 6);
-  g.generateTexture('tower_frost', 48, 48);
-
   g.clear();
   g.fillStyle(0x3d3420, 1); g.fillCircle(24, 24, 22);
   g.fillStyle(COLORS.bolt, 1); g.fillCircle(24, 24, 15);
