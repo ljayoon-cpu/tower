@@ -12,13 +12,17 @@ import { stage22 } from './stage-2-2';
 import { stage23 } from './stage-2-3';
 import { stage24 } from './stage-2-4';
 import { stage25 } from './stage-2-5';
+import { stage31 } from './stage-3-1';
+import { stage32 } from './stage-3-2';
+import { stage33 } from './stage-3-3';
+import { stage34 } from './stage-3-4';
 import { endlessStage, ENDLESS_STAGE_ID } from '../endless';
 
 /** 캠페인 스테이지 (스테이지 선택 화면에 나오는 것). */
 export const STAGES: StageDef[] = [
   stage11, stage12, stage13, stage14, stage15, stage16, stage17, stage18,
-  stage21, stage22, stage23, stage24,
-  stage25,
+  stage21, stage22, stage23, stage24, stage25,
+  stage31, stage32, stage33, stage34,
 ];
 export const STAGE_IDS: string[] = STAGES.map((s) => s.id);
 

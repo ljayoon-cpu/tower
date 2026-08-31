@@ -16,6 +16,7 @@ describe('stage definitions', () => {
     expect(STAGE_IDS).toEqual([
       '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8',
       '2-1', '2-2', '2-3', '2-4', '2-5',
+      '3-1', '3-2', '3-3', '3-4',
     ]);
   });
 
@@ -65,7 +66,9 @@ describe('stage definitions', () => {
     expect(nextStageId('1-1')).toBe('1-2');
     expect(nextStageId('1-8')).toBe('2-1');
     expect(nextStageId('2-4')).toBe('2-5');
-    expect(nextStageId('2-5')).toBeNull();
+    expect(nextStageId('2-5')).toBe('3-1');
+    expect(nextStageId('3-3')).toBe('3-4');
+    expect(nextStageId('3-4')).toBeNull();
   });
 
   it('marks only the boss-showdown stages as bossStage', () => {
