@@ -3,6 +3,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import { STAGES } from '../data/stages';
 import { loadSave, isUnlocked } from '../core/save';
 import type { StageDef } from '../core/types';
+import { audioFor } from '../ui/audio';
+import { attachPressFeedback, fadeInFromBlack, fadeToScene } from '../ui/interactionFeedback';
 
 const CARD_H = 104;
 const CARD_GAP = 16;
@@ -24,6 +26,8 @@ export class StageSelect extends Phaser.Scene {
 
   create() {
     this.dragged = false;
+    const audio = audioFor(this);
+    fadeInFromBlack(this);
     const save = loadSave();
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0f1020);
 
@@ -47,10 +51,12 @@ export class StageSelect extends Phaser.Scene {
       list.add([box, title, starText, brief]);
 
       if (unlocked) {
-        box.setInteractive({ useHandCursor: true }).on('pointerup', () => {
-          if (this.dragged) return;
-          this.scene.start('game', { stageId: stage.id });
-        });
+        box.setInteractive({ useHandCursor: true });
+        attachPressFeedback(
+          this, box, [box], audio,
+          () => fadeToScene(this, 'game', { stageId: stage.id }),
+          () => !this.dragged,
+        );
       }
     });
 
@@ -73,7 +79,7 @@ export class StageSelect extends Phaser.Scene {
     const back = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 60, '← 메뉴', {
       fontFamily: 'monospace', fontSize: '28px', color: '#99a',
     }).setOrigin(0.5).setDepth(6).setInteractive({ useHandCursor: true });
-    back.on('pointerup', () => this.scene.start('mainmenu'));
+    attachPressFeedback(this, back, [back], audio, () => fadeToScene(this, 'mainmenu'));
   }
 
   /** 카드가 화면을 넘칠 때만 세로 스크롤(드래그 + 휠). */
