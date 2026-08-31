@@ -57,6 +57,15 @@ describe('enemy simulation time', () => {
     e.update(100, 1);
     expect(e.hp).toBeCloseTo(90);
   });
+
+  it('does not move while staggered, then resumes as the interrupt ends', () => {
+    const e = makeEnemy();
+    expect(e.applyStagger(120, 1800)).toBe(true);
+    e.update(120, 1);
+    expect(e.pos.y).toBeCloseTo(0);
+    e.update(100, 1);
+    expect(e.pos.y).toBeCloseTo(10);
+  });
 });
 
 describe('enemy summons', () => {

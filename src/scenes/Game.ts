@@ -25,6 +25,7 @@ import { WaveManager } from '../systems/WaveManager';
 import { EconomyManager } from '../systems/EconomyManager';
 import { Rng } from '../core/rng';
 import { chooseTowerBan, isTowerBanned } from '../core/runRules';
+import { boltStaggerEffect } from '../data/boltMergeEffects';
 
 import { Enemy } from '../entities/Enemy';
 import type { EnemyModifiers } from '../systems/EnemyState';
@@ -622,10 +623,14 @@ export class Game extends Phaser.Scene {
             // Determine jumps on impact, using current positions and living targets.
             const chain = buildChain(enemy, this.enemies, s.chainRange ?? 0, s.chainTargets ?? 0);
             const dmgs = chainDamages(s.damage, s.chainFalloff ?? 1, chain.length - 1);
+            const stagger = boltStaggerEffect(tower.level);
             chain.forEach((hit, i) => {
               const e = this.enemies.find((x) => x.id === hit.id);
               e?.takeDamage(dmgs[i]);
-              if (e) this.impactFlash(e.pos, COLORS.bolt, 'light');
+              if (e) {
+                const interrupted = stagger && e.applyStagger(stagger.durationMs, stagger.cooldownMs);
+                this.impactFlash(e.pos, COLORS.bolt, interrupted ? 'stagger' : 'light');
+              }
             });
           },
         });
@@ -671,18 +676,18 @@ export class Game extends Phaser.Scene {
   }
 
   /** 공격마다 다른 짧은 명중 효과. 강한 한 방만 아주 약하게 화면을 흔든다. */
-  private impactFlash(pos: Vec2, color: number, force: 'light' | 'heavy' | 'frost' = 'light'): void {
+  private impactFlash(pos: Vec2, color: number, force: 'light' | 'heavy' | 'frost' | 'stagger' = 'light'): void {
     if (!this.tweens) return;
     const heavy = force === 'heavy';
     const ring = this.add.circle(pos.x, pos.y, heavy ? 9 : 6, color, heavy ? 0.9 : 0.7).setDepth(25);
     this.tweens.add({
       targets: ring,
-      scale: heavy ? 3.8 : force === 'frost' ? 3.1 : 2.6,
+      scale: heavy ? 3.8 : force === 'frost' || force === 'stagger' ? 3.1 : 2.6,
       alpha: 0,
       duration: heavy ? 230 : 180,
       onComplete: () => ring.destroy(),
     });
-    if (force === 'frost') {
+    if (force === 'frost' || force === 'stagger') {
       for (const [dx, dy] of [[-10, -8], [11, -5], [-5, 11], [9, 10]]) {
         const shard = this.add.circle(pos.x + dx, pos.y + dy, 3, color, 0.9).setDepth(25);
         this.tweens.add({ targets: shard, x: pos.x + dx * 2.2, y: pos.y + dy * 2.2, alpha: 0,
