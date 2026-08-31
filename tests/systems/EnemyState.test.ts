@@ -48,6 +48,24 @@ describe('EnemyState', () => {
     expect(enemy.hp).toBe(86);
   });
 
+  it('freezes on the third frost hit, then rejects more stacks until its cooldown ends', () => {
+    const enemy = new EnemyState({ ...shieldedDef, shield: undefined });
+
+    expect(enemy.applyFreezeHit(3, 350, 4000)).toBe(false);
+    expect(enemy.applyFreezeHit(3, 350, 4000)).toBe(false);
+    expect(enemy.applyFreezeHit(3, 350, 4000)).toBe(true);
+    expect(enemy.frozen).toBe(true);
+
+    enemy.update(350);
+    expect(enemy.frozen).toBe(false);
+    expect(enemy.applyFreezeHit(3, 350, 4000)).toBe(false);
+
+    enemy.update(3650);
+    expect(enemy.applyFreezeHit(3, 350, 4000)).toBe(false);
+    expect(enemy.applyFreezeHit(3, 350, 4000)).toBe(false);
+    expect(enemy.applyFreezeHit(3, 350, 4000)).toBe(true);
+  });
+
   it('stops regeneration while poisoned, then resumes when the poison expires', () => {
     const enemy = new EnemyState({
       ...shieldedDef,

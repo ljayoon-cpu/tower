@@ -57,6 +57,20 @@ describe('enemy simulation time', () => {
     e.update(100, 1);
     expect(e.hp).toBeCloseTo(90);
   });
+
+  it('stops movement for the freeze duration after the third frost hit', () => {
+    const e = makeEnemy();
+
+    e.applyFreezeHit(3, 350, 4000);
+    e.applyFreezeHit(3, 350, 4000);
+    e.applyFreezeHit(3, 350, 4000);
+    e.update(350, 1);
+
+    expect(e.pos.y).toBeCloseTo(0);
+
+    e.update(100, 1);
+    expect(e.pos.y).toBeCloseTo(10);
+  });
 });
 
 describe('enemy summons', () => {
