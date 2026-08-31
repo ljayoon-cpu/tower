@@ -1,4 +1,5 @@
 import { getTower } from '../data/towers';
+import { poisonArmorPierceEffect } from '../data/poisonMergeEffects';
 import type { TowerLevelStats } from './types';
 
 export interface TowerInfo {
@@ -29,11 +30,15 @@ function dpsOf(stats: TowerLevelStats, attack: string): number {
   return Math.round(stats.damage * stats.fireRate);
 }
 
-function noteOf(stats: TowerLevelStats, attack: string): string {
+function noteOf(key: string, level: number, stats: TowerLevelStats, attack: string): string {
   if (attack === 'splash') return `광역 반경 ${stats.splashRadius ?? 0}`;
   if (attack === 'slow') return `감속 ${Math.round((1 - (stats.slowMul ?? 1)) * 100)}%`;
   if (attack === 'chain') return `연쇄 ${(stats.chainTargets ?? 0) + 1}타`;
-  if (attack === 'poison') return `독 지속 ${stats.poisonDps ?? 0}/초`;
+  if (attack === 'poison') {
+    const pierce = key === 'poison' ? poisonArmorPierceEffect(level) : undefined;
+    const poison = `독 지속 ${stats.poisonDps ?? 0}/초`;
+    return pierce ? `${poison} · 방어 무시 ${pierce.armorPierce}` : poison;
+  }
   return '';
 }
 
@@ -51,6 +56,6 @@ export function towerInfo(key: string, level: number): TowerInfo {
     range: stats.range,
     fireRate: stats.fireRate,
     nextDps: next,
-    note: noteOf(stats, def.attack),
+    note: noteOf(def.key, lv, stats, def.attack),
   };
 }

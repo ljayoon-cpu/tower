@@ -31,6 +31,12 @@ describe('towerInfo', () => {
     expect(towerInfo('frost', 1).note).toContain('감속');
   });
 
+  it('shows poison armor piercing for merge levels', () => {
+    expect(towerInfo('poison', 2).note).not.toContain('방어');
+    expect(towerInfo('poison', 3).note).toContain('방어 무시 8');
+    expect(towerInfo('poison', 5).note).toContain('방어 무시 15');
+  });
+
   it('clamps level into range', () => {
     expect(towerInfo('arrow', 0).level).toBe(1);
     expect(towerInfo('arrow', 99).level).toBe(5);
