@@ -31,6 +31,12 @@ describe('towerInfo', () => {
     expect(towerInfo('frost', 1).note).toContain('감속');
   });
 
+  it('shows the cannon merge armor-break effect', () => {
+    expect(towerInfo('cannon', 1).note).toBe('광역 반경 58');
+    expect(towerInfo('cannon', 3).note).toBe('광역 76 · 방어 -10%');
+    expect(towerInfo('cannon', 5).note).toBe('광역 102 · 방어 -20%');
+  });
+
   it('clamps level into range', () => {
     expect(towerInfo('arrow', 0).level).toBe(1);
     expect(towerInfo('arrow', 99).level).toBe(5);
