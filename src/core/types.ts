@@ -26,6 +26,10 @@ export interface TowerLevelStats {
   poisonRadius?: number;  // 중독 투사체의 적용 반경(px)
 
   armorPierce?: number;   // 방어력에서 무시할 수치
+  /** 합성 단계에서 한 번에 쏘는 투사체 수. */
+  projectileCount?: number;
+  /** 멀티샷 한 발의 기본 피해 배율. */
+  projectileDamageMultiplier?: number;
 }
 
 export interface TowerDef {

@@ -26,6 +26,12 @@ describe('tower definitions', () => {
     expect(TOWERS.bolt.levels[0].chainRange).toBeGreaterThan(0);
   });
 
+  it('unlocks reduced-damage multishot for arrow merges at levels 3 and 5', () => {
+    expect(TOWERS.arrow.levels[2]).toMatchObject({ projectileCount: 2, projectileDamageMultiplier: 0.6 });
+    expect(TOWERS.arrow.levels[3]).toMatchObject({ projectileCount: 2, projectileDamageMultiplier: 0.6 });
+    expect(TOWERS.arrow.levels[4]).toMatchObject({ projectileCount: 3, projectileDamageMultiplier: 0.45 });
+  });
+
   it('bolt chain gets more targets and gentler falloff as it levels', () => {
     const lv = TOWERS.bolt.levels;
     expect(lv[4].chainTargets!).toBeGreaterThanOrEqual(lv[0].chainTargets!);

@@ -1,4 +1,4 @@
-import { chainDamages, buildChain } from '../../src/systems/combat';
+import { buildMultiShot, chainDamages, buildChain } from '../../src/systems/combat';
 import type { Targetable } from '../../src/systems/TargetingSystem';
 
 const mk = (id: number, x: number, y: number, alive = true): Targetable =>
@@ -28,5 +28,14 @@ describe('buildChain', () => {
     const primary = mk(1, 0, 0);
     const all = [primary, mk(2, 20, 0, false), mk(3, 25, 0)];
     expect(buildChain(primary, all, 40, 2).map((t) => t.id)).toEqual([1, 3]);
+  });
+});
+
+describe('buildMultiShot', () => {
+  it('keeps the chosen target then selects nearby distinct living enemies within tower range', () => {
+    const primary = mk(1, 20, 0);
+    const all = [primary, mk(2, 24, 0), mk(3, 30, 0), mk(4, 60, 0), mk(5, 22, 0, false)];
+
+    expect(buildMultiShot(primary, all, { x: 0, y: 0 }, 40, 3).map((target) => target.id)).toEqual([1, 2, 3]);
   });
 });

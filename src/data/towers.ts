@@ -9,9 +9,9 @@ export const TOWERS: Record<string, TowerDef> = {
     levels: [
       { damage: 8,   range: 150, fireRate: 2.0 },
       { damage: 14,  range: 162, fireRate: 2.2 },
-      { damage: 28,  range: 174, fireRate: 2.4 },
-      { damage: 56,  range: 188, fireRate: 2.7 },
-      { damage: 113, range: 205, fireRate: 3.0 },
+      { damage: 28,  range: 174, fireRate: 2.4, projectileCount: 2, projectileDamageMultiplier: 0.6 },
+      { damage: 56,  range: 188, fireRate: 2.7, projectileCount: 2, projectileDamageMultiplier: 0.6 },
+      { damage: 113, range: 205, fireRate: 3.0, projectileCount: 3, projectileDamageMultiplier: 0.45 },
     ],
   },
   cannon: {
