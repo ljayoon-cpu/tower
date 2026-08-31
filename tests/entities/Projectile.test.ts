@@ -4,11 +4,13 @@ import { Pool } from '../../src/core/pool';
 
 function renderer() {
   const sprite = {
-    x: 0, y: 0, visible: false, active: false,
+    x: 0, y: 0, visible: false, active: false, texture: 'projectile',
     setDepth() { return this; },
     setPosition(x: number, y: number) { this.x = x; this.y = y; return this; },
     setVisible(v: boolean) { this.visible = v; return this; },
     setActive(v: boolean) { this.active = v; return this; },
+    setTexture(key: string) { this.texture = key; return this; },
+    setRotation() { return this; },
   };
   const image = vi.fn(() => sprite);
   return { sprite, image, scene: { add: { image } } as unknown as Phaser.Scene };
@@ -49,5 +51,17 @@ describe('pooled projectiles', () => {
     expect(hit).not.toHaveBeenCalled();
     expect(shot.update(500, 1)).toBe(true);
     expect(hit).toHaveBeenCalledWith({ x: 100, y: 0 });
+  });
+
+  it('uses the requested visual for a tower-specific shot', () => {
+    const r = renderer();
+    const shot = new Projectile(r.scene);
+    const opts = {
+      speed: 100, targetPos: () => ({ x: 100, y: 0 }), onHit: vi.fn(), textureKey: 'projectile_sniper',
+    } as Parameters<Projectile['launch']>[1] & { textureKey: string };
+
+    shot.launch({ x: 0, y: 0 }, opts);
+
+    expect(r.sprite.texture).toBe('projectile_sniper');
   });
 });

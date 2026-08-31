@@ -5,6 +5,8 @@ export interface ProjectileOpts {
   targetPos: () => Vec2 | null;
   speed: number;               // 픽셀/초
   onHit: (hitPos: Vec2) => void;
+  /** 타워별로 즉시 알아볼 수 있는 투사체 텍스처. */
+  textureKey?: string;
 }
 
 export class Projectile {
@@ -19,7 +21,12 @@ export class Projectile {
   launch(from: Vec2, opts: ProjectileOpts): void {
     this.opts = opts;
     this.last = { ...(opts.targetPos() ?? from) };
-    this.sprite.setPosition(from.x, from.y).setVisible(true).setActive(true);
+    this.sprite
+      .setTexture(opts.textureKey ?? 'projectile')
+      .setPosition(from.x, from.y)
+      .setVisible(true)
+      .setActive(true);
+    this.face(this.last.x - from.x, this.last.y - from.y);
   }
 
   update(dtMsRaw: number, speedMul: number): boolean {
@@ -39,6 +46,11 @@ export class Projectile {
     }
     this.sprite.x += (dx / dist) * move;
     this.sprite.y += (dy / dist) * move;
+    this.face(dx, dy);
     return false;
+  }
+
+  private face(dx: number, dy: number): void {
+    if (dx !== 0 || dy !== 0) this.sprite.setRotation(Math.atan2(dy, dx));
   }
 }

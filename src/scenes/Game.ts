@@ -29,6 +29,14 @@ import { audioFor } from '../ui/audio';
 import type { SoundEffects } from '../core/audio';
 import type { HudInit } from './HUD';
 
+const PROJECTILE_TEXTURE: Record<string, string> = {
+  arrow: 'projectile_arrow',
+  cannon: 'projectile_cannon',
+  frost: 'projectile_frost',
+  bolt: 'projectile_bolt',
+  sniper: 'projectile_sniper',
+};
+
 export class Game extends Phaser.Scene {
   private stage!: StageDef;
   private audio!: SoundEffects;
@@ -517,13 +525,17 @@ export class Game extends Phaser.Scene {
       if (!enemy) continue;
       const def = getTower(tower.key);
       tower.faceToward(enemy.pos);
-      if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt') {
+      if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper') {
         this.audio.play(tower.key);
       }
+      this.muzzleFlash(tower.homePos, def.key === 'sniper' ? COLORS.sniper :
+        def.attack === 'splash' ? COLORS.cannon : def.attack === 'slow' ? COLORS.frost :
+          def.attack === 'chain' ? COLORS.bolt : COLORS.arrow);
 
       if (def.attack === 'chain') {
         this.fireProjectile(tower.homePos, {
           speed: 620,
+          textureKey: PROJECTILE_TEXTURE[tower.key],
           targetPos: () => (enemy.alive ? enemy.pos : null),
           onHit: () => {
             if (!enemy.alive) return;
@@ -533,7 +545,7 @@ export class Game extends Phaser.Scene {
             chain.forEach((hit, i) => {
               const e = this.enemies.find((x) => x.id === hit.id);
               e?.takeDamage(dmgs[i]);
-              if (e) this.impactFlash(e.pos, COLORS.bolt);
+              if (e) this.impactFlash(e.pos, COLORS.bolt, 'light');
             });
           },
         });
@@ -542,10 +554,11 @@ export class Game extends Phaser.Scene {
 
       this.fireProjectile(tower.homePos, {
         speed: 520,
+        textureKey: PROJECTILE_TEXTURE[tower.key],
         targetPos: () => (enemy.alive ? enemy.pos : null),
         onHit: (hitPos) => {
           if (def.attack === 'splash') {
-            this.impactFlash(hitPos, COLORS.cannon);
+            this.impactFlash(hitPos, COLORS.cannon, 'heavy');
             for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0,
               this.enemies)) {
               this.enemies.find((e) => e.id === hit.id)?.takeDamage(s.damage);
@@ -553,7 +566,8 @@ export class Game extends Phaser.Scene {
           } else {
             if (!enemy.alive) return;
             enemy.takeDamage(s.damage);
-            this.impactFlash(enemy.pos, def.attack === 'slow' ? COLORS.frost : COLORS.arrow);
+            this.impactFlash(enemy.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
+              def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');
             if (def.attack === 'slow') enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
           }
         },
@@ -567,17 +581,33 @@ export class Game extends Phaser.Scene {
     this.projectiles.push(shot);
   }
 
-  /** 착탄 지점에 잠깐 퍼지는 링. 트윈이 없는 시뮬레이션 환경에서는 생략. */
-  private impactFlash(pos: Vec2, color: number): void {
+  /** 공격마다 다른 짧은 명중 효과. 강한 한 방만 아주 약하게 화면을 흔든다. */
+  private impactFlash(pos: Vec2, color: number, force: 'light' | 'heavy' | 'frost' = 'light'): void {
     if (!this.tweens) return;
-    const ring = this.add.circle(pos.x, pos.y, 6, color, 0.7).setDepth(25);
+    const heavy = force === 'heavy';
+    const ring = this.add.circle(pos.x, pos.y, heavy ? 9 : 6, color, heavy ? 0.9 : 0.7).setDepth(25);
     this.tweens.add({
       targets: ring,
-      scale: 2.6,
+      scale: heavy ? 3.8 : force === 'frost' ? 3.1 : 2.6,
       alpha: 0,
-      duration: 180,
+      duration: heavy ? 230 : 180,
       onComplete: () => ring.destroy(),
     });
+    if (force === 'frost') {
+      for (const [dx, dy] of [[-10, -8], [11, -5], [-5, 11], [9, 10]]) {
+        const shard = this.add.circle(pos.x + dx, pos.y + dy, 3, color, 0.9).setDepth(25);
+        this.tweens.add({ targets: shard, x: pos.x + dx * 2.2, y: pos.y + dy * 2.2, alpha: 0,
+          duration: 220, onComplete: () => shard.destroy() });
+      }
+    }
+    if (heavy) this.cameras.main.shake(90, 0.0025);
+  }
+
+  /** 발사 직후 포탑 끝에서 짧게 빛나, 공격 시작점도 눈에 들어오게 한다. */
+  private muzzleFlash(pos: Vec2, color: number): void {
+    if (!this.tweens) return;
+    const flash = this.add.circle(pos.x, pos.y, 5, color, 0.75).setDepth(16);
+    this.tweens.add({ targets: flash, scale: 2.1, alpha: 0, duration: 100, onComplete: () => flash.destroy() });
   }
 
   /** 머지 성공 시 결과 타워가 잠깐 커졌다 돌아온다. */
