@@ -83,7 +83,8 @@ export class EnemyState {
   }
 
   applyPoison(dps: number, durationMs: number): void {
-    this.poisonDps = Math.max(this.poisonDps, dps);
+    const resisted = dps * (this.def.poisonResist ?? 1);
+    this.poisonDps = Math.max(this.poisonDps, resisted);
     this.poisonLeftMs = Math.max(this.poisonLeftMs, durationMs);
   }
 

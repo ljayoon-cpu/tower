@@ -80,6 +80,8 @@ export interface EnemyDef {
   armor?: number;
   shield?: EnemyShieldDef;
   regenPerSecond?: number;
+  /** 중독 피해 배율(0~1). 지정 시 poisonDps에 곱해진다. 보스류가 공략을 강제. */
+  poisonResist?: number;
   /** 직접 타격 투사체가 우선 조준하는 보호 유닛 여부. */
   intercepts?: boolean;
   summon?: EnemySummonDef;

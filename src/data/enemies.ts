@@ -30,6 +30,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   boss: {
     key: 'boss', name: '공성 지휘관', hp: 1800, speed: 90, bounty: 150, lifeDamage: 6, isBoss: true, movementLayer: 'ground', armor: 9,
+    poisonResist: 0.3, // 중독만으로는 못 녹인다 — 직접 화력이 필요
     shield: { energy: 180, rechargeDelayMs: 3800, rechargePerSecond: 18 },
     bossPhases: [
       { name: '돌격', atHealthRatio: 0.65, speedMultiplier: 1.5 },

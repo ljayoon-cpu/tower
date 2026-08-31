@@ -15,24 +15,25 @@ export const TOWERS: Record<string, TowerDef> = {
     ],
   },
   cannon: {
+    // 광역. 단일 화력·연사는 화살보다 낮지만 뭉친 적을 한 번에 친다.
     key: 'cannon', name: '대포', attack: 'splash', cost: 110, maxLevel: 5,
     levels: [
-      { damage: 22,  range: 130, fireRate: 0.42, splashRadius: 55 },
-      { damage: 40,  range: 136, fireRate: 0.46, splashRadius: 62 },
-      { damage: 78,  range: 144, fireRate: 0.5,  splashRadius: 70 },
-      { damage: 155, range: 152, fireRate: 0.55, splashRadius: 80 },
-      { damage: 310, range: 162, fireRate: 0.6,  splashRadius: 92 },
+      { damage: 24,  range: 132, fireRate: 0.58, splashRadius: 58 },
+      { damage: 44,  range: 138, fireRate: 0.62, splashRadius: 66 },
+      { damage: 86,  range: 146, fireRate: 0.66, splashRadius: 76 },
+      { damage: 170, range: 154, fireRate: 0.70, splashRadius: 88 },
+      { damage: 340, range: 164, fireRate: 0.76, splashRadius: 102 },
     ],
   },
   frost: {
-    // 낮은 데미지, 강한 감속이 정체성. 레벨은 주로 감속률·지속을 키운다.
-    key: 'frost', name: '서리탑', attack: 'slow', cost: 80, maxLevel: 5,
+    // 감속이 정체성이지만 데미지도 화살에 약간 못 미치는 수준으로 받쳐, 혼자서도 초반은 넘긴다.
+    key: 'frost', name: '서리탑', attack: 'slow', cost: 60, maxLevel: 5,
     levels: [
-      { damage: 3,  range: 140, fireRate: 1.5, slowMul: 0.75, slowDurationMs: 1200 },
-      { damage: 6,  range: 150, fireRate: 1.6, slowMul: 0.68, slowDurationMs: 1350 },
-      { damage: 11, range: 160, fireRate: 1.7, slowMul: 0.58, slowDurationMs: 1500 },
-      { damage: 20, range: 170, fireRate: 1.8, slowMul: 0.47, slowDurationMs: 1700 },
-      { damage: 38, range: 182, fireRate: 2.0, slowMul: 0.35, slowDurationMs: 2000 },
+      { damage: 10, range: 142, fireRate: 1.7, slowMul: 0.75, slowDurationMs: 1200 },
+      { damage: 19, range: 152, fireRate: 1.8, slowMul: 0.68, slowDurationMs: 1350 },
+      { damage: 38, range: 162, fireRate: 1.9, slowMul: 0.58, slowDurationMs: 1500 },
+      { damage: 74, range: 172, fireRate: 2.0, slowMul: 0.47, slowDurationMs: 1700 },
+      { damage: 140, range: 184, fireRate: 2.1, slowMul: 0.35, slowDurationMs: 2000 },
     ],
   },
   bolt: {
@@ -47,25 +48,27 @@ export const TOWERS: Record<string, TowerDef> = {
     ],
   },
   sniper: {
-    // 고비용·장거리 단일 화력. 골드 효율은 화살보다 낮아 좁은 자리와 보스전에 쓰인다.
+    // 고비용·장거리 단일 화력. 관통으로 장갑·보호막에 강하지만 연사가 느려
+    // 스웜엔 약하다.
     key: 'sniper', name: '저격탑', attack: 'single', cost: 125, maxLevel: 5,
     levels: [
-      { damage: 28,  range: 220, fireRate: 0.72, armorPierce: 3 },
-      { damage: 56,  range: 235, fireRate: 0.77, armorPierce: 5 },
-      { damage: 112, range: 250, fireRate: 0.84, armorPierce: 7 },
-      { damage: 225, range: 265, fireRate: 0.92, armorPierce: 10 },
-      { damage: 450, range: 280, fireRate: 1.01, armorPierce: 14 },
+      { damage: 30,  range: 222, fireRate: 0.82, armorPierce: 3 },
+      { damage: 60,  range: 237, fireRate: 0.88, armorPierce: 5 },
+      { damage: 120, range: 252, fireRate: 0.96, armorPierce: 7 },
+      { damage: 240, range: 268, fireRate: 1.05, armorPierce: 10 },
+      { damage: 480, range: 284, fireRate: 1.15, armorPierce: 14 },
     ],
   },
   poison: {
-    // 좁은 반경에 중독을 갱신하는 지속 피해형. 단일 목표 골드 효율은 화살보다 낮다.
+    // 좁은 반경에 중독을 갱신하는 지속 피해형. 스웜엔 훌륭하지만 단일 대상 화력이
+    // 낮아 보스전은 혼자 못 끝낸다.
     key: 'poison', name: '독 타워', attack: 'poison', cost: 90, maxLevel: 5,
     levels: [
-      { damage: 4,  range: 145, fireRate: 1.2, poisonDps: 8,   poisonDurationMs: 1600, poisonRadius: 42 },
-      { damage: 8,  range: 155, fireRate: 1.3, poisonDps: 16,  poisonDurationMs: 1800, poisonRadius: 48 },
-      { damage: 16, range: 165, fireRate: 1.4, poisonDps: 33,  poisonDurationMs: 2000, poisonRadius: 54 },
-      { damage: 32, range: 176, fireRate: 1.5, poisonDps: 67,  poisonDurationMs: 2200, poisonRadius: 61 },
-      { damage: 65, range: 188, fireRate: 1.6, poisonDps: 135, poisonDurationMs: 2400, poisonRadius: 68 },
+      { damage: 2,  range: 148, fireRate: 1.3, poisonDps: 8,  poisonDurationMs: 1500, poisonRadius: 52 },
+      { damage: 4,  range: 158, fireRate: 1.4, poisonDps: 15, poisonDurationMs: 1600, poisonRadius: 60 },
+      { damage: 7,  range: 168, fireRate: 1.5, poisonDps: 27, poisonDurationMs: 1800, poisonRadius: 68 },
+      { damage: 13, range: 180, fireRate: 1.6, poisonDps: 48, poisonDurationMs: 2000, poisonRadius: 78 },
+      { damage: 24, range: 192, fireRate: 1.7, poisonDps: 86, poisonDurationMs: 2200, poisonRadius: 90 },
     ],
   },
 };
