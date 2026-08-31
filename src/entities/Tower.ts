@@ -45,9 +45,10 @@ export class Tower {
       .image(pos.x, pos.y, `tower_${key}`)
       .setDepth(10)
       .setInteractive({ useHandCursor: true });
+    const buff = this.stats().buffRadius != null;
     this.ring = scene.add
-      .circle(pos.x, pos.y, this.stats().range, 0xffffff, 0.05)
-      .setStrokeStyle(1, 0xffffff, 0.25)
+      .circle(pos.x, pos.y, this.displayRadius(), buff ? COLORS.command : 0xffffff, buff ? 0.06 : 0.05)
+      .setStrokeStyle(1, buff ? COLORS.command : 0xffffff, buff ? 0.5 : 0.25)
       .setDepth(9)
       .setVisible(false);
     this.mergeHint = scene.add
@@ -79,11 +80,17 @@ export class Tower {
     this.applyLevelVisual();
   }
 
+  /** 사거리 링에 그릴 반경. 지휘탑은 버프 반경(그게 정체성), 나머지는 공격 사거리. */
+  private displayRadius(): number {
+    const s = this.stats();
+    return s.buffRadius ?? s.range;
+  }
+
   private applyLevelVisual(): void {
     const scale = 1 + (this.level - 1) * 0.12;
     this.sprite.setScale(scale);
     this.sprite.setData('level', this.level);
-    this.ring.setRadius(this.stats().range);
+    this.ring.setRadius(this.displayRadius());
   }
 
   get rangeVisible(): boolean {

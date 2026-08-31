@@ -356,16 +356,19 @@ export class Game extends Phaser.Scene {
     const def = getTower(tower.key);
     const info = towerInfo(tower.key, tower.level);
     const sell = Math.floor(cumulativeCost(def, tower.level) * this.eco.sellRatio);
-    const dpsLine = info.nextDps != null
-      ? `DPS ${info.dps} → ${info.nextDps}`
-      : `DPS ${info.dps} (최대)`;
-    const parts = [`사거리 ${info.range}`, `판매 +${sell}G`];
+    const buffRadius = tower.stats().buffRadius;
+    const dpsLine = buffRadius != null
+      ? `버프 범위 ${Math.round((buffRadius * 2) / TILE)}칸`
+      : info.nextDps != null
+        ? `DPS ${info.dps} → ${info.nextDps}`
+        : `DPS ${info.dps} (최대)`;
+    const parts = [buffRadius != null ? `사거리 ${buffRadius}` : `사거리 ${info.range}`, `판매 +${sell}G`];
     if (info.note) parts.push(info.note);
+    const priorityLine = getTower(tower.key).attack === 'support'
+      ? ''
+      : `\n표적: ${TARGET_PRIORITY_LABEL[tower.priority]} ▸ (눌러 변경)`;
     this.inspectText
-      .setText(
-        `${info.name} Lv${info.level}   ${dpsLine}\n` +
-        `${parts.join('   ')}\n표적: ${TARGET_PRIORITY_LABEL[tower.priority]} ▸ (눌러 변경)`,
-      )
+      .setText(`${info.name} Lv${info.level}   ${dpsLine}\n${parts.join('   ')}${priorityLine}`)
       .setVisible(true);
 
     if (this.upgradeButton) {
