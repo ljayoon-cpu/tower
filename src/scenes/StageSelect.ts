@@ -26,16 +26,8 @@ export class StageSelect extends Phaser.Scene {
     this.dragged = false;
     const save = loadSave();
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0f1020);
-    this.add.text(GAME_WIDTH / 2, 84, '스테이지 선택', {
-      fontFamily: 'monospace', fontSize: '44px', color: '#f2f2f7',
-    }).setOrigin(0.5);
 
-    const earned = STAGES.reduce((n, s) => n + (save.stages[s.id]?.stars ?? 0), 0);
-    this.add.text(GAME_WIDTH / 2, 124, `★ ${earned} / ${STAGES.length * 3}`, {
-      fontFamily: 'monospace', fontSize: '22px', color: '#ffcc44',
-    }).setOrigin(0.5);
-
-    const list = this.add.container(0, 0);
+    const list = this.add.container(0, 0).setDepth(1);
     STAGES.forEach((stage, i) => {
       const y = LIST_TOP + CARD_H / 2 + i * (CARD_H + CARD_GAP);
       const unlocked = isUnlocked(save, stage.id);
@@ -64,9 +56,23 @@ export class StageSelect extends Phaser.Scene {
 
     this.setupScroll(list);
 
+    // 스크롤된 카드가 제목·메뉴 영역을 덮지 않도록 위/아래 가림막.
+    this.add.rectangle(GAME_WIDTH / 2, (LIST_TOP - 8) / 2, GAME_WIDTH, LIST_TOP - 8, 0x0f1020).setDepth(5);
+    this.add.rectangle(
+      GAME_WIDTH / 2, (LIST_BOTTOM + 8 + GAME_HEIGHT) / 2, GAME_WIDTH, GAME_HEIGHT - LIST_BOTTOM - 8, 0x0f1020,
+    ).setDepth(5);
+
+    this.add.text(GAME_WIDTH / 2, 84, '스테이지 선택', {
+      fontFamily: 'monospace', fontSize: '44px', color: '#f2f2f7',
+    }).setOrigin(0.5).setDepth(6);
+    const earned = STAGES.reduce((n, s) => n + (save.stages[s.id]?.stars ?? 0), 0);
+    this.add.text(GAME_WIDTH / 2, 124, `★ ${earned} / ${STAGES.length * 3}`, {
+      fontFamily: 'monospace', fontSize: '22px', color: '#ffcc44',
+    }).setOrigin(0.5).setDepth(6);
+
     const back = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 60, '← 메뉴', {
       fontFamily: 'monospace', fontSize: '28px', color: '#99a',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setDepth(6).setInteractive({ useHandCursor: true });
     back.on('pointerup', () => this.scene.start('mainmenu'));
   }
 
