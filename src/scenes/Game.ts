@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   COLORS, TILE, GRID_COLS, GRID_ROWS, GAME_WIDTH, GAME_HEIGHT,
-  WAVE_INTEREST_RATE, WAVE_INTEREST_CAP, WORLD_THEMES,
+  waveInterestRate, WAVE_INTEREST_CAP, WORLD_THEMES,
 } from '../core/constants';
 import { createEventBus } from '../core/eventBus';
 import type { EventBus } from '../core/eventBus';
@@ -227,7 +227,7 @@ export class Game extends Phaser.Scene {
     this.bus.on('wave:cleared', () => {
       this.eco.earn(this.waves.currentClearBonus());
       const interest = this.eco.applyInterest(
-        WAVE_INTEREST_RATE + this.meta.interestRateBonus, WAVE_INTEREST_CAP,
+        waveInterestRate(this.waves.waveIndex + 1) + this.meta.interestRateBonus, WAVE_INTEREST_CAP,
       );
       if (interest > 0) this.bus.emit('interest:earned', { amount: interest });
       // 금광탑 3·5합: 웨이브 클리어마다 추가 배당.

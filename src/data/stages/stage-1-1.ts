@@ -54,7 +54,7 @@ export const stage11: StageDef = {
       clearBonus: 50,
       groups: [
         { enemy: 'normal', count: 10, intervalMs: 400, startDelayMs: 0 },
-        { enemy: 'tank', count: 2, intervalMs: 1500, startDelayMs: 1000 },
+        { enemy: 'tank', count: 1, intervalMs: 1500, startDelayMs: 1000 },
       ],
     },
   ],
