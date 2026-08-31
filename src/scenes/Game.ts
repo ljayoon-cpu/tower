@@ -9,7 +9,9 @@ import type { GameEvents, StageDef, TileCoord, Vec2 } from '../core/types';
 import { Pool } from '../core/pool';
 import { getStage, nextStageId } from '../data/stages';
 import { starsFor } from '../core/stars';
-import { loadSave, recordResult } from '../core/save';
+import { loadSave, recordResult, markTutorialDone } from '../core/save';
+import { Tutorial } from '../core/tutorial';
+import type { TutorialEvent } from '../core/tutorial';
 import { getEnemy } from '../data/enemies';
 import { getTower, TOWER_KEYS, cumulativeCost } from '../data/towers';
 import { canMerge, mergeResultLevel } from '../systems/MergeController';
@@ -71,6 +73,7 @@ export class Game extends Phaser.Scene {
   private suppressTapUntil = 0;
   /** 마지막으로 HUD에 알린 카운트다운 초. 값이 바뀔 때만 emit. */
   private lastCountdown: number | null = -1;
+  private tutorial?: Tutorial;
 
   private static readonly WAVE_GAP_MS = 8000;
 
@@ -87,7 +90,9 @@ export class Game extends Phaser.Scene {
     this.grid = new GridManager(this.stage.grid);
     this.path = new PathManager(this.stage.path);
     this.waves = new WaveManager(this.stage.waves, this.bus);
-    this.waves.enableAutoAdvance(Game.WAVE_GAP_MS);
+    // 튜토리얼 중에는 자동 웨이브를 보류 — 플레이어가 첫 웨이브를 직접 시작한다.
+    this.tutorial = this.stage.id === '1-1' && !loadSave().tutorialDone ? new Tutorial() : undefined;
+    if (!this.tutorial) this.waves.enableAutoAdvance(Game.WAVE_GAP_MS);
     this.lastCountdown = -1;
     this.eco = new EconomyManager(this.stage.startGold, this.bus);
     this.lives = this.stage.startLives;
@@ -157,7 +162,10 @@ export class Game extends Phaser.Scene {
       if (interest > 0) this.bus.emit('interest:earned', { amount: interest });
       if (this.waves.isFinished) this.endStage(true);
     });
-    this.bus.on('wave:started', () => this.audio.play('wave'));
+    this.bus.on('wave:started', () => {
+      this.audio.play('wave');
+      this.advanceTutorial('waveStarted');
+    });
 
     const hudInit: HudInit = {
       bus: this.bus,
@@ -165,6 +173,8 @@ export class Game extends Phaser.Scene {
       lives: this.lives,
       totalWaves: this.waves.totalWaves,
       waves: this.stage.waves,
+      tutorialText: this.tutorial?.text ?? null,
+      onSkipTutorial: () => this.finishTutorial(),
       onNextWave: () => { if (this.running && !this.paused) this.waves.startNextWave(); },
       getRoster: () => this.towers.map((t) => ({ key: t.key, level: t.level })),
       onToggleSpeed: () => this.toggleSpeed(),
@@ -177,6 +187,25 @@ export class Game extends Phaser.Scene {
       },
     };
     this.scene.launch('hud', hudInit);
+  }
+
+  private advanceTutorial(event: TutorialEvent): void {
+    if (!this.tutorial) return;
+    if (this.tutorial.advance(event)) {
+      this.bus.emit('tutorial:step', { text: this.tutorial.text });
+      if (this.tutorial.done) this.finishTutorial();
+    }
+  }
+
+  /** 튜토리얼 종료(완료 또는 건너뛰기). 자동 웨이브를 켜고 플래그를 저장한다. */
+  private finishTutorial(): void {
+    if (!this.tutorial) return;
+    this.tutorial.skip();
+    this.tutorial = undefined;
+    markTutorialDone();
+    this.waves.enableAutoAdvance(Game.WAVE_GAP_MS);
+    this.lastCountdown = -1;
+    this.bus.emit('tutorial:step', { text: null });
   }
 
   toggleSpeed(): void {
@@ -348,6 +377,7 @@ export class Game extends Phaser.Scene {
             this.snapHome(targetTower);
             this.audio.play('merge');
             this.mergePop(targetTower);
+            this.advanceTutorial('merged');
             return;
           }
         }
@@ -489,6 +519,8 @@ export class Game extends Phaser.Scene {
     this.grid.occupy(tile, tower.id);
     this.towers.push(tower);
     this.audio.play('place');
+    this.advanceTutorial('towerPlaced');
+    if (this.towers.filter((t) => t.key === key).length >= 2) this.advanceTutorial('sameTypePlaced');
     // 타워 탭 → 사거리 링 토글(한 번에 하나만 표시). 드래그 직후 탭은 무시.
     tower.sprite.on('pointerup', () => {
       if (!this.running || this.paused) return;

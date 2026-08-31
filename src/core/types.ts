@@ -70,7 +70,11 @@ export interface StageDef {
 }
 
 export interface StageProgress { stars: number; unlocked: boolean; }
-export interface SaveData { stages: Record<string, StageProgress>; }
+export interface SaveData {
+  stages: Record<string, StageProgress>;
+  /** 1-1 첫 진입 튜토리얼을 끝냈는지. */
+  tutorialDone?: boolean;
+}
 
 // `type` (not `interface`): an interface has no implicit index signature, so it
 // would not satisfy the `Record<string, unknown>` constraint on createEventBus<T>().
@@ -92,4 +96,6 @@ export type GameEvents = {
   'wave:countdown': { seconds: number | null };
   /** 웨이브 클리어 시 남긴 골드로 받은 이자. */
   'interest:earned': { amount: number };
+  /** 튜토리얼 안내 문구. null = 튜토리얼 종료(숨김). */
+  'tutorial:step': { text: string | null };
 };

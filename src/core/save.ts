@@ -31,8 +31,12 @@ export function loadSave(storage: StorageLike = defaultStorage()): SaveData {
       (parsed as { stages?: unknown }).stages !== null
     ) {
       const entries = (parsed as { stages: Record<string, unknown> }).stages;
+      const withFlag = (data: SaveData): SaveData =>
+        (parsed as { tutorialDone?: unknown }).tutorialDone === true
+          ? { ...data, tutorialDone: true }
+          : data;
       const stages: SaveData['stages'] = {};
-      if (Array.isArray(entries)) return { stages };
+      if (Array.isArray(entries)) return withFlag({ stages });
       for (const [id, entry] of Object.entries(entries)) {
         if (entry === null || typeof entry !== 'object') continue;
         const { stars, unlocked } = entry as { stars?: unknown; unlocked?: unknown };
@@ -40,7 +44,7 @@ export function loadSave(storage: StorageLike = defaultStorage()): SaveData {
           Object.defineProperty(stages, id, { value: { stars, unlocked }, enumerable: true, writable: true, configurable: true });
         }
       }
-      return { stages };
+      return withFlag({ stages });
     }
     return { stages: {} };
   } catch {
@@ -56,6 +60,13 @@ export function writeSave(data: SaveData, storage: StorageLike = defaultStorage(
 export function isUnlocked(data: SaveData, stageId: string): boolean {
   if (stageId === '1-1') return true;
   return data.stages[stageId]?.unlocked ?? false;
+}
+
+/** 튜토리얼 완료 플래그를 저장한다. */
+export function markTutorialDone(storage: StorageLike = defaultStorage()): void {
+  const data = loadSave(storage);
+  data.tutorialDone = true;
+  writeSave(data, storage);
 }
 
 export function recordResult(

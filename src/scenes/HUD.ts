@@ -14,6 +14,9 @@ export interface HudInit {
   lives: number;
   totalWaves: number;
   waves: Wave[];
+  /** 튜토리얼 초기 안내 문구. null이면 튜토리얼 비활성. */
+  tutorialText: string | null;
+  onSkipTutorial: () => void;
   onNextWave: () => void;
   onToggleSpeed: () => void;
   onTogglePause: () => void;
@@ -97,11 +100,28 @@ export class HUD extends Phaser.Scene {
     const quit = button(GAME_WIDTH / 2, 710, 320, '포기하고 스테이지 선택', data.onQuit);
     overlay.add([resume.bg, resume.text, quit.bg, quit.text]);
 
+    // 튜토리얼 코치마크 (1-1 첫 진입에만).
+    const coach = this.add.container(GAME_WIDTH / 2, 280).setDepth(1800);
+    coach.add(this.add.rectangle(0, 0, GAME_WIDTH - 60, 96, 0x0f1020, 0.92).setStrokeStyle(2, 0xffcc44, 0.8));
+    const coachText = this.add.text(0, -12, data.tutorialText ?? '', {
+      ...style, fontSize: '21px', color: '#ffe9b0', align: 'center', wordWrap: { width: GAME_WIDTH - 90 },
+    }).setOrigin(0.5);
+    const coachSkip = this.add.text(0, 28, '건너뛰기', {
+      ...style, fontSize: '17px', color: '#8d98bb',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    coachSkip.on('pointerup', () => data.onSkipTutorial());
+    coach.add([coachText, coachSkip]);
+    coach.setVisible(data.tutorialText !== null);
+
     const cleanups: Array<() => void> = [];
     const on = <K extends keyof GameEvents>(event: K, fn: (value: GameEvents[K]) => void) => {
       data.bus.on(event, fn);
       cleanups.push(() => data.bus.off(event, fn));
     };
+    on('tutorial:step', ({ text }) => {
+      if (text === null) coach.setVisible(false);
+      else { coachText.setText(text); coach.setVisible(true); }
+    });
     on('gold:changed', ({ gold }) => goldText.setText(`골드 ${gold}`));
     on('interest:earned', ({ amount }) => {
       const tag = this.add.text(goldText.x + goldText.width + 10, 14, `+이자 ${amount}`, {
