@@ -74,6 +74,13 @@ describe('enemy definitions', () => {
     expect(ENEMIES.boss.isBoss).toBe(true);
   });
 
+  it('defines distinct shield, armor, regeneration, and summoner counters', () => {
+    expect(ENEMIES.shield.shield?.energy).toBeGreaterThan(0);
+    expect(ENEMIES.tank.armor).toBeGreaterThan(0);
+    expect(ENEMIES.regenerator.regenPerSecond).toBeGreaterThan(0);
+    expect(ENEMIES.summoner.summon).toMatchObject({ enemyKey: 'minion' });
+    expect(ENEMIES.minion.intercepts).toBe(true);
+  });
   it('getEnemy throws on unknown key', () => {
     expect(() => getEnemy('nope')).toThrow();
   });

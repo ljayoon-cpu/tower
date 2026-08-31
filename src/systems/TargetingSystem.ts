@@ -6,6 +6,8 @@ export interface Targetable {
   progress: number;
   alive: boolean;
   hp?: number;
+  /** 소환 부하처럼 단일 공격의 표적을 먼저 받는 유닛. */
+  intercepts?: boolean;
 }
 
 /** 선두(경로 최전방) / 후미 / 최대체력 / 최근접. */
@@ -42,13 +44,21 @@ export function pickTarget(
   const r2 = range * range;
   let best: Targetable | null = null;
   let bestScore = -Infinity;
+  let bestInterceptRank = -1;
   for (const e of enemies) {
     if (!e.alive) continue;
     if (dist2(origin, e.pos) > r2) continue;
+
+    const interceptRank = e.intercepts ? 1 : 0;
     const score = scoreFor(e, origin, priority);
-    if (best === null || score > bestScore || (score === bestScore && e.id < best.id)) {
+    if (
+      best === null
+      || interceptRank > bestInterceptRank
+      || (interceptRank === bestInterceptRank && (score > bestScore || (score === bestScore && e.id < best.id)))
+    ) {
       best = e;
       bestScore = score;
+      bestInterceptRank = interceptRank;
     }
   }
   return best;

@@ -50,11 +50,11 @@ export const TOWERS: Record<string, TowerDef> = {
     // 고비용·장거리 단일 화력. 골드 효율은 화살보다 낮아 좁은 자리와 보스전에 쓰인다.
     key: 'sniper', name: '저격탑', attack: 'single', cost: 125, maxLevel: 5,
     levels: [
-      { damage: 28,  range: 220, fireRate: 0.72 },
-      { damage: 56,  range: 235, fireRate: 0.77 },
-      { damage: 112, range: 250, fireRate: 0.84 },
-      { damage: 225, range: 265, fireRate: 0.92 },
-      { damage: 450, range: 280, fireRate: 1.01 },
+      { damage: 28,  range: 220, fireRate: 0.72, armorPierce: 3 },
+      { damage: 56,  range: 235, fireRate: 0.77, armorPierce: 5 },
+      { damage: 112, range: 250, fireRate: 0.84, armorPierce: 7 },
+      { damage: 225, range: 265, fireRate: 0.92, armorPierce: 10 },
+      { damage: 450, range: 280, fireRate: 1.01, armorPierce: 14 },
     ],
   },
   poison: {

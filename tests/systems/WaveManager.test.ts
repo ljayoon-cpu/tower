@@ -38,6 +38,20 @@ describe('WaveManager', () => {
     expect(wm.update(5000)).toEqual([]);
   });
 
+  it('forwards per-group stat multipliers to each spawned enemy', () => {
+    const bus = createEventBus<GameEvents>();
+    const wm = new WaveManager([{ clearBonus: 0, groups: [{
+      enemy: 'shield', count: 1, intervalMs: 1, startDelayMs: 0,
+      hpMultiplier: 1.5, speedMultiplier: 0.8, shieldMultiplier: 2,
+    }] }], bus);
+
+    wm.startNextWave();
+
+    expect(wm.update(0)).toEqual([{
+      enemyKey: 'shield',
+      modifiers: { hpMultiplier: 1.5, speedMultiplier: 0.8, shieldMultiplier: 2 },
+    }]);
+  });
   it('isWaveComplete only when every scheduled enemy is spawned and removed', () => {
     const { wm } = setup();
     wm.startNextWave();

@@ -1,13 +1,18 @@
 import type { EventBus } from '../core/eventBus';
 import type { GameEvents, Wave } from '../core/types';
+import type { EnemyModifiers } from './EnemyState';
 
-export interface SpawnRequest { enemyKey: string; }
+export interface SpawnRequest {
+  enemyKey: string;
+  modifiers: EnemyModifiers;
+}
 
 interface GroupState {
   enemyKey: string;
   remaining: number;
   intervalMs: number;
   nextAtMs: number; // 웨이브 경과시간 기준 다음 스폰 시각
+  modifiers: EnemyModifiers;
 }
 
 export class WaveManager {
@@ -59,6 +64,11 @@ export class WaveManager {
       remaining: g.count,
       intervalMs: g.intervalMs,
       nextAtMs: g.startDelayMs,
+      modifiers: {
+        hpMultiplier: g.hpMultiplier,
+        speedMultiplier: g.speedMultiplier,
+        shieldMultiplier: g.shieldMultiplier,
+      },
     }));
     this.scheduledThisWave = wave.groups.reduce((s, g) => s + g.count, 0);
     this.bus.emit('wave:started', { index: this._waveIndex, total: this.waves.length });
@@ -77,9 +87,9 @@ export class WaveManager {
     const out: SpawnRequest[] = [];
     for (const g of this.groups) {
       while (g.remaining > 0 && this.elapsedMs >= g.nextAtMs) {
-        out.push({ enemyKey: g.enemyKey });
+        out.push({ enemyKey: g.enemyKey, modifiers: g.modifiers });
         g.remaining--;
-        g.nextAtMs += g.intervalMs > 0 ? g.intervalMs : 1; // 0 간격이면 다음 tick 방지용 +1
+        g.nextAtMs += g.intervalMs > 0 ? g.intervalMs : 1;
       }
     }
     return out;

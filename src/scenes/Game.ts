@@ -21,7 +21,9 @@ import { PathManager } from '../systems/PathManager';
 import { WaveManager } from '../systems/WaveManager';
 import { EconomyManager } from '../systems/EconomyManager';
 import { Rng } from '../core/rng';
+
 import { Enemy } from '../entities/Enemy';
+import type { EnemyModifiers } from '../systems/EnemyState';
 import { Tower } from '../entities/Tower';
 import { Projectile } from '../entities/Projectile';
 import type { ProjectileOpts } from '../entities/Projectile';
@@ -507,15 +509,19 @@ export class Game extends Phaser.Scene {
     this.closeBuildMenu();
   }
 
-  private spawnEnemy(enemyKey: string) {
+  private spawnEnemy(
+    enemyKey: string,
+    modifiers: EnemyModifiers = {},
+    countsForWave = true,
+    summonedById: number | null = null,
+  ) {
     const def = getEnemy(enemyKey);
     const route = this.path.chooseRoute(this.rng);
-    const enemy = new Enemy(this, def, route.polyline);
+    const enemy = new Enemy(this, def, route.polyline, modifiers, countsForWave, summonedById);
     this.enemies.push(enemy);
-    this.waves.notifyEnemySpawned();
+    if (countsForWave) this.waves.notifyEnemySpawned();
     if (def.isBoss) this.bus.emit('boss:spawned', { name: def.name });
   }
-
   private endStage(won: boolean) {
     if (!this.running) return;
     this.running = false;
@@ -596,7 +602,9 @@ export class Game extends Phaser.Scene {
             }
           } else {
             if (!enemy.alive) return;
-            enemy.takeDamage(s.damage);
+            enemy.takeDamage(def.key === 'sniper'
+              ? { amount: s.damage, armorPierce: s.armorPierce ?? 0 }
+              : s.damage);
             this.impactFlash(enemy.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
               def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');
             if (def.attack === 'slow') enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
@@ -680,7 +688,7 @@ export class Game extends Phaser.Scene {
     }
     const dtMs = dtMsRaw * this.speedMul;
 
-    for (const req of this.waves.update(dtMs)) this.spawnEnemy(req.enemyKey);
+    for (const req of this.waves.update(dtMs)) this.spawnEnemy(req.enemyKey, req.modifiers);
 
     const secs = this.waves.secondsToNextWave();
     if (secs !== this.lastCountdown) {
@@ -696,21 +704,26 @@ export class Game extends Phaser.Scene {
     }
     this.projectiles.length = activeShots;
 
+    const summoned: Array<{ enemyKey: string; parentId: number }> = [];
     for (const e of this.enemies) {
       e.update(dtMsRaw, this.speedMul);
+      for (const enemyKey of e.collectSummons()) summoned.push({ enemyKey, parentId: e.id });
       if (e.reachedGoal) {
         this.bus.emit('enemy:reachedGoal', { lifeDamage: e.def.lifeDamage });
         if (!this.running) return;
       }
     }
-    // 처리된 적 정리
+    for (const request of summoned) this.spawnEnemy(request.enemyKey, {}, false, request.parentId);    // 처리된 적 정리
     const removed = this.enemies.filter((e) => !e.alive);
     for (const e of removed) {
       if (e.hp <= 0) {
         this.bus.emit('enemy:killed', { bounty: e.def.bounty });
         this.floatingGold(e.pos, e.def.bounty);
       }
-      this.waves.notifyEnemyRemoved();
+      if (e.summonedById !== null) {
+        this.enemies.find((parent) => parent.id === e.summonedById)?.notifySummonRemoved();
+      }
+      if (e.countsForWave) this.waves.notifyEnemyRemoved();
       if (!this.running) return;
       e.destroy();
     }

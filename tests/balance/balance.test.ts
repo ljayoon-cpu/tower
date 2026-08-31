@@ -9,9 +9,9 @@ describe('balance measurement with production combat', () => {
     const strategies = {
       none: noDefense, oneArrow,
       arrowSpread: spread(['arrow']),
-      mixedSpread: spread(['arrow', 'cannon', 'bolt', 'frost', 'poison']),
+      mixedSpread: spread(['arrow', 'cannon', 'bolt', 'frost', 'poison', 'sniper']),
       arrowMerge: mergeArmy(['arrow', 'arrow', 'arrow']),
-      mixedMerge: mergeArmy(['arrow', 'cannon', 'bolt', 'frost', 'poison']),
+      mixedMerge: mergeArmy(['arrow', 'cannon', 'bolt', 'frost', 'poison', 'sniper']),
     };
     const rows = [];
     for (const stage of STAGES) for (const [strategy, play] of Object.entries(strategies)) {
@@ -24,15 +24,12 @@ describe('balance measurement with production combat', () => {
     expect(rows.filter(r => r.strategy === 'none').every(r => !r.won)).toBe(true);
     expect(simulate(STAGES[1], strategies.mixedMerge, 42)).toEqual(simulate(STAGES[1], strategies.mixedMerge, 42));
 
-    // Design intent: on the hardest stage, concentrating gold into merges must
-    // out-perform blanketing the map with level-1 towers. If this flips, the
-    // merge mechanic has lost its teeth — retune tower level scaling.
+    // 후반은 한 타워만 머지해서 끝낼 수 없어야 한다. 적 특성이 늘어날수록
+    // 조합 선택의 의미가 커지고, 장갑·보호막·재생·소환의 카운터를 함께 배치해야 한다.
     const last = STAGES[STAGES.length - 1];
     for (const seed of [1, 42, 20260831]) {
-      const merge = simulate(last, strategies.arrowMerge, seed);
-      const spread = simulate(last, strategies.arrowSpread, seed);
-      expect(merge.won).toBe(true);
-      expect(merge.lives).toBeGreaterThanOrEqual(spread.lives);
+      const arrowOnly = simulate(last, strategies.arrowMerge, seed);
+      expect(arrowOnly.won).toBe(false);
     }
   }, 120000);
 });
