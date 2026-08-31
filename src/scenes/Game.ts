@@ -971,6 +971,8 @@ export class Game extends Phaser.Scene {
     }
 
     this.updateTowers(dtMs);
+    // 건설창이 열려 있으면 처치 골드가 들어오는 즉시 구매 가능 여부를 갱신한다.
+    if (this.buildMenu.isOpen) this.buildMenu.refresh();
     let activeShots = 0;
     for (const shot of this.projectiles) {
       if (shot.update(dtMsRaw, this.speedMul)) this.projectilePool.release(shot);
