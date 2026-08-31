@@ -371,19 +371,24 @@ export class Game extends Phaser.Scene {
       .setText(`${info.name} Lv${info.level}   ${dpsLine}\n${parts.join('   ')}${priorityLine}`)
       .setVisible(true);
 
-    if (this.upgradeButton) {
-      if (tower.level >= tower.maxLevel) {
-        this.upgradeButton.setVisible(false);
-      } else {
-        const cost = upgradeCost(def, tower.level);
-        const afford = this.eco.gold >= cost;
-        this.upgradeButton
-          .setText(`⬆ Lv${tower.level + 1} 강화  ${cost}G`)
-          .setStyle({ backgroundColor: afford ? '#2a5d3a' : '#4a3030', color: afford ? '#f2f2f7' : '#a88' })
-          .setPosition(20, this.inspectText.y + this.inspectText.height + 6)
-          .setVisible(true);
-      }
+    this.refreshUpgradeButton();
+  }
+
+  /** 골드 상황에 맞춰 강화 버튼 색·문구를 갱신한다. 선택된 타워가 있는 동안 매 프레임 호출. */
+  private refreshUpgradeButton(): void {
+    const tower = this.selectedTower;
+    if (!this.upgradeButton || !this.inspectText) return;
+    if (!tower || !this.towers.includes(tower) || tower.level >= tower.maxLevel) {
+      this.upgradeButton.setVisible(false);
+      return;
     }
+    const cost = upgradeCost(getTower(tower.key), tower.level);
+    const afford = this.eco.gold >= cost;
+    this.upgradeButton
+      .setText(`⬆ Lv${tower.level + 1} 강화  ${cost}G`)
+      .setStyle({ backgroundColor: afford ? '#2a5d3a' : '#4a3030', color: afford ? '#f2f2f7' : '#a88' })
+      .setPosition(20, this.inspectText.y + this.inspectText.height + 6)
+      .setVisible(true);
   }
 
   private tryUpgradeSelected(): void {
@@ -617,13 +622,15 @@ export class Game extends Phaser.Scene {
     countsForWave = true,
     summonedById: number | null = null,
     lane?: number,
+    at?: { route: Vec2[]; traveled: number },
   ) {
     const def = getEnemy(enemyKey);
     const allRoutes = this.path.routes();
-    const polyline = lane != null && lane >= 0 && lane < allRoutes.length
-      ? allRoutes[lane]
-      : this.path.chooseRoute(this.rng).polyline;
-    const enemy = new Enemy(this, def, polyline, modifiers, countsForWave, summonedById);
+    const polyline = at?.route
+      ?? (lane != null && lane >= 0 && lane < allRoutes.length
+        ? allRoutes[lane]
+        : this.path.chooseRoute(this.rng).polyline);
+    const enemy = new Enemy(this, def, polyline, modifiers, countsForWave, summonedById, at?.traveled ?? 0);
     this.enemies.push(enemy);
     if (countsForWave) this.waves.notifyEnemySpawned();
     if (def.isBoss) this.bus.emit('boss:spawned', { name: def.name });
@@ -972,8 +979,9 @@ export class Game extends Phaser.Scene {
     }
 
     this.updateTowers(dtMs);
-    // 건설창이 열려 있으면 처치 골드가 들어오는 즉시 구매 가능 여부를 갱신한다.
+    // 골드가 들어오는 즉시 건설창·강화버튼의 구매 가능 표시를 갱신한다.
     if (this.buildMenu.isOpen) this.buildMenu.refresh();
+    if (this.selectedTower) this.refreshUpgradeButton();
     let activeShots = 0;
     for (const shot of this.projectiles) {
       if (shot.update(dtMsRaw, this.speedMul)) this.projectilePool.release(shot);
@@ -999,6 +1007,16 @@ export class Game extends Phaser.Scene {
       if (e.hp <= 0) {
         this.bus.emit('enemy:killed', { bounty: e.def.bounty });
         this.floatingGold(e.pos, e.def.bounty);
+        // 분열체: 죽은 자리(경로 진행도 유지)에서 조각들로 쪼개진다.
+        const split = e.collectDeathSpawn();
+        if (split && e.hp <= 0) {
+          for (let i = 0; i < split.count; i++) {
+            const spread = (i - (split.count - 1) / 2) * 26;
+            this.spawnEnemy(split.enemyKey, {}, false, null, undefined, {
+              route: e.route, traveled: Math.max(0, e.traveledDistance - spread),
+            });
+          }
+        }
       }
       if (e.summonedById !== null) {
         this.enemies.find((parent) => parent.id === e.summonedById)?.notifySummonRemoved();

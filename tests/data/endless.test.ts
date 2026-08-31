@@ -48,6 +48,12 @@ describe('endless wave generator', () => {
     expect(has(6, 'shield')).toBe(false);
     expect(has(7, 'shield')).toBe(true);
     expect(has(9, 'regenerator')).toBe(true);
+    // 새 후반 위협은 40웨이브부터, 5의 배수에서만.
+    expect(has(35, 'splitter')).toBe(false);
+    expect(has(40, 'splitter')).toBe(true);
+    expect(has(42, 'splitter')).toBe(false);
+    expect(has(45, 'crusher')).toBe(true);
+    expect(has(50, 'berserker')).toBe(true);
   });
 
   it('escalates spawn points: one side alternating, then split columns, then all four', () => {

@@ -111,6 +111,11 @@ export interface EnemyDef {
   summon?: EnemySummonDef;
   /** 체력 구간별 이동·보호막·증원 패턴. isBoss 적에서만 사용한다. */
   bossPhases?: BossPhaseDef[];
+  /** 분열체: 죽으면 그 자리에서 이 적으로 쪼개진다(경로 진행도 이어받음). */
+  deathSpawn?: { enemyKey: string; count: number };
+  /** 광전사: 체력 비율이 rageBelow 이하가 되면 이동속도가 rageSpeedMultiplier 배가 된다. */
+  rageBelow?: number;
+  rageSpeedMultiplier?: number;
 }
 
 export interface WaveGroup {

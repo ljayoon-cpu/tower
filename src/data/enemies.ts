@@ -39,6 +39,28 @@ export const ENEMIES: Record<string, EnemyDef> = {
   minion: {
     key: 'minion', name: '호위 부하', hp: 24, speed: 92, bounty: 2, lifeDamage: 1, movementLayer: 'ground', intercepts: true,
   },
+  splitter: {
+    key: 'splitter', name: '분열체', hp: 110, speed: 64, bounty: 11, lifeDamage: 1, movementLayer: 'ground',
+    // 죽는 자리에서 세 조각으로 쪼개진다 — 폭딜 낭비를 처벌, 광역이 답.
+    deathSpawn: { enemyKey: 'splitterling', count: 3 },
+    resist: { splash: 1.25, single: 0.85, beam: 0.85 },
+  },
+  splitterling: {
+    key: 'splitterling', name: '분열 조각', hp: 22, speed: 104, bounty: 2, lifeDamage: 1, movementLayer: 'ground',
+    resist: { splash: 1.3 },
+  },
+  berserker: {
+    key: 'berserker', name: '광전사', hp: 140, speed: 58, bounty: 13, lifeDamage: 2, movementLayer: 'ground',
+    // 체력이 절반 밑이면 미쳐 날뛴다 — 몰아쳐서 한 번에 끝내라.
+    rageBelow: 0.5, rageSpeedMultiplier: 1.9,
+    resist: { slow: 0.55, single: 0.9 },
+  },
+  crusher: {
+    key: 'crusher', name: '파쇄기', hp: 950, speed: 30, bounty: 65, lifeDamage: 4, movementLayer: 'ground', armor: 14,
+    poisonResist: 0.4,
+    // 준보스급 벽. 한 종류로는 못 녹인다 — 지속 집중빔(레이저)이 그나마.
+    resist: { single: 0.5, splash: 0.72, chain: 0.6, slow: 0.5, poison: 0.55, beam: 1.1 },
+  },
   boss: {
     key: 'boss', name: '공성 지휘관', hp: 1800, speed: 90, bounty: 150, lifeDamage: 6, isBoss: true, movementLayer: 'ground', armor: 9,
     poisonResist: 0.3, // 중독만으로는 못 녹인다 — 직접 화력이 필요

@@ -31,6 +31,8 @@ export class Enemy {
   private _progress = 0;
   private _freed = false;
 
+  private deathSpawnPending = false;
+
   constructor(
     private readonly scene: Phaser.Scene,
     readonly def: EnemyDef,
@@ -38,11 +40,14 @@ export class Enemy {
     modifiers: EnemyModifiers = {},
     countsForWave = true,
     summonedById: number | null = null,
+    startTraveled = 0,
   ) {
     this.state = new EnemyState(def, modifiers);
     this.countsForWave = countsForWave;
     this.summonedById = summonedById;
     this.summonLeftMs = def.summon?.intervalMs ?? Infinity;
+    this.traveled = Math.max(0, startTraveled);
+    this.deathSpawnPending = def.deathSpawn != null;
     const start = polyline[0];
     this.sprite = scene.add.image(start.x, start.y, `enemy_${def.key}`);
     // 원본 아트를 길 타일 안에서 읽히는 44px 크기로 축소한다.
@@ -76,6 +81,16 @@ export class Enemy {
   get hp(): number { return this.state.hp; }
   get alive(): boolean { return this.state.alive && !this._done; }
   get reachedGoal(): boolean { return this._done; }
+  /** 분열 자식이 부모 경로·진행도를 이어받도록. */
+  get route(): Vec2[] { return this.polyline; }
+  get traveledDistance(): number { return this.traveled; }
+
+  /** 죽은 뒤 한 번만: 분열 스폰 정보(자리에서 쪼개짐). 없으면 null. */
+  collectDeathSpawn(): { enemyKey: string; count: number } | null {
+    if (this.alive || !this.deathSpawnPending || !this.def.deathSpawn) return null;
+    this.deathSpawnPending = false;
+    return this.def.deathSpawn;
+  }
   get progress(): number { return this._progress; }
   get intercepts(): boolean { return this.def.intercepts === true; }
   get movementSpeedMultiplier(): number { return this.bossSpeedMultiplier; }
@@ -209,7 +224,11 @@ export class Enemy {
 
     const movingMs = simulationMs - frozenMs;
     const slowedMs = Math.min(movingMs, Math.max(0, this.slowLeftMs));
-    this.traveled += this.state.speed * this.bossSpeedMultiplier * (slowedMs * this.slowMul + movingMs - slowedMs) / 1000;
+    // 광전사: 체력이 rageBelow 이하면 이동속도 폭증.
+    const rage = this.def.rageBelow != null && this.healthRatio <= this.def.rageBelow
+      ? this.def.rageSpeedMultiplier ?? 1 : 1;
+    this.traveled += this.state.speed * this.bossSpeedMultiplier * rage
+      * (slowedMs * this.slowMul + movingMs - slowedMs) / 1000;
     this.slowLeftMs = Math.max(0, this.slowLeftMs - simulationMs);
     if (this.slowLeftMs === 0) this.slowMul = 1;
     this.summonLeftMs -= simulationMs;

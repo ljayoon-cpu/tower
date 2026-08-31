@@ -108,6 +108,23 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.clear(); g.fillStyle(0xffd75a, 1); g.fillPoints([new Phaser.Math.Vector2(10, 1), new Phaser.Math.Vector2(19, 10), new Phaser.Math.Vector2(10, 19), new Phaser.Math.Vector2(1, 10)], true); g.lineStyle(2, 0xfff1ad, 1); g.strokePoints([new Phaser.Math.Vector2(10, 1), new Phaser.Math.Vector2(19, 10), new Phaser.Math.Vector2(10, 19), new Phaser.Math.Vector2(1, 10)], true); g.generateTexture('enemy_minion', 20, 20);
   circle('enemy_normal', COLORS.enemyNormal, 14);
   circle('enemy_tank', COLORS.enemyTank, 20);
+  // 분열체: 금 간 주황 덩어리. 조각은 작은 삼각형.
+  g.clear(); g.fillStyle(0xe8963a, 1); g.fillCircle(16, 16, 15); g.lineStyle(2, 0x3a1f0c, 1);
+  g.lineBetween(16, 2, 14, 16); g.lineBetween(14, 16, 16, 30); g.lineBetween(14, 16, 3, 12); g.lineBetween(14, 16, 28, 20);
+  g.generateTexture('enemy_splitter', 32, 32);
+  g.clear(); g.fillStyle(0xf0a85a, 1); g.fillTriangle(9, 3, 17, 16, 1, 16); g.generateTexture('enemy_splitterling', 18, 18);
+  // 광전사: 붉은 톱니 원.
+  g.clear(); g.fillStyle(0xd1362f, 1);
+  g.fillPoints(Array.from({ length: 10 }, (_, i) => {
+    const a = (i / 10) * Math.PI * 2; const r = i % 2 ? 9 : 16;
+    return new Phaser.Math.Vector2(16 + Math.cos(a) * r, 16 + Math.sin(a) * r);
+  }), true);
+  g.fillStyle(0xffd0b0, 1); g.fillCircle(16, 16, 5); g.generateTexture('enemy_berserker', 32, 32);
+  // 파쇄기: 두꺼운 강철 육각 + 톱니 테두리.
+  g.clear(); g.fillStyle(0x6b7686, 1);
+  g.fillPoints([new Phaser.Math.Vector2(22, 3), new Phaser.Math.Vector2(41, 14), new Phaser.Math.Vector2(41, 30), new Phaser.Math.Vector2(22, 41), new Phaser.Math.Vector2(3, 30), new Phaser.Math.Vector2(3, 14)], true);
+  g.fillStyle(0x2c333d, 1); g.fillCircle(22, 22, 11);
+  g.lineStyle(4, 0xc7d0dc, 1); g.strokeCircle(22, 22, 18); g.generateTexture('enemy_crusher', 44, 44);
   // 왕관·방패·어깨 장갑을 써서, 화면에 나타나는 순간 보스임을 알아보게 한다.
   g.clear(); g.fillStyle(0x5d1727, 1); g.fillCircle(28, 32, 25);
   g.fillStyle(COLORS.enemyBoss, 1); g.fillCircle(28, 30, 19);

@@ -141,6 +141,24 @@ describe('enemy definitions', () => {
     expect(ENEMIES.summoner.summon).toMatchObject({ enemyKey: 'minion' });
     expect(ENEMIES.minion.intercepts).toBe(true);
   });
+  it('gives each enemy a clear counter via the resist table', () => {
+    expect(ENEMIES.tank.resist?.splash).toBeGreaterThan(1);   // 장갑병 ← 대포
+    expect(ENEMIES.tank.resist?.single).toBeLessThan(1);
+    expect(ENEMIES.shield.resist?.chain).toBeGreaterThan(1);  // 방어막병 ← 번개
+    expect(ENEMIES.regenerator.resist?.poison).toBeGreaterThan(1); // 재생충 ← 독
+    expect(ENEMIES.boss.resist?.beam).toBeGreaterThan(1);     // 보스 ← 레이저
+    expect(ENEMIES.boss.resist?.single).toBeLessThan(1);
+  });
+
+  it('adds late-endless threats: splitter, berserker, crusher', () => {
+    expect(ENEMIES.splitter.deathSpawn).toMatchObject({ enemyKey: 'splitterling' });
+    expect(ENEMIES.splitterling.hp).toBeLessThan(ENEMIES.splitter.hp);
+    expect(ENEMIES.berserker.rageBelow).toBeGreaterThan(0);
+    expect(ENEMIES.berserker.rageSpeedMultiplier!).toBeGreaterThan(1);
+    expect(ENEMIES.crusher.hp).toBeGreaterThan(ENEMIES.tank.hp * 2);
+    expect(ENEMIES.crusher.armor!).toBeGreaterThan(ENEMIES.tank.armor!);
+  });
+
   it('getEnemy throws on unknown key', () => {
     expect(() => getEnemy('nope')).toThrow();
   });

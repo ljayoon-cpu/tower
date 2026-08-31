@@ -130,6 +130,13 @@ export function endlessWave(n: number): Wave {
   if (n >= 12 && n % 4 === 0) {
     across(specialLanes, 'summoner', 1 + Math.floor(t / 10), { intervalMs: 900, startDelayMs: 1800, ...withHp() });
   }
+  // 40웨이브부터 5웨이브마다 새 위협: 분열체·광전사, 그리고 준보스 파쇄기.
+  if (n >= 40 && n % 5 === 0) {
+    const step = Math.floor((n - 40) / 5);
+    across(specialLanes, 'splitter', 2 + Math.floor(step / 2), { intervalMs: 700, startDelayMs: 1500, ...withHp() });
+    across(specialLanes, 'berserker', 2 + Math.floor(step / 2), { intervalMs: 520, startDelayMs: 1900, ...withHp(), speedMultiplier: spd });
+    across(bossLanes, 'crusher', 1 + Math.floor(step / 3), { intervalMs: 2600, startDelayMs: 2400, ...withHp() });
+  }
   if (n >= 10 && n % 5 === 0) {
     // 15웨이브까지는 한 입구에서만, 그 뒤 사방 협공. 첫 보스는 기본 체력보다 약하게 시작.
     const bossFrom = phase === 'both' ? bossLanes : [alt === 0 ? 0 : 3];
