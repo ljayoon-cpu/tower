@@ -13,7 +13,7 @@ describe('parseGrid', () => {
 
 describe('stage definitions', () => {
   it('stages are 1-1.. in order', () => {
-    expect(STAGE_IDS).toEqual(['1-1', '1-2', '1-3', '1-4', '1-5', '1-6']);
+    expect(STAGE_IDS).toEqual(['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7']);
   });
 
   it('every stage grid is GRID_COLS x GRID_ROWS', () => {
@@ -60,7 +60,7 @@ describe('stage definitions', () => {
 
   it('nextStageId chains and ends null', () => {
     expect(nextStageId('1-1')).toBe('1-2');
-    expect(nextStageId('1-6')).toBeNull();
+    expect(nextStageId('1-7')).toBeNull();
   });
 
   it('spawn tile and goal tiles are on PATH', () => {
