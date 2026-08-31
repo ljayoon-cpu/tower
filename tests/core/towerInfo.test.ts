@@ -31,6 +31,12 @@ describe('towerInfo', () => {
     expect(towerInfo('frost', 1).note).toContain('감속');
   });
 
+  it('shows the sniper execution threshold for merge levels', () => {
+    expect(towerInfo('sniper', 2).note).not.toContain('처형');
+    expect(towerInfo('sniper', 3).note).toContain('처형: HP 30%↓ 1.6배');
+    expect(towerInfo('sniper', 5).note).toContain('처형: HP 40%↓ 2.2배');
+  });
+
   it('clamps level into range', () => {
     expect(towerInfo('arrow', 0).level).toBe(1);
     expect(towerInfo('arrow', 99).level).toBe(5);

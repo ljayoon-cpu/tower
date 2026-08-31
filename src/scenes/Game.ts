@@ -25,6 +25,7 @@ import { WaveManager } from '../systems/WaveManager';
 import { EconomyManager } from '../systems/EconomyManager';
 import { Rng } from '../core/rng';
 import { chooseTowerBan, isTowerBanned } from '../core/runRules';
+import { sniperDamageMultiplier } from '../data/sniperMergeEffects';
 
 import { Enemy } from '../entities/Enemy';
 import type { EnemyModifiers } from '../systems/EnemyState';
@@ -653,7 +654,10 @@ export class Game extends Phaser.Scene {
           } else {
             if (!enemy.alive) return;
             enemy.takeDamage(def.key === 'sniper'
-              ? { amount: s.damage, armorPierce: s.armorPierce ?? 0 }
+              ? {
+                amount: s.damage * sniperDamageMultiplier(tower.level, enemy.healthRatio),
+                armorPierce: s.armorPierce ?? 0,
+              }
               : s.damage);
             this.impactFlash(enemy.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
               def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');
