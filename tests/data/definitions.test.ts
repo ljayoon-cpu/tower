@@ -1,4 +1,5 @@
 import { TOWERS, TOWER_KEYS, getTower } from '../../src/data/towers';
+import { towerInfo } from '../../src/core/towerInfo';
 import { ENEMIES, getEnemy } from '../../src/data/enemies';
 
 describe('tower definitions', () => {
@@ -29,6 +30,21 @@ describe('tower definitions', () => {
     const lv = TOWERS.bolt.levels;
     expect(lv[4].chainTargets!).toBeGreaterThanOrEqual(lv[0].chainTargets!);
     expect(lv[4].chainFalloff!).toBeGreaterThanOrEqual(lv[0].chainFalloff!);
+  });
+
+  it('adds sniper as a costly long-range tower without beating arrow gold efficiency', () => {
+    const sniper = getTower('sniper');
+    const arrow = getTower('arrow');
+
+    expect(sniper).toMatchObject({ key: 'sniper', name: '저격탑', attack: 'single', cost: 125, maxLevel: 5 });
+    expect(sniper.levels.map((level) => level.damage)).toEqual([28, 56, 112, 225, 450]);
+    expect(sniper.levels[0].range).toBeGreaterThan(arrow.levels[arrow.levels.length - 1].range);
+
+    for (let level = 1; level <= sniper.maxLevel; level++) {
+      const sniperPerGold = towerInfo('sniper', level).dps / (sniper.cost * 2 ** (level - 1));
+      const arrowPerGold = towerInfo('arrow', level).dps / (arrow.cost * 2 ** (level - 1));
+      expect(sniperPerGold).toBeLessThan(arrowPerGold);
+    }
   });
 
   it('getTower throws on unknown key', () => {

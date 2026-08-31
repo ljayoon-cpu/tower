@@ -30,6 +30,7 @@ class DisplayObject {
   setRotation() { return this; }
   setRadius() { return this; }
   setActive() { return this; }
+  setTexture() { return this; }
   clear() { return this; }
   fillStyle() { return this; }
   fillRect() { return this; }
