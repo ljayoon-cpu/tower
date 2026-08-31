@@ -863,6 +863,7 @@ export class Game extends Phaser.Scene {
     const targets = this.enemies;
 
     for (const tower of this.towers) {
+      tower.updateVisual(dtMs);
       const def = getTower(tower.key);
       if (def.attack === 'support') {
         this.updateSupportTower(tower, tower.stats(), dtMs);
@@ -882,6 +883,7 @@ export class Game extends Phaser.Scene {
       const enemy = this.enemies.find((e) => e.id === target.id);
       if (!enemy) continue;
       tower.faceToward(enemy.pos);
+      tower.playAttack();
       if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
         this.audio.play(tower.key);
       }
