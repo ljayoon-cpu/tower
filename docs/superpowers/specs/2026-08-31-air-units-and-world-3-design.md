@@ -10,19 +10,18 @@
 
 메타 진행(업적/일일도전/해금)은 이번 범위 밖. "다음 월드를 본다"가 당분간의 보상.
 
-## 담당 경계 (중요)
+## 담당 경계
 
-`src/data/enemies.ts`·`src/data/towers.ts`·`src/entities/Enemy.ts`·`src/systems/EnemyState.ts`는
-AGENTS.md상 Codex 구역이다. 사용자가 이 작업을 Claude에게 명시 지시했다(2026-08-31).
-경계를 이렇게 나눈다:
+사용자 지시(2026-08-31): **"그냥 너가 다 해, 이미지만 코덱스에 맡긴다."**
+AGENTS.md의 Codex 구역(`enemies.ts`·`towers.ts`·`Enemy.ts`·`EnemyState.ts`)을 이번 작업에
+한해 Claude가 전부 담당한다.
 
-| Claude (이번 구현) | Codex (이후 재조정 가능) |
+| Claude (전부) | Codex |
 |---|---|
-| 공중 **메커니즘**: `movementLayer` 소비, 타겟 레이어 필터, 공중 렌더(고도·그림자), 타워 `targetsAir/Ground` 플래그, `airDamageMultiplier` 필드 | 공중 적의 **컨셉·이름·최종 수치**, 대공탑 최종 밸런스, 월드 3 웨이브 난이도 곡선 |
-| 대공탑 스캐폴딩 수치 (동작하는 초안) | " |
-| 월드 3 맵 골격 + 웨이브 초안 | " |
+| 공중 메커니즘, 타겟 필터, 렌더 로직, 대공탑, 공중 적 정의·이름·수치, 월드 3 맵·웨이브, 밸런스 | **아트만** — 공중 적 스프라이트, 창공탑 텍스처 등 (당분간 `generateTexture` 도형으로 진행하다가 교체) |
 
-스캐폴딩 수치는 `monoTower.test.ts`·`balance.test.ts` 통과선만 맞춘다. 최종 밸런싱은 Codex.
+수치는 `monoTower.test.ts`·`balance.test.ts` 회귀선을 지키고, `tests/balance` 시뮬 + 사용자
+손 검증으로 확정한다. 적/타워 이름은 [docs/world.md](../../world.md) 톤에 맞춘다(`key` 고정).
 
 ## 결정 사항 (브레인스토밍)
 
@@ -117,19 +116,20 @@ ballista: {
 
 `towerInfo.ts` `noteOf`: `airDamageMultiplier > 1`이면 `대공 피해 x{n}` 노트.
 
-## 5. 공중 적 (스타터 — Codex 재설계 예정)
+## 5. 공중 적 (4종)
 
 `src/data/enemies.ts`. `movementLayer: 'air'`. 세계관: 태엽 군단의 비행 편대.
 
-| key | 임시 이름 | 역할 | 개략 수치 |
+| key | 이름 | 역할 | 개략 수치 (구현 시 시뮬로 조정) |
 |---|---|---|---|
 | `drone` | 정찰 비행체 | 공중 스웜 필러. 빠르고 물렁 | hp 26, speed 120, bounty 4, lifeDamage 1 |
 | `gunship` | 포격 비행정 | 느리고 단단, lifeDamage 큼 | hp 200, speed 46, bounty 18, lifeDamage 3, armor 4 |
 | `carrier` | 강하 수송선 | 죽으면 지상 잡졸 투하 (`deathSpawn` → `minion` 3) | hp 260, speed 40, bounty 20, lifeDamage 2 |
 | `airboss` | 공중 기함 | 3-7 피날레. `isBoss`, bossPhases(가속·증원) | hp 2200, speed 70, bounty 180, lifeDamage 6, armor 6 |
 
-`resist`: 대공탑(`single`)·번개(`chain`)에 표준, 마광(`beam`)에 약간 강 등 — Codex 확정.
+`resist`: 대공탑(`single`)·번개(`chain`)에 표준, 마광(`beam`)에 약간 강 등 — 구현 시 확정.
 `carrier`의 `deathSpawn` 잡졸은 **지상** 레이어라 착지 후 지상 타워가 처리.
+아트는 Codex 담당 전까지 `generateTexture` 도형(`WALK_ANIMATED` 미포함).
 
 Preload/textures: 공중 적도 당분간 `generateTexture` 도형 (걷기 시트 없음, `WALK_ANIMATED` 미포함).
 
@@ -139,7 +139,7 @@ Preload/textures: 공중 적도 당분간 `generateTexture` 도형 (걷기 시�
 구름 위, 찬 공기, 강철 비행선 실루엣. `WORLD_THEMES['3']` = 차가운 청회색 하늘 팔레트
 (예: `path: 0x3a4a63, buildable: 0x1e2740`). `constants.ts`에 추가.
 
-**7스테이지 곡선** (맵 골격은 기존 링/분기 재사용·변형, 웨이브 초안은 Codex 재조정):
+**7스테이지 곡선** (맵 골격은 기존 링/분기 재사용·변형, 웨이브는 `tests/balance` 시뮬로 조정):
 
 | 스테이지 | 도입 | 비고 |
 |---|---|---|
@@ -181,7 +181,9 @@ Preload/textures: 공중 적도 당분간 `generateTexture` 도형 (걷기 시�
 
 ## 리스크
 
-- **Codex 구역 동시 편집.** 이 브랜치가 열려 있는 동안 Codex가 `enemies.ts`/`towers.ts`를
-  만지면 충돌. 작업 전 `git fetch` + Codex에 브랜치 알림. 한 기능 한 커밋, `origin/main` 위 rebase.
-- **밸런스 시뮬은 하한선.** 공중 수치는 시뮬만 보고 확정 금지 — 사용자/Codex 손 검증.
-- 월드 3 7스테이지는 분량이 크다. 맵 골격·웨이브는 초안이고, Codex 밸런싱 패스를 전제로 머지.
+- **Codex 구역 동시 편집.** 사용자가 Claude 전담으로 정리했으나, Codex가 아트 교체하며
+  `enemies.ts`/`textures.ts`를 만질 수 있음. 작업 전 `git fetch`, 한 기능 한 커밋, `origin/main`
+  위 rebase. 큰 충돌 시 사용자에게 알림.
+- **밸런스 시뮬은 하한선.** 공중 수치는 시뮬 통과 후 사용자 손 검증으로 확정.
+- 월드 3 7스테이지는 분량이 크다 — 구현 계획에서 단계를 나눈다(메커니즘 → 대공탑/공중 적
+  → 월드 3).
