@@ -73,15 +73,16 @@ export function endlessSpawnPhase(n: number): 'single' | 'split' | 'both' {
 export function endlessWave(n: number): Wave {
   const t = n - 1;
   const groups: WaveGroup[] = [];
-  // 머지로 오른 타워 화력은 지수적으로 커진다 — 그래서 후반 적 체력도 지수적으로 키운다.
-  const late = Math.max(0, n - 12);
-  const swarm = 6 + Math.floor(t * 0.9) + Math.floor(late ** 1.3 * 0.09);
-  const interval = Math.max(85, 335 - t * 6);
+  // 링을 가득 채운 만렙 타워 군단도 언젠가 뚫리도록, 후반 적 체력을 세게 지수적으로 키운다.
+  const late = Math.max(0, n - 10);
+  const swarm = 6 + Math.floor(t * 0.9) + Math.floor(late ** 1.35 * 0.1);
+  const interval = Math.max(80, 335 - t * 6);
   const fastShare = Math.min(0.62, 0.18 + t * 0.025);
-  // 웨이브 전체 체력 배율: 12웨이브까진 1.0, 그 뒤 웨이브당 복리 +5.5%.
-  const hpFactor = 1.05 ** late;
-  // 22웨이브부터 스웜 이동속도도 서서히 오른다(타워 사격 시간 압박).
-  const spd = 1 + Math.max(0, n - 22) * 0.02;
+  // 웨이브 전체 체력 배율: 10웨이브까진 1.0, 그 뒤 웨이브당 복리 +7%.
+  // (링을 가득 채운 만렙 요새가 60웨이브를 쉽게 넘겨서 크게 올림 — 실플레이 피드백으로 재조정.)
+  const hpFactor = 1.07 ** late;
+  // 20웨이브부터 스웜 이동속도도 서서히 오른다(타워 사격 시간 압박).
+  const spd = 1 + Math.max(0, n - 20) * 0.022;
   const withHp = (m = 1): Partial<WaveGroup> => ({ hpMultiplier: m * hpFactor });
   const phase = endlessSpawnPhase(n);
   const alt = (n - 1) % 2; // 이번 웨이브가 먼저 쓰는 입구
@@ -132,10 +133,10 @@ export function endlessWave(n: number): Wave {
   if (n >= 10 && n % 5 === 0) {
     // 15웨이브까지는 한 입구에서만, 그 뒤 사방 협공. 첫 보스는 기본 체력보다 약하게 시작.
     const bossFrom = phase === 'both' ? bossLanes : [alt === 0 ? 0 : 3];
-    const bossCount = n >= 45 ? 3 : n >= 25 ? 2 : 1;
+    const bossCount = n >= 50 ? 4 : n >= 35 ? 3 : n >= 25 ? 2 : 1;
     across(bossFrom, 'boss', bossCount, {
-      intervalMs: 3600, startDelayMs: 1200,
-      hpMultiplier: (0.55 + Math.floor((n - 10) / 5) * 0.18) * hpFactor,
+      intervalMs: 3400, startDelayMs: 1200,
+      hpMultiplier: (0.55 + Math.floor((n - 10) / 5) * 0.2) * hpFactor,
       shieldMultiplier: 1 + Math.max(0, Math.floor((n - 20) / 10)) * 0.2,
     });
   }
