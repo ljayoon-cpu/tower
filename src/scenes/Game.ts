@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   COLORS, TILE, GRID_COLS, GRID_ROWS, GAME_WIDTH, GAME_HEIGHT,
-  WAVE_INTEREST_RATE, WAVE_INTEREST_CAP,
+  WAVE_INTEREST_RATE, WAVE_INTEREST_CAP, WORLD_THEMES,
 } from '../core/constants';
 import { createEventBus } from '../core/eventBus';
 import type { EventBus } from '../core/eventBus';
@@ -206,13 +206,14 @@ export class Game extends Phaser.Scene {
   }
 
   private drawMap() {
+    const theme = WORLD_THEMES[this.stage.id.split('-')[0]] ?? WORLD_THEMES['1'];
     for (let r = 0; r < GRID_ROWS; r++) {
       for (let c = 0; c < GRID_COLS; c++) {
         const t = this.grid.tileAt({ col: c, row: r });
         if (t === null || t === 'BLOCKED') continue;
         const img = this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, 'tile');
         img.setDisplaySize(TILE - 2, TILE - 2);
-        img.setTint(t === 'PATH' ? COLORS.path : COLORS.buildable);
+        img.setTint(t === 'PATH' ? theme.path : theme.buildable);
       }
     }
   }

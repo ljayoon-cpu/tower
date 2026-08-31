@@ -32,3 +32,9 @@ export const COLORS = {
   enemyTank: 0xaa88ff,
   enemyBoss: 0xff3355,
 } as const;
+
+// 스테이지 id의 월드 번호로 타일 색을 고른다. 없으면 월드 1 팔레트.
+export const WORLD_THEMES: Record<string, { path: number; buildable: number }> = {
+  '1': { path: COLORS.path, buildable: COLORS.buildable },
+  '2': { path: 0x5c4034, buildable: 0x2c211d }, // 붉은 바위 동굴
+};

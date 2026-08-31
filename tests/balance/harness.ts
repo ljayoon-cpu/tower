@@ -183,10 +183,16 @@ export function spread(keys: string[]): Strategy {
 export function mergeArmy(keys: string[], maxLevel = 3): Strategy {
   return c => {
     // Keep a small mixed core, then raise each core tower in rotation.
-    for (let i = 0; i < keys.length; i++) {
-      const [col, row] = trunkTiles[i];
-      if (!c.game.towers.some(t => t.tile.col === col && t.tile.row === row)) {
-        if (!c.buy(keys[i], col, row)) return;
+    // Pick the first placeable trunk tile per core tower so the strategy
+    // works on any map layout (world 1 keeps its original tiles since the
+    // early trunkTiles entries stay buildable there).
+    if (c.game.towers.length < keys.length) {
+      const used = new Set(c.game.towers.map(t => `${t.tile.col},${t.tile.row}`));
+      for (let i = c.game.towers.length; i < keys.length; i++) {
+        const tile = trunkTiles.find(([col, row]) =>
+          !used.has(`${col},${row}`) && c.game.grid.canPlace({ col, row }));
+        if (!tile || !c.buy(keys[i], ...tile)) return;
+        used.add(`${tile[0]},${tile[1]}`);
       }
     }
     const core = [...c.game.towers];
@@ -194,15 +200,23 @@ export function mergeArmy(keys: string[], maxLevel = 3): Strategy {
       if (tower.level >= level) continue;
       const cost = getTower(tower.key).cost * 2 ** (tower.level - 1);
       if (!c.game.eco.canAfford(cost)) return;
-      const make = (targetLevel: number): Tower => {
+      // Build a feeder tower at the same level, then merge it in. Returns null
+      // when it runs out of gold or free workspace tiles — the strategy just
+      // keeps whatever it has (models a real "no space left" situation).
+      const make = (targetLevel: number): Tower | null => {
         const tile = trunkTiles.find(([col, row]) => c.game.grid.canPlace({ col, row }));
-        if (!tile) throw Error('no merge workspace');
+        if (!tile) return null;
         const result = c.buy(tower.key, ...tile);
-        if (!result) throw Error('insufficient merge funds');
-        while (result.level < targetLevel) c.merge(make(result.level), result);
+        if (!result) return null;
+        while (result.level < targetLevel) {
+          const feeder = make(result.level);
+          if (!feeder) return null;
+          c.merge(feeder, result);
+        }
         return result;
       };
-      c.merge(make(tower.level), tower);
+      const feeder = make(tower.level);
+      if (feeder) c.merge(feeder, tower);
     }
     spread(keys)(c);
   };
