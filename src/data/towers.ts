@@ -124,9 +124,9 @@ export function cumulativeCost(def: TowerDef, _level: number): number {
 
 /**
  * 머지 대신 골드로 바로 다음 레벨(level → level+1)로 올리는 비용.
- * 머지 상당 비용(2^(level-1) × 설치비) + 레벨당 10G 프리미엄. 머지가 살짝 이득이지만
- * 자리·타워가 없어도 즉시 강화할 수 있다.
+ * 머지와 같은 값(2^(level-1) × 설치비) — 자리·타워가 없어도 즉시 강화할 수 있고
+ * 가격 페널티는 없다. 머지는 자리/드래그가 필요한 대신 골드가 같다.
  */
 export function upgradeCost(def: TowerDef, level: number): number {
-  return def.cost * 2 ** (level - 1) + 10 * level;
+  return def.cost * 2 ** (level - 1);
 }
