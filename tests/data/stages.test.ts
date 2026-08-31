@@ -16,7 +16,7 @@ describe('stage definitions', () => {
     expect(STAGE_IDS).toEqual([
       '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8',
       '2-1', '2-2', '2-3', '2-4', '2-5',
-      '3-1', '3-2', '3-3', '3-4',
+      '3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7',
     ]);
   });
 
@@ -68,11 +68,13 @@ describe('stage definitions', () => {
     expect(nextStageId('2-4')).toBe('2-5');
     expect(nextStageId('2-5')).toBe('3-1');
     expect(nextStageId('3-3')).toBe('3-4');
-    expect(nextStageId('3-4')).toBeNull();
+    expect(nextStageId('3-4')).toBe('3-5');
+    expect(nextStageId('3-6')).toBe('3-7');
+    expect(nextStageId('3-7')).toBeNull();
   });
 
   it('marks only the boss-showdown stages as bossStage', () => {
-    expect(STAGES.filter((s) => s.bossStage).map((s) => s.id)).toEqual(['1-8', '2-5']);
+    expect(STAGES.filter((s) => s.bossStage).map((s) => s.id)).toEqual(['1-8', '2-5', '3-7']);
   });
 
   it('ends world 2 with a dedicated commander boss stage', () => {

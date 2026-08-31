@@ -136,8 +136,17 @@ export class Game extends Phaser.Scene {
     // 튜토리얼 중에는 자동 웨이브를 보류 — 플레이어가 첫 웨이브를 직접 시작한다.
     this.tutorial = this.stage.id === '1-1' && !loadSave().tutorialDone ? new Tutorial() : undefined;
     // 타워 봉인은 보스전에서만. (튜토리얼 스테이지는 보스전이 아니므로 항상 봉인 없음.)
+    // 봉인 후보는 전투 타워로 한정한다: 지원형(지휘탑·연금탑)은 봉인해도 방어 자체엔
+    // 영향이 없어 봉인 슬롯이 낭비되고, 대공 특화 창공탑을 봉인하면 공중 보스전(3-7)이
+    // 불합리해진다. 나머지 화살/서리/번개/저격/역병/파열/마광은 모두 봉인 대상.
     this.bannedTowerKey = this.stage.bossStage
-      ? chooseTowerBan(TOWER_KEYS, this.rng)
+      ? chooseTowerBan(
+          TOWER_KEYS.filter((key) => {
+            const t = getTower(key);
+            return t.attack !== 'support' && key !== 'ballista';
+          }),
+          this.rng,
+        )
       : null;
     if (!this.tutorial) this.waves.enableAutoAdvance(Game.WAVE_GAP_MS);
     this.lastCountdown = -1;
