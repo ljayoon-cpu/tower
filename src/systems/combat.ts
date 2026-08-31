@@ -50,3 +50,22 @@ export function buildChain(
   }
   return chain;
 }
+
+/**
+ * 멀티샷은 현재 선택된 표적을 반드시 포함하고, 그 주변의 가까운 유효 표적을 더 고른다.
+ * 추가 표적도 포탑 사거리 안에 있어야 하며 같은 적을 두 번 쏘지 않는다.
+ */
+export function buildMultiShot(
+  primary: Targetable,
+  all: Targetable[],
+  origin: Vec2,
+  range: number,
+  shotCount: number,
+): Targetable[] {
+  const r2 = range * range;
+  const extras = all
+    .filter((enemy) => enemy.alive && enemy.id !== primary.id && dist2(origin, enemy.pos) <= r2)
+    .sort((a, b) => dist2(primary.pos, a.pos) - dist2(primary.pos, b.pos) || a.id - b.id)
+    .slice(0, Math.max(0, shotCount - 1));
+  return [primary, ...extras];
+}

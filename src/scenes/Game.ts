@@ -31,7 +31,7 @@ import { Tower } from '../entities/Tower';
 import { Projectile } from '../entities/Projectile';
 import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius } from '../systems/TargetingSystem';
-import { chainDamages, buildChain } from '../systems/combat';
+import { buildMultiShot, chainDamages, buildChain } from '../systems/combat';
 import { BuildMenu } from '../ui/BuildMenu';
 import { audioFor } from '../ui/audio';
 import type { SoundEffects } from '../core/audio';
@@ -625,32 +625,38 @@ export class Game extends Phaser.Scene {
         continue;
       }
 
-      this.fireProjectile(tower.homePos, {
+      const shotTargets = def.key === 'arrow'
+        ? buildMultiShot(enemy, this.enemies, tower.homePos, s.range, s.projectileCount ?? 1)
+        : [enemy];
+      const damage = s.damage * (def.key === 'arrow' ? s.projectileDamageMultiplier ?? 1 : 1);
+      for (const shotTarget of shotTargets) this.fireProjectile(tower.homePos, {
         speed: 520,
         textureKey: PROJECTILE_TEXTURE[tower.key],
-        targetPos: () => (enemy.alive ? enemy.pos : null),
+        targetPos: () => (shotTarget.alive ? shotTarget.pos : null),
         onHit: (hitPos) => {
           if (def.attack === 'poison') {
             this.impactFlash(hitPos, COLORS.poison, 'light');
             for (const hit of enemiesInRadius(hitPos, s.poisonRadius ?? 0, this.enemies)) {
               const affected = this.enemies.find((e) => e.id === hit.id);
-              affected?.takeDamage(s.damage);
+              affected?.takeDamage(damage);
               affected?.applyPoison(s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
             }
           } else if (def.attack === 'splash') {
             this.impactFlash(hitPos, COLORS.cannon, 'heavy');
             for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0,
               this.enemies)) {
-              this.enemies.find((e) => e.id === hit.id)?.takeDamage(s.damage);
+              this.enemies.find((e) => e.id === hit.id)?.takeDamage(damage);
             }
           } else {
-            if (!enemy.alive) return;
-            enemy.takeDamage(def.key === 'sniper'
-              ? { amount: s.damage, armorPierce: s.armorPierce ?? 0 }
-              : s.damage);
-            this.impactFlash(enemy.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
+            if (!shotTarget.alive) return;
+            const targetEnemy = this.enemies.find((e) => e.id === shotTarget.id);
+            if (!targetEnemy) return;
+            targetEnemy.takeDamage(def.key === 'sniper'
+              ? { amount: damage, armorPierce: s.armorPierce ?? 0 }
+              : damage);
+            this.impactFlash(targetEnemy.pos, def.attack === 'slow' ? COLORS.frost : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
               def.attack === 'slow' ? 'frost' : def.key === 'sniper' ? 'heavy' : 'light');
-            if (def.attack === 'slow') enemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
+            if (def.attack === 'slow') targetEnemy.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
           }
         },
       });

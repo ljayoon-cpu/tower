@@ -26,10 +26,14 @@ function dpsOf(stats: TowerLevelStats, attack: string): number {
     return Math.round(sum * stats.fireRate);
   }
   if (attack === 'poison') return Math.round(stats.damage * stats.fireRate + (stats.poisonDps ?? 0));
-  return Math.round(stats.damage * stats.fireRate);
+  const volleyMultiplier = (stats.projectileCount ?? 1) * (stats.projectileDamageMultiplier ?? 1);
+  return Math.round(stats.damage * stats.fireRate * volleyMultiplier);
 }
 
 function noteOf(stats: TowerLevelStats, attack: string): string {
+  if ((stats.projectileCount ?? 1) > 1) {
+    return `멀티샷 ${stats.projectileCount}발 · 발당 ${Math.round((stats.projectileDamageMultiplier ?? 1) * 100)}%`;
+  }
   if (attack === 'splash') return `광역 반경 ${stats.splashRadius ?? 0}`;
   if (attack === 'slow') return `감속 ${Math.round((1 - (stats.slowMul ?? 1)) * 100)}%`;
   if (attack === 'chain') return `연쇄 ${(stats.chainTargets ?? 0) + 1}타`;

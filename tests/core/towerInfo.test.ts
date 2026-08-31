@@ -31,6 +31,14 @@ describe('towerInfo', () => {
     expect(towerInfo('frost', 1).note).toContain('감속');
   });
 
+  it('shows arrow merge multishot damage and its total dps', () => {
+    expect(towerInfo('arrow', 3)).toMatchObject({
+      dps: Math.round(28 * 2.4 * 2 * 0.6),
+      note: '멀티샷 2발 · 발당 60%',
+    });
+    expect(towerInfo('arrow', 5).note).toBe('멀티샷 3발 · 발당 45%');
+  });
+
   it('clamps level into range', () => {
     expect(towerInfo('arrow', 0).level).toBe(1);
     expect(towerInfo('arrow', 99).level).toBe(5);
