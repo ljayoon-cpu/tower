@@ -12,6 +12,8 @@ export class Preload extends Phaser.Scene {
       ['enemy_normal', 'normal-soldier-walk-v1'],
       ['enemy_tank', 'tank-siege-walk-v1'],
       ['enemy_shield', 'shield-soldier-walk-v1'],
+      ['enemy_regenerator', 'regenerator-grub-walk-v1'],
+      ['enemy_summoner', 'rift-summoner-walk-v1'],
     ] as const) {
       this.load.spritesheet(key, `art/enemies/${file}.png`, { frameWidth: 128, frameHeight: 128 });
     }
