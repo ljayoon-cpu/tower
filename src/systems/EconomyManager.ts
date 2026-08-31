@@ -5,8 +5,17 @@ export class EconomyManager {
   static readonly SELL_RATIO = 0.6;
   private _gold: number;
 
-  constructor(startGold: number, private readonly bus: EventBus<GameEvents>) {
+  constructor(
+    startGold: number,
+    private readonly bus: EventBus<GameEvents>,
+    private readonly sellRatioBonus = 0,
+  ) {
     this._gold = startGold;
+  }
+
+  /** 판매 환급 비율 (기본 0.6 + 메타 보너스). */
+  get sellRatio(): number {
+    return EconomyManager.SELL_RATIO + this.sellRatioBonus;
   }
 
   get gold(): number {
@@ -30,7 +39,7 @@ export class EconomyManager {
   }
 
   sellRefund(totalInvested: number): number {
-    const refund = Math.floor(totalInvested * EconomyManager.SELL_RATIO);
+    const refund = Math.floor(totalInvested * this.sellRatio);
     this.earn(refund);
     return refund;
   }

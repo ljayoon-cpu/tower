@@ -9,7 +9,8 @@ import type { GameEvents, StageDef, TileCoord, Vec2 } from '../core/types';
 import { Pool } from '../core/pool';
 import { getStage, nextStageId } from '../data/stages';
 import { starsFor } from '../core/stars';
-import { loadSave, recordResult, markTutorialDone } from '../core/save';
+import { loadSave, loadMeta, recordResult, markTutorialDone } from '../core/save';
+import { metaBonuses } from '../core/meta';
 import { Tutorial } from '../core/tutorial';
 import type { TutorialEvent } from '../core/tutorial';
 import { getEnemy } from '../data/enemies';
@@ -77,6 +78,7 @@ export class Game extends Phaser.Scene {
   /** 마지막으로 HUD에 알린 카운트다운 초. 값이 바뀔 때만 emit. */
   private lastCountdown: number | null = -1;
   private tutorial?: Tutorial;
+  private meta = { startGold: 0, startLives: 0, interestRateBonus: 0, sellRatioBonus: 0 };
   /** 이 판이 끝날 때까지 설치할 수 없는 타워. */
   private bannedTowerKey: string | null = null;
 
@@ -103,8 +105,11 @@ export class Game extends Phaser.Scene {
       : null;
     if (!this.tutorial) this.waves.enableAutoAdvance(Game.WAVE_GAP_MS);
     this.lastCountdown = -1;
-    this.eco = new EconomyManager(this.stage.startGold, this.bus);
-    this.lives = this.stage.startLives;
+    this.meta = metaBonuses(loadMeta());
+    this.eco = new EconomyManager(
+      this.stage.startGold + this.meta.startGold, this.bus, this.meta.sellRatioBonus,
+    );
+    this.lives = this.stage.startLives + this.meta.startLives;
     this.enemies = [];
     this.towers = [];
     this.projectiles = [];
@@ -167,7 +172,9 @@ export class Game extends Phaser.Scene {
     });
     this.bus.on('wave:cleared', () => {
       this.eco.earn(this.waves.currentClearBonus());
-      const interest = this.eco.applyInterest(WAVE_INTEREST_RATE, WAVE_INTEREST_CAP);
+      const interest = this.eco.applyInterest(
+        WAVE_INTEREST_RATE + this.meta.interestRateBonus, WAVE_INTEREST_CAP,
+      );
       if (interest > 0) this.bus.emit('interest:earned', { amount: interest });
       if (this.waves.isFinished) this.endStage(true);
     });
@@ -326,7 +333,7 @@ export class Game extends Phaser.Scene {
     this.selectedTower = tower;
     const info = towerInfo(tower.key, tower.level);
     const sell = Math.floor(
-      cumulativeCost(getTower(tower.key), tower.level) * EconomyManager.SELL_RATIO,
+      cumulativeCost(getTower(tower.key), tower.level) * this.eco.sellRatio,
     );
     const dpsLine = info.nextDps != null
       ? `DPS ${info.dps} → ${info.nextDps}`
@@ -466,7 +473,7 @@ export class Game extends Phaser.Scene {
     this.suppressTapUntil = this.time.now + 150;
 
     const refund = Math.floor(
-      cumulativeCost(getTower(tower.key), tower.level) * EconomyManager.SELL_RATIO,
+      cumulativeCost(getTower(tower.key), tower.level) * this.eco.sellRatio,
     );
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;

@@ -124,6 +124,8 @@ export interface SaveData {
   stages: Record<string, StageProgress>;
   /** 1-1 첫 진입 튜토리얼을 끝냈는지. */
   tutorialDone?: boolean;
+  /** 판 사이 영구 성장. 코어와 업그레이드 레벨. */
+  meta?: { cores: number; upgrades: Record<string, number> };
 }
 
 // `type` (not `interface`): an interface has no implicit index signature, so it

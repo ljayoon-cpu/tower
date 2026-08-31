@@ -1,5 +1,6 @@
 import { SAVE_KEY } from './constants';
 import type { SaveData } from './types';
+import { coresForStars, type MetaState } from './meta';
 
 export type StorageLike = {
   getItem(k: string): string | null;
@@ -31,12 +32,27 @@ export function loadSave(storage: StorageLike = defaultStorage()): SaveData {
       (parsed as { stages?: unknown }).stages !== null
     ) {
       const entries = (parsed as { stages: Record<string, unknown> }).stages;
-      const withFlag = (data: SaveData): SaveData =>
-        (parsed as { tutorialDone?: unknown }).tutorialDone === true
-          ? { ...data, tutorialDone: true }
-          : data;
+      const extras = (data: SaveData): SaveData => {
+        const p = parsed as { tutorialDone?: unknown; meta?: unknown };
+        if (p.tutorialDone === true) data.tutorialDone = true;
+        const m = p.meta;
+        if (m !== null && typeof m === 'object') {
+          const { cores, upgrades } = m as { cores?: unknown; upgrades?: unknown };
+          const clean: Record<string, number> = {};
+          if (upgrades !== null && typeof upgrades === 'object') {
+            for (const [k, v] of Object.entries(upgrades)) {
+              if (typeof v === 'number' && Number.isFinite(v) && v > 0) clean[k] = Math.floor(v);
+            }
+          }
+          data.meta = {
+            cores: typeof cores === 'number' && Number.isFinite(cores) && cores >= 0 ? Math.floor(cores) : 0,
+            upgrades: clean,
+          };
+        }
+        return data;
+      };
       const stages: SaveData['stages'] = {};
-      if (Array.isArray(entries)) return withFlag({ stages });
+      if (Array.isArray(entries)) return extras({ stages });
       for (const [id, entry] of Object.entries(entries)) {
         if (entry === null || typeof entry !== 'object') continue;
         const { stars, unlocked } = entry as { stars?: unknown; unlocked?: unknown };
@@ -44,7 +60,7 @@ export function loadSave(storage: StorageLike = defaultStorage()): SaveData {
           Object.defineProperty(stages, id, { value: { stars, unlocked }, enumerable: true, writable: true, configurable: true });
         }
       }
-      return withFlag({ stages });
+      return extras({ stages });
     }
     return { stages: {} };
   } catch {
@@ -69,6 +85,16 @@ export function markTutorialDone(storage: StorageLike = defaultStorage()): void 
   writeSave(data, storage);
 }
 
+export function loadMeta(storage: StorageLike = defaultStorage()): MetaState {
+  return loadSave(storage).meta ?? { cores: 0, upgrades: {} };
+}
+
+export function saveMeta(meta: MetaState, storage: StorageLike = defaultStorage()): void {
+  const data = loadSave(storage);
+  data.meta = meta;
+  writeSave(data, storage);
+}
+
 export function recordResult(
   stageId: string,
   stars: number,
@@ -76,14 +102,20 @@ export function recordResult(
   storage: StorageLike = defaultStorage(),
 ): SaveData {
   const data = loadSave(storage);
-  const prev = data.stages[stageId];
+  const prevStars = data.stages[stageId]?.stars ?? 0;
   data.stages[stageId] = {
-    stars: Math.max(prev?.stars ?? 0, stars),
+    stars: Math.max(prevStars, stars),
     unlocked: true,
   };
   if (nextStageId && stars > 0) {
     const n = data.stages[nextStageId];
     data.stages[nextStageId] = { stars: n?.stars ?? 0, unlocked: true };
+  }
+  // 별점이 올랐으면 그 차액만큼 코어를 준다 (재도전 파밍 방지).
+  const coreGain = coresForStars(Math.max(prevStars, stars)) - coresForStars(prevStars);
+  if (coreGain > 0) {
+    const meta = data.meta ?? { cores: 0, upgrades: {} };
+    data.meta = { cores: meta.cores + coreGain, upgrades: meta.upgrades };
   }
   writeSave(data, storage);
   return data;

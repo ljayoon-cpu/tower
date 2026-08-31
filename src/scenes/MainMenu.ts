@@ -15,7 +15,13 @@ export class MainMenu extends Phaser.Scene {
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     start.on('pointerup', () => { audio.play('click'); this.scene.start('stageselect'); });
-    const sound = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.72, '', {
+
+    const shop = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.68, '⚙ 강화 상점', {
+      fontFamily: 'monospace', fontSize: '30px', color: '#7dd8ff',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    shop.on('pointerup', () => { audio.play('click'); this.scene.start('shop'); });
+
+    const sound = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.78, '', {
       fontFamily: 'monospace', fontSize: '28px', color: '#99aabb',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     const refresh = () => sound.setText(audio.muted ? '소리: 꺼짐' : '소리: 켜짐');
