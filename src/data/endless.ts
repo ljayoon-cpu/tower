@@ -2,55 +2,59 @@ import type { PathNode, StageDef, Wave, WaveGroup } from '../core/types';
 import { TILE } from '../core/constants';
 import { parseGrid } from './stages/helpers';
 
-// 좌우 진입(가로 십자대) → 중앙에서 위/아래로 갈라져 각 절반을 S자로 감고 나간다.
-// 감기는 경로라 타워가 한 적을 여러 번 때릴 수 있다. 그리드 11열 x 20행.
+// 좌·우에서 나온 적이 중앙 사각형 링을 약 3/4바퀴 돌고 위/아래 통로로 빠져나간다.
+// 링 안쪽(cols 3-7, rows 6-13)이 큰 방어 섬 — 타워가 도는 적을 계속 때린다. 11열 x 20행.
 const ROWS = [
-  '.........#.',
-  '.#########.',
-  '.#.........',
-  '.#.........',
-  '.#####.....',
-  '.....#.....',
-  '.....#.....',
-  '.....#.....',
-  '.....#.....',
-  '###########',
   '.....#.....',
   '.....#.....',
   '.....#.....',
   '.....#.....',
   '.....#.....',
-  '.....#####.',
-  '.........#.',
-  '.........#.',
-  '.#########.',
-  '.#.........',
+  '..#######..',
+  '..#.....#..',
+  '..#.....#..',
+  '..#.....#..',
+  '###.....#..',
+  '..#.....###',
+  '..#.....#..',
+  '..#.....#..',
+  '..#.....#..',
+  '..#######..',
+  '.....#.....',
+  '.....#.....',
+  '.....#.....',
+  '.....#.....',
+  '.....#.....',
 ];
 
 const px = (n: number) => n * TILE + TILE / 2;
-const CY = px(9); // 가로 십자대 중심 y
 
-const LEFT = { x: 0, y: CY };
-const RIGHT = { x: 11 * TILE, y: CY };
-const CENTER = { x: px(5), y: CY };
+// 링 모서리·중점. 링: 위 row5 / 아래 row14 / 좌 col2 / 우 col8.
+const TL = { x: px(2), y: px(5) };
+const TR = { x: px(8), y: px(5) };
+const BL = { x: px(2), y: px(14) };
+const BR = { x: px(8), y: px(14) };
+const TOP_MID = { x: px(5), y: px(5) };
+const BOT_MID = { x: px(5), y: px(14) };
+const TOP_GOAL = { x: px(5), y: 0 };
+const BOT_GOAL = { x: px(5), y: 20 * TILE };
 
-// 위 절반 S: 중앙 → 위로 → 왼쪽 → 위로 → 오른쪽 → 위로 탈출.
-const UP_TAIL = [
-  { x: px(5), y: px(4) }, { x: px(1), y: px(4) }, { x: px(1), y: px(1) },
-  { x: px(9), y: px(1) }, { x: px(9), y: 0 },
-];
-// 아래 절반 S: 위 절반을 180° 돌린 모양.
-const DOWN_TAIL = [
-  { x: px(5), y: px(15) }, { x: px(9), y: px(15) }, { x: px(9), y: px(18) },
-  { x: px(1), y: px(18) }, { x: px(1), y: 20 * TILE },
-];
+const LEFT_SPAWN = { x: 0, y: px(9) };
+const RING_LM = { x: px(2), y: px(9) };  // 링 왼쪽 중점 (좌측 진입 합류)
+const RIGHT_SPAWN = { x: 11 * TILE, y: px(10) };
+const RING_RM = { x: px(8), y: px(10) }; // 링 오른쪽 중점 (우측 진입 합류)
 
-// 4개 루트: (좌|우) 진입 × (위|아래) 탈출. lane 0 좌·위 / 1 좌·아래 / 2 우·위 / 3 우·아래.
+// 각 탈출: 링을 크게 돌아 반대편 위/아래 통로로. lane 0 좌·위 / 1 좌·아래 / 2 우·위 / 3 우·아래.
+const L_TOP = [BL, BR, TR, TOP_MID, TOP_GOAL];             // 아래로 → 오른쪽 위로 → 위 탈출
+const L_BOT = [TL, TR, BR, BOT_MID, BOT_GOAL];             // 위로 → 오른쪽 아래로 → 아래 탈출
+const R_TOP = [BR, BL, TL, TOP_MID, TOP_GOAL];             // 아래로 → 왼쪽 위로 → 위 탈출
+const R_BOT = [TR, TL, BL, BOT_MID, BOT_GOAL];             // 위로 → 왼쪽 아래로 → 아래 탈출
+
 const PATH: PathNode = {
   points: [],
   branches: [
-    { points: [LEFT, CENTER], branches: [{ points: UP_TAIL }, { points: DOWN_TAIL }] },
-    { points: [RIGHT, CENTER], branches: [{ points: UP_TAIL }, { points: DOWN_TAIL }] },
+    { points: [LEFT_SPAWN, RING_LM], branches: [{ points: L_TOP }, { points: L_BOT }] },
+    { points: [RIGHT_SPAWN, RING_RM], branches: [{ points: R_TOP }, { points: R_BOT }] },
   ],
 };
 
@@ -142,8 +146,8 @@ export function endlessStage(): StageDef {
     id: ENDLESS_STAGE_ID,
     endless: true,
     grid: parseGrid(ROWS),
-    spawn: LEFT,
-    goals: [{ x: px(9), y: 0 }, { x: px(1), y: 20 * TILE }],
+    spawn: LEFT_SPAWN,
+    goals: [TOP_GOAL, BOT_GOAL],
     path: PATH,
     startGold: 460,
     startLives: 25,

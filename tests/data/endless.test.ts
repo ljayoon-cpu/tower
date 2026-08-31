@@ -92,7 +92,7 @@ describe('endless stage', () => {
     for (const row of s.grid) expect(row).toHaveLength(GRID_COLS);
   });
 
-  it('has four routes: left/right entrance x top/bottom exit, passing through centre', () => {
+  it('has four routes: left/right entrance x top/bottom exit, looping the ring', () => {
     const s = endlessStage();
     const routes = new PathManager(s.path).routes();
     expect(routes).toHaveLength(4);
@@ -104,9 +104,11 @@ describe('endless stage', () => {
     expect((startXs[0] + startXs[1]) / 2).toBeCloseTo(352, 0);
     // 탈출은 위(y=0) 둘 / 아래(y=1280) 둘.
     expect(ends.map((p) => p.y).sort((a, b) => a - b)).toEqual([0, 0, 1280, 1280]);
-    // 모든 루트가 중앙 십자대(x=352, y=608)를 지난다.
+    // 각 루트가 링을 크게 돈다: 링 네 모서리 중 최소 3곳을 지난다.
+    const corners = [[160, 352], [544, 352], [160, 928], [544, 928]];
     for (const r of routes) {
-      expect(r.some((p) => Math.abs(p.x - 352) < 1 && Math.abs(p.y - 608) < 1)).toBe(true);
+      const touched = corners.filter(([x, y]) => r.some((p) => Math.abs(p.x - x) < 1 && Math.abs(p.y - y) < 1));
+      expect(touched.length).toBeGreaterThanOrEqual(3);
     }
   });
 });
