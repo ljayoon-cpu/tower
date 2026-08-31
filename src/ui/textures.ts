@@ -117,12 +117,7 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.fillPoints([new Phaser.Math.Vector2(22, 3), new Phaser.Math.Vector2(41, 14), new Phaser.Math.Vector2(41, 30), new Phaser.Math.Vector2(22, 41), new Phaser.Math.Vector2(3, 30), new Phaser.Math.Vector2(3, 14)], true);
   g.fillStyle(0x2c333d, 1); g.fillCircle(22, 22, 11);
   g.lineStyle(4, 0xc7d0dc, 1); g.strokeCircle(22, 22, 18); g.generateTexture('enemy_crusher', 44, 44);
-  // 왕관·방패·어깨 장갑을 써서, 화면에 나타나는 순간 보스임을 알아보게 한다.
-  g.clear(); g.fillStyle(0x5d1727, 1); g.fillCircle(28, 32, 25);
-  g.fillStyle(COLORS.enemyBoss, 1); g.fillCircle(28, 30, 19);
-  g.fillStyle(0xffd65c, 1); g.fillTriangle(10, 20, 18, 4, 26, 20); g.fillTriangle(22, 20, 30, 1, 38, 20); g.fillTriangle(34, 20, 42, 6, 50, 20);
-  g.fillStyle(0x35111b, 1); g.fillRect(16, 27, 24, 17); g.fillStyle(0xffc4cd, 1); g.fillCircle(22, 32, 3); g.fillCircle(34, 32, 3);
-  g.lineStyle(3, 0xffe6a3, 0.9); g.strokeCircle(28, 30, 24); g.generateTexture('enemy_boss', 56, 56);
+  // 공성 지휘관은 왕관·방패·지휘 코어가 보이는 애니메이션 시트를 Preload에서 로드한다.
 
   circle('projectile', COLORS.text, 5);
   square('tile', 0xffffff, TILE); // tint 로 색 입힘
