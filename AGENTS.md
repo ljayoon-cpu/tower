@@ -7,11 +7,25 @@
 ## 여러 에이전트가 같이 작업할 때
 
 - **브랜치를 나눠서 작업한다.** 같은 파일을 두 에이전트가 동시에 만지면 충돌. 기능 단위 브랜치 →
-  GitHub PR 리뷰 후 `main`에 머지. 원격: `origin` = `https://github.com/ljayoon-cpu/tower`.
-- 시작 전 `git pull` / `git fetch`로 최신 `main`을 받는다.
+  GitHub PR 리뷰 후 `main`에 머지. `main` 직접 push 금지. 원격: `origin` = `https://github.com/ljayoon-cpu/tower`.
+- 시작 전 `git pull` / `git fetch`로 최신 `main`을 받는다. 자기 전용 `git worktree`에서 작업.
+- 한 기능 = 한 커밋. merge 커밋을 만들지 말고 `origin/main` 위로 rebase 후 PR.
 - 커밋 전 `npm test` + `npm run build` 통과는 도구 공통 규칙.
-- 커밋 트레일러는 도구별로: Claude Code는 `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`,
-  Codex 등 다른 도구는 각자 관례대로(없어도 됨).
+- 커밋 트레일러: Claude Code는 `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`, 나머지는 관례대로.
+
+### 담당 구역 (겹치면 밸런스가 흔들린다 — 넘기 전에 사람에게 물어볼 것)
+
+| 구역 | 담당 | 파일 |
+|---|---|---|
+| **타워 수치·메커니즘·밸런스** | 사람이 지정한 담당(현재 Claude) | `src/data/towers.ts`, `src/systems/combat.ts`, `src/systems/TargetingSystem.ts`, `tests/balance/**` |
+| **적·몬스터·적 상태** | Codex | `src/data/enemies.ts`, `src/systems/EnemyState.ts`, `src/entities/Enemy.ts` |
+| **스테이지·맵·웨이브** | 지정된 담당 | `src/data/stages/**` |
+| 씬·HUD·UI·연출 | 지정된 담당 | `src/scenes/**`, `src/ui/**` |
+
+- 타워를 바꾸면 적 밸런스가 흔들리고 그 반대도 마찬가지다. **자기 구역 밖 파일을 수정해야 하면
+  먼저 사람에게 확인**받고, 상대 담당이 최근에 그 파일을 만졌는지 `git log`로 본다.
+- 밸런스에 영향 주는 변경(타워/적 수치, 스테이지 웨이브)은 `tests/balance/`(`balance.test.ts`,
+  `monoTower.test.ts`)를 돌려 회귀를 확인하고, 필요하면 스테이지를 재조정한 뒤 머지한다.
 
 ## 현재 상태 (2026-08-31)
 
