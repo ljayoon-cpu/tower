@@ -24,12 +24,12 @@ describe('balance measurement with production combat', () => {
     expect(rows.filter(r => r.strategy === 'none').every(r => !r.won)).toBe(true);
     expect(simulate(STAGES[1], strategies.mixedMerge, 42)).toEqual(simulate(STAGES[1], strategies.mixedMerge, 42));
 
-    // 후반은 한 타워만 머지해서 끝낼 수 없어야 한다. 적 특성이 늘어날수록
-    // 조합 선택의 의미가 커지고, 장갑·보호막·재생·소환의 카운터를 함께 배치해야 한다.
+    // 후반은 한 타워만 머지해서 끝낼 수 없어야 한다 — 적 특성이 늘수록 조합 선택이 중요해진다.
+    // (조합 머지의 실제 클리어 가능성은 순진한 시뮬로 검증 불가 — 사람 플레이테스트 필요.
+    //  docs/verification-2026-08-31.md 참고.)
     const last = STAGES[STAGES.length - 1];
     for (const seed of [1, 42, 20260831]) {
-      const arrowOnly = simulate(last, strategies.arrowMerge, seed);
-      expect(arrowOnly.won).toBe(false);
+      expect(simulate(last, strategies.arrowMerge, seed).won).toBe(false);
     }
   }, 120000);
 });

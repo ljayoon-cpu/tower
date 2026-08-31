@@ -47,44 +47,59 @@ export const stage25: StageDef = {
       { points: [{ x: px(5), y: splitY }, { x: px(8), y: splitY }, { x: px(8), y: botY }] },
     ],
   },
-  startGold: 320,
-  startLives: 18,
-  starThresholds: [0.3, 0.65, 0.95],
+  startGold: 360,
+  startLives: 20,
+  starThresholds: [0.3, 0.6, 0.9],
   waves: [
+    { clearBonus: 30, groups: [{ enemy: 'normal', count: 18, intervalMs: 320, startDelayMs: 0 }] },
     {
       clearBonus: 35,
       groups: [
-        { enemy: 'shield', count: 18, intervalMs: 280, startDelayMs: 0, shieldMultiplier: 1.2 },
-        { enemy: 'fast', count: 22, intervalMs: 110, startDelayMs: 1300, speedMultiplier: 1.12 },
+        { enemy: 'shield', count: 12, intervalMs: 340, startDelayMs: 0 },
+        { enemy: 'fast', count: 16, intervalMs: 170, startDelayMs: 1600 },
       ],
     },
     {
       clearBonus: 45,
       groups: [
-        { enemy: 'tank', count: 10, intervalMs: 520, startDelayMs: 0, hpMultiplier: 1.18 },
-        { enemy: 'regenerator', count: 10, intervalMs: 430, startDelayMs: 1500, hpMultiplier: 1.12 },
+        { enemy: 'tank', count: 8, intervalMs: 640, startDelayMs: 0 },
+        { enemy: 'regenerator', count: 8, intervalMs: 520, startDelayMs: 1600 },
+      ],
+    },
+    {
+      clearBonus: 55,
+      groups: [
+        { enemy: 'summoner', count: 6, intervalMs: 900, startDelayMs: 0 },
+        { enemy: 'fast', count: 22, intervalMs: 140, startDelayMs: 1800 },
+      ],
+    },
+    {
+      clearBonus: 90,
+      groups: [
+        { enemy: 'boss', count: 1, intervalMs: 1, startDelayMs: 0 },
+        { enemy: 'shield', count: 10, intervalMs: 340, startDelayMs: 1600 },
+      ],
+    },
+    {
+      clearBonus: 50,
+      groups: [
+        { enemy: 'tank', count: 10, intervalMs: 520, startDelayMs: 0 },
+        { enemy: 'regenerator', count: 8, intervalMs: 480, startDelayMs: 1500 },
       ],
     },
     {
       clearBonus: 60,
       groups: [
-        { enemy: 'summoner', count: 8, intervalMs: 780, startDelayMs: 0, hpMultiplier: 1.18 },
-        { enemy: 'fast', count: 28, intervalMs: 100, startDelayMs: 1700, speedMultiplier: 1.18 },
-      ],
-    },
-    {
-      clearBonus: 110,
-      groups: [
-        { enemy: 'boss', count: 1, intervalMs: 1, startDelayMs: 0, hpMultiplier: 1.32, shieldMultiplier: 1.2 },
-        { enemy: 'shield', count: 10, intervalMs: 300, startDelayMs: 1500, shieldMultiplier: 1.25 },
+        { enemy: 'summoner', count: 7, intervalMs: 800, startDelayMs: 0 },
+        { enemy: 'fast', count: 26, intervalMs: 120, startDelayMs: 1700 },
       ],
     },
     {
       clearBonus: 240,
       groups: [
-        { enemy: 'boss', count: 1, intervalMs: 1, startDelayMs: 0, hpMultiplier: 1.7, shieldMultiplier: 1.35 },
-        { enemy: 'tank', count: 8, intervalMs: 500, startDelayMs: 1800, hpMultiplier: 1.25 },
-        { enemy: 'summoner', count: 6, intervalMs: 760, startDelayMs: 3200, hpMultiplier: 1.2 },
+        { enemy: 'boss', count: 1, intervalMs: 1, startDelayMs: 0, hpMultiplier: 1.6, shieldMultiplier: 1.2 },
+        { enemy: 'shield', count: 10, intervalMs: 320, startDelayMs: 2000 },
+        { enemy: 'summoner', count: 5, intervalMs: 820, startDelayMs: 3600 },
       ],
     },
   ],
