@@ -1,12 +1,15 @@
 import type Phaser from 'phaser';
-import { Enemy } from '../../src/entities/Enemy';
+import { Enemy, fastWalkFrameAt } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
 
 // Minimal rendering boundary; movement and status effects use the real Enemy.
 function makeEnemy(hp = 100, extras: Partial<EnemyDef> = {}) {
   const sprite = {
     x: 0, y: 0,
+    frame: 0,
     setPosition(x: number, y: number) { this.x = x; this.y = y; return this; },
+    setFrame(frame: number) { this.frame = frame; return this; },
+    setScale() { return this; },
     setVisible() { return this; },
   };
   const bar = {
@@ -33,6 +36,24 @@ describe('enemy health ratio', () => {
     expect(e.healthRatio).toBe(0.75);
     e.takeDamage(999);
     expect(e.healthRatio).toBe(0);
+  });
+});
+
+describe('fast hound walk animation', () => {
+  it('loops through four frames every 90ms while it moves', () => {
+    expect([0, 89, 90, 179, 180, 270, 360].map(fastWalkFrameAt)).toEqual([0, 0, 1, 1, 2, 3, 0]);
+  });
+
+  it('updates the rendered frame only while the hound advances', () => {
+    const hound = makeEnemy(100, { key: 'fast' });
+    hound.update(90, 1);
+    expect((hound.sprite as unknown as { frame: number }).frame).toBe(1);
+
+    hound.applyFreezeHit(3, 180, 1000);
+    hound.applyFreezeHit(3, 180, 1000);
+    hound.applyFreezeHit(3, 180, 1000);
+    hound.update(180, 1);
+    expect((hound.sprite as unknown as { frame: number }).frame).toBe(1);
   });
 });
 
