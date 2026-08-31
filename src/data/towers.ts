@@ -100,11 +100,11 @@ export const TOWERS: Record<string, TowerDef> = {
     // 후반 자금이 커지지만 그만큼 방어를 늦게 세워야 한다.
     key: 'mine', name: '연금탑', attack: 'support', cost: 120, maxLevel: 5,
     levels: [
-      { damage: 3,  range: 110, fireRate: 0.9,  goldPerTick: 1,  goldIntervalMs: 1000 },
-      { damage: 6,  range: 116, fireRate: 0.95, goldPerTick: 2,  goldIntervalMs: 1000 },
-      { damage: 12, range: 124, fireRate: 1.0,  goldPerTick: 4,  goldIntervalMs: 1000, mineWaveBonus: 12 },
-      { damage: 23, range: 132, fireRate: 1.05, goldPerTick: 7,  goldIntervalMs: 1000, mineWaveBonus: 12 },
-      { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 12, goldIntervalMs: 1000, mineWaveBonus: 28 },
+      { damage: 3,  range: 110, fireRate: 0.9,  goldPerTick: 1, goldIntervalMs: 2000 },
+      { damage: 6,  range: 116, fireRate: 0.95, goldPerTick: 1, goldIntervalMs: 1000 },
+      { damage: 12, range: 124, fireRate: 1.0,  goldPerTick: 2, goldIntervalMs: 1000, mineWaveBonus: 6 },
+      { damage: 23, range: 132, fireRate: 1.05, goldPerTick: 4, goldIntervalMs: 1000, mineWaveBonus: 6 },
+      { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 6, goldIntervalMs: 1000, mineWaveBonus: 14 },
     ],
   },
 };
