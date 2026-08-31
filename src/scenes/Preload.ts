@@ -17,6 +17,7 @@ export class Preload extends Phaser.Scene {
       ['enemy_minion', 'assembly-drone-hover-v1'],
       ['enemy_splitter', 'disassembly-unit-walk-v1'],
       ['enemy_berserker', 'berserker-overload-walk-v1'],
+      ['enemy_crusher', 'crusher-siege-walk-v1'],
     ] as const) {
       this.load.spritesheet(key, `art/enemies/${file}.png`, { frameWidth: 128, frameHeight: 128 });
     }

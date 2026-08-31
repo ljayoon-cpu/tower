@@ -23,6 +23,8 @@ const SPLITTER_WALK_FRAME_MS = 175;
 const SPLITTER_WALK_FRAME_COUNT = 4;
 const BERSERKER_WALK_FRAME_MS = 210;
 const BERSERKER_WALK_FRAME_COUNT = 4;
+const CRUSHER_WALK_FRAME_MS = 260;
+const CRUSHER_WALK_FRAME_COUNT = 4;
 
 /** 질주병의 이동 시간에 해당하는 스프라이트 시트 프레임. */
 export function fastWalkFrameAt(elapsedMs: number): number {
@@ -67,6 +69,11 @@ export function splitterWalkFrameAt(elapsedMs: number): number {
 /** 과부하 병기는 무거운 보폭 끝에 화로를 폭발시키며 돌진 준비를 한다. */
 export function berserkerWalkFrameAt(elapsedMs: number): number {
   return Math.floor(elapsedMs / BERSERKER_WALK_FRAME_MS) % BERSERKER_WALK_FRAME_COUNT;
+}
+
+/** 파쇄 전차는 느린 궤도 전진 끝에 전면 분쇄기를 강하게 밀어 넣는다. */
+export function crusherWalkFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / CRUSHER_WALK_FRAME_MS) % CRUSHER_WALK_FRAME_COUNT;
 }
 
 export class Enemy {
@@ -130,6 +137,7 @@ export class Enemy {
     if (def.key === 'minion') this.sprite.setScale(0.34);
     if (def.key === 'splitter') this.sprite.setScale(0.52);
     if (def.key === 'berserker') this.sprite.setScale(0.55);
+    if (def.key === 'crusher') this.sprite.setScale(0.66);
     this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
@@ -303,7 +311,7 @@ export class Enemy {
     this.summonedAlive = Math.max(0, this.summonedAlive - 1);
   }
 
-  private static readonly WALK_ANIMATED = new Set(['fast', 'normal', 'tank', 'shield', 'regenerator', 'summoner', 'minion', 'splitter', 'berserker']);
+  private static readonly WALK_ANIMATED = new Set(['fast', 'normal', 'tank', 'shield', 'regenerator', 'summoner', 'minion', 'splitter', 'berserker', 'crusher']);
 
   private updateWalkAnimation(movingMs: number): void {
     if (movingMs <= 0 || !Enemy.WALK_ANIMATED.has(this.def.key)) return;
@@ -317,7 +325,8 @@ export class Enemy {
               : this.def.key === 'summoner' ? summonerWalkFrameAt(this.walkElapsedMs)
                 : this.def.key === 'minion' ? minionHoverFrameAt(this.walkElapsedMs)
                   : this.def.key === 'splitter' ? splitterWalkFrameAt(this.walkElapsedMs)
-                    : berserkerWalkFrameAt(this.walkElapsedMs);
+                    : this.def.key === 'berserker' ? berserkerWalkFrameAt(this.walkElapsedMs)
+                      : crusherWalkFrameAt(this.walkElapsedMs);
     sprite.setFrame?.(frame);
   }
 

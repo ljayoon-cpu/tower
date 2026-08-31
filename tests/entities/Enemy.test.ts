@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import {
-  berserkerWalkFrameAt, Enemy, fastWalkFrameAt, minionHoverFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
+  berserkerWalkFrameAt, crusherWalkFrameAt, Enemy, fastWalkFrameAt, minionHoverFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
   shieldWalkFrameAt, splitterWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt,
 } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
@@ -112,6 +112,12 @@ describe('disassembly unit walk animation', () => {
 describe('berserker walk animation', () => {
   it('loops through the furnace flare after three heavy steps', () => {
     expect([0, 209, 210, 420, 630, 840].map(berserkerWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+  });
+});
+
+describe('crusher walk animation', () => {
+  it('loops through four slow tread frames', () => {
+    expect([0, 259, 260, 520, 780, 1040].map(crusherWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
   });
 });
 
