@@ -30,7 +30,12 @@ function dpsOf(stats: TowerLevelStats, attack: string): number {
 }
 
 function noteOf(stats: TowerLevelStats, attack: string): string {
-  if (attack === 'splash') return `광역 반경 ${stats.splashRadius ?? 0}`;
+  if (attack === 'splash') {
+    if ((stats.armorBreakPercent ?? 0) > 0) {
+      return `광역 ${stats.splashRadius ?? 0} · 방어 -${Math.round(stats.armorBreakPercent! * 100)}%`;
+    }
+    return `광역 반경 ${stats.splashRadius ?? 0}`;
+  }
   if (attack === 'slow') return `감속 ${Math.round((1 - (stats.slowMul ?? 1)) * 100)}%`;
   if (attack === 'chain') return `연쇄 ${(stats.chainTargets ?? 0) + 1}타`;
   if (attack === 'poison') return `독 지속 ${stats.poisonDps ?? 0}/초`;

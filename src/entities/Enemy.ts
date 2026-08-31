@@ -15,6 +15,7 @@ export class Enemy {
   private readonly shieldBar: Phaser.GameObjects.Graphics;
   private readonly slowAura: Phaser.GameObjects.Arc;
   private readonly poisonAura: Phaser.GameObjects.Arc;
+  private readonly armorBreakAura: Phaser.GameObjects.Arc;
   private readonly barWidth: number;
   private traveled = 0;
   private slowMul = 1;
@@ -54,6 +55,11 @@ export class Enemy {
     this.poisonAura = scene.add
       .circle(start.x, start.y, def.isBoss ? 25 : 15, 0x71d957, 0.14)
       .setStrokeStyle(2, 0x71d957, 0.82)
+      .setDepth(4)
+      .setVisible(false);
+    this.armorBreakAura = scene.add
+      .circle(start.x, start.y, def.isBoss ? 28 : 17, 0xffa641, 0.08)
+      .setStrokeStyle(2, 0xffa641, 0.9)
       .setDepth(4)
       .setVisible(false);
   }
@@ -114,6 +120,7 @@ export class Enemy {
     this.shieldBar.setVisible(false);
     this.slowAura.setVisible(false);
     this.poisonAura.setVisible(false);
+    this.armorBreakAura.setVisible(false);
   }
 
   private drawBars(): void {
@@ -149,6 +156,11 @@ export class Enemy {
 
   applyPoison(dps: number, durationMs: number): void {
     this.state.applyPoison(dps, durationMs);
+  }
+
+  applyArmorBreak(percent: number, durationMs: number): void {
+    if (!this.alive) return;
+    this.state.applyArmorBreak(percent, durationMs);
   }
 
   /** 소환수만 별도 카운트하므로, 웨이브 완료 판정은 부하 처치에 막히지 않는다. */
@@ -195,10 +207,13 @@ export class Enemy {
       this.drawBars();
       const slowed = this.slowLeftMs > 0;
       const poisoned = this.state.poisonLeftMs > 0;
+      const armorBroken = this.state.armorBreakPercent > 0;
       this.slowAura.setVisible(slowed);
       this.poisonAura.setVisible(poisoned);
+      this.armorBreakAura.setVisible(armorBroken);
       if (slowed) this.slowAura.setPosition(a.pos.x, a.pos.y);
       if (poisoned) this.poisonAura.setPosition(a.pos.x, a.pos.y);
+      if (armorBroken) this.armorBreakAura.setPosition(a.pos.x, a.pos.y);
     }
   }
 
@@ -209,6 +224,7 @@ export class Enemy {
     this.shieldBar.destroy();
     this.slowAura.destroy();
     this.poisonAura.destroy();
+    this.armorBreakAura.destroy();
     const tweens = (this.scene as Phaser.Scene & { tweens?: Phaser.Tweens.TweenManager }).tweens;
     if (tweens && this.state.hp <= 0 && !this._done) {
       tweens.add({

@@ -26,6 +26,9 @@ export interface TowerLevelStats {
   poisonRadius?: number;  // 중독 투사체의 적용 반경(px)
 
   armorPierce?: number;   // 방어력에서 무시할 수치
+  /** 대포 합성 단계가 적의 방어력을 낮추는 비율. 0.1 = 10%. */
+  armorBreakPercent?: number;
+  armorBreakDurationMs?: number;
 }
 
 export interface TowerDef {

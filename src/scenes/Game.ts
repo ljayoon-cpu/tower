@@ -641,7 +641,9 @@ export class Game extends Phaser.Scene {
             this.impactFlash(hitPos, COLORS.cannon, 'heavy');
             for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0,
               this.enemies)) {
-              this.enemies.find((e) => e.id === hit.id)?.takeDamage(s.damage);
+              const affected = this.enemies.find((e) => e.id === hit.id);
+              affected?.takeDamage(s.damage);
+              affected?.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
             }
           } else {
             if (!enemy.alive) return;

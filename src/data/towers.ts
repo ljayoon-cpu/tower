@@ -20,9 +20,9 @@ export const TOWERS: Record<string, TowerDef> = {
     levels: [
       { damage: 24,  range: 132, fireRate: 0.58, splashRadius: 58 },
       { damage: 44,  range: 138, fireRate: 0.62, splashRadius: 66 },
-      { damage: 86,  range: 146, fireRate: 0.66, splashRadius: 76 },
-      { damage: 170, range: 154, fireRate: 0.70, splashRadius: 88 },
-      { damage: 340, range: 164, fireRate: 0.76, splashRadius: 102 },
+      { damage: 86,  range: 146, fireRate: 0.66, splashRadius: 76, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
+      { damage: 170, range: 154, fireRate: 0.70, splashRadius: 88, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
+      { damage: 340, range: 164, fireRate: 0.76, splashRadius: 102, armorBreakPercent: 0.2, armorBreakDurationMs: 2000 },
     ],
   },
   frost: {

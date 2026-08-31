@@ -48,6 +48,35 @@ describe('EnemyState', () => {
     expect(enemy.hp).toBe(86);
   });
 
+  it('temporarily lowers armor, then restores it after the armor-break duration', () => {
+    const enemy = new EnemyState({ ...shieldedDef, shield: undefined });
+
+    enemy.applyArmorBreak(0.5, 1500);
+    const brokenArmorHit = enemy.applyDamage({ amount: 10 });
+    enemy.update(1500);
+    const restoredArmorHit = enemy.applyDamage({ amount: 10 });
+
+    expect(brokenArmorHit.armorBlocked).toBe(3);
+    expect(brokenArmorHit.healthDamage).toBe(7);
+    expect(restoredArmorHit.armorBlocked).toBe(6);
+    expect(restoredArmorHit.healthDamage).toBe(4);
+  });
+
+  it('does not let a weaker armor break extend a stronger effect', () => {
+    const enemy = new EnemyState({ ...shieldedDef, shield: undefined });
+
+    enemy.applyArmorBreak(0.2, 2000);
+    enemy.update(1000);
+    enemy.applyArmorBreak(0.1, 1500);
+    enemy.update(1000);
+
+    expect(enemy.armorBreakPercent).toBe(0.1);
+
+    enemy.update(500);
+
+    expect(enemy.armorBreakPercent).toBe(0);
+  });
+
   it('stops regeneration while poisoned, then resumes when the poison expires', () => {
     const enemy = new EnemyState({
       ...shieldedDef,

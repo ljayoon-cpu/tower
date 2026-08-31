@@ -33,6 +33,12 @@ describe('tower definitions', () => {
     for (const l of TOWERS.cannon.levels) expect(l.splashRadius!).toBeGreaterThan(0);
   });
 
+  it('unlocks cannon armor break only at merge levels 3 and 5', () => {
+    expect(TOWERS.cannon.levels[2]).toMatchObject({ armorBreakPercent: 0.1, armorBreakDurationMs: 1500 });
+    expect(TOWERS.cannon.levels[3]).toMatchObject({ armorBreakPercent: 0.1, armorBreakDurationMs: 1500 });
+    expect(TOWERS.cannon.levels[4]).toMatchObject({ armorBreakPercent: 0.2, armorBreakDurationMs: 2000 });
+  });
+
   it('bolt chain gets more targets and gentler falloff as it levels', () => {
     const lv = TOWERS.bolt.levels;
     expect(lv[4].chainTargets!).toBeGreaterThanOrEqual(lv[0].chainTargets!);

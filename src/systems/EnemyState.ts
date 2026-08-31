@@ -31,6 +31,7 @@ export class EnemyState {
   shield: number;
   poisonDps = 0;
   poisonLeftMs = 0;
+  private armorBreaks: { percent: number; leftMs: number }[] = [];
 
   private readonly armor: number;
   private readonly regenPerSecond: number;
@@ -61,6 +62,10 @@ export class EnemyState {
     return this.maxShield === 0 ? 0 : this.shield / this.maxShield;
   }
 
+  get armorBreakPercent(): number {
+    return this.armorBreaks.reduce((highest, effect) => Math.max(highest, effect.percent), 0);
+  }
+
   restoreShield(ratio: number): void {
     this.shield = Math.max(this.shield, this.maxShield * Math.max(0, Math.min(1, ratio)));
   }
@@ -75,7 +80,8 @@ export class EnemyState {
     }
 
     const afterShield = incoming - shieldDamage;
-    const armorBlocked = Math.min(afterShield, Math.max(0, this.armor - armorPierce));
+    const brokenArmor = this.armor * (1 - this.armorBreakPercent);
+    const armorBlocked = Math.min(afterShield, Math.max(0, brokenArmor - armorPierce));
     const healthDamage = Math.min(this.hp, afterShield - armorBlocked);
     this.hp -= healthDamage;
 
@@ -88,8 +94,24 @@ export class EnemyState {
     this.poisonLeftMs = Math.max(this.poisonLeftMs, durationMs);
   }
 
+  /** 같은 강도의 파괴는 지속만 갱신하고, 더 강한 파괴는 따로 보존한다. */
+  applyArmorBreak(percent: number, durationMs: number): void {
+    const normalizedPercent = Math.max(0, Math.min(1, percent));
+    const normalizedDuration = Math.max(0, durationMs);
+    if (this.armor === 0 || normalizedPercent === 0 || normalizedDuration === 0) return;
+    const existing = this.armorBreaks.find((effect) => effect.percent === normalizedPercent);
+    if (existing) {
+      existing.leftMs = Math.max(existing.leftMs, normalizedDuration);
+      return;
+    }
+    this.armorBreaks.push({ percent: normalizedPercent, leftMs: normalizedDuration });
+  }
+
   update(dtMs: number): void {
     const dt = Math.max(0, dtMs);
+    this.armorBreaks = this.armorBreaks
+      .map((effect) => ({ ...effect, leftMs: effect.leftMs - dt }))
+      .filter((effect) => effect.leftMs > 0);
     const poisonedForMs = Math.min(dt, this.poisonLeftMs);
 
     if (poisonedForMs > 0 && this.alive) {
