@@ -38,6 +38,7 @@ import { pickTarget, enemiesInRadius } from '../systems/TargetingSystem';
 import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot } from '../systems/combat';
 import { BuildMenu } from '../ui/BuildMenu';
 import { audioFor } from '../ui/audio';
+import { WorldBackground } from '../ui/worldBackground';
 import type { SoundEffects } from '../core/audio';
 import type { HudInit } from './HUD';
 
@@ -67,6 +68,7 @@ export class Game extends Phaser.Scene {
   private projectiles: Projectile[] = [];
   private projectilePool!: Pool<Projectile>;
   private buildMenu!: BuildMenu;
+  private background?: WorldBackground;
   private pendingTile: TileCoord | null = null;
   private buildPreview: Phaser.GameObjects.Arc | null = null;
   private inspectText?: Phaser.GameObjects.Text;
@@ -273,7 +275,9 @@ export class Game extends Phaser.Scene {
   }
 
   private drawMap() {
-    const theme = WORLD_THEMES[this.stage.id.split('-')[0]] ?? WORLD_THEMES['1'];
+    const world = this.stage.id.split('-')[0];
+    const theme = WORLD_THEMES[world] ?? WORLD_THEMES['1'];
+    this.background = new WorldBackground(this, world);
     for (let r = 0; r < GRID_ROWS; r++) {
       for (let c = 0; c < GRID_COLS; c++) {
         const t = this.grid.tileAt({ col: c, row: r });
@@ -281,6 +285,7 @@ export class Game extends Phaser.Scene {
         const img = this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, 'tile');
         img.setDisplaySize(TILE - 2, TILE - 2);
         img.setTint(t === 'PATH' ? theme.path : theme.buildable);
+        img.setAlpha(0.9);
       }
     }
   }
@@ -954,6 +959,7 @@ export class Game extends Phaser.Scene {
 
   update(_time: number, dtMsRaw: number) {
     if (!this.running || this.paused) return;
+    this.background?.update(dtMsRaw);
     // The HUD may consume pointerup before the Game scene sees it.
     if (this.input.manager.pointers.some((p) => !p.isDown && this.input.getDragState(p) > 0)) {
       this.cancelDrags();
