@@ -110,8 +110,7 @@ export function buildTextures(scene: Phaser.Scene): void {
 
   // 지상 보병 + 재생충 + 소환사 + 조립 드론 + 분해 유닛은 애니메이션 시트를 Preload에서 로드한다.
   // 나머지 적은 실루엣만 봐도 대처법을 짐작하게 도형으로 만든다.
-  // 분열 조각은 작은 삼각형으로 남겨, 본체와 즉시 구분되게 한다.
-  g.clear(); g.fillStyle(0xf0a85a, 1); g.fillTriangle(9, 3, 17, 16, 1, 16); g.generateTexture('enemy_splitterling', 18, 18);
+  // 분해 파편은 금 간 코어와 궤도 조각이 보이는 애니메이션 시트를 Preload에서 로드한다.
   // 과부하 병기는 화로 코어와 대검이 보이는 애니메이션 시트를 Preload에서 로드한다.
   // 파쇄 전차는 강철 궤도와 전면 분쇄기가 보이는 애니메이션 시트를 Preload에서 로드한다.
   // 공성 지휘관은 왕관·방패·지휘 코어가 보이는 애니메이션 시트를 Preload에서 로드한다.
