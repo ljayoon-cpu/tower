@@ -13,34 +13,7 @@ export function buildTextures(scene: Phaser.Scene): void {
     g.generateTexture(key, s, s);
   };
 
-  // 레이저탑: 붉은 렌즈 + 조준선.
-  g.clear();
-  g.fillStyle(0x3a1420, 1); g.fillCircle(24, 24, 22);
-  g.fillStyle(COLORS.laser, 1); g.fillCircle(24, 26, 13); g.fillRect(21, 3, 6, 22);
-  g.fillStyle(0xffe0e6, 1); g.fillCircle(24, 26, 5);
-  g.lineStyle(2, 0xffd0d8, 0.9); g.strokeCircle(24, 26, 13); g.generateTexture('tower_laser', 48, 48);
-
-  // 지휘탑: 금빛 깃발/별.
-  g.clear();
-  g.fillStyle(0x3a3320, 1); g.fillCircle(24, 24, 22);
-  g.fillStyle(COLORS.command, 1);
-  g.fillPoints([
-    new Phaser.Math.Vector2(24, 4), new Phaser.Math.Vector2(29, 19), new Phaser.Math.Vector2(44, 19),
-    new Phaser.Math.Vector2(32, 28), new Phaser.Math.Vector2(37, 43), new Phaser.Math.Vector2(24, 34),
-    new Phaser.Math.Vector2(11, 43), new Phaser.Math.Vector2(16, 28), new Phaser.Math.Vector2(4, 19),
-    new Phaser.Math.Vector2(19, 19),
-  ], true);
-  g.lineStyle(2, 0xfff0c8, 0.9); g.strokeCircle(24, 24, 20); g.generateTexture('tower_command', 48, 48);
-
-  // 금광탑: 금괴 더미.
-  g.clear();
-  g.fillStyle(0x33291a, 1); g.fillCircle(24, 24, 22);
-  g.fillStyle(COLORS.mine, 1);
-  g.fillRect(10, 26, 16, 9); g.fillRect(23, 26, 16, 9); g.fillRect(16, 15, 16, 9);
-  g.fillStyle(0xfff2c4, 1); g.fillRect(12, 27, 5, 3); g.fillRect(25, 27, 5, 3); g.fillRect(18, 16, 5, 3);
-  g.generateTexture('tower_mine', 48, 48);
-
-  // 창공탑: 하늘빛 석궁 — 위로 겨눈 활 + 화살.
+  // 창공탑: 하늘빛 석궁 — 위로 겨눈 활 + 화살. (창공탑은 아직 도형; 시트가 없다.)
   g.clear();
   g.fillStyle(0x14324a, 1); g.fillCircle(24, 24, 22);
   g.lineStyle(4, COLORS.ballista, 1); g.beginPath();
@@ -48,6 +21,7 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.fillStyle(COLORS.ballista, 1); g.fillTriangle(24, 3, 30, 18, 18, 18); g.fillRect(22, 14, 4, 18);
   g.lineStyle(2, 0xdff2ff, 0.9); g.strokeCircle(24, 24, 20);
   g.generateTexture('tower_ballista', 48, 48);
+
 
   g.clear(); g.fillStyle(COLORS.laser, 1); g.fillRect(2, 13, 30, 6); g.fillStyle(0xffe0e6, 1); g.fillRect(24, 12, 10, 8); g.generateTexture('projectile_laser', 36, 32);
   g.clear(); g.fillStyle(COLORS.command, 1); g.fillCircle(16, 16, 8); g.fillStyle(0xfff0c8, 1); g.fillCircle(13, 13, 3); g.generateTexture('projectile_command', 32, 32);

@@ -6,9 +6,10 @@ import { TARGET_PRIORITIES } from '../systems/TargetingSystem';
 import type { TargetPriority } from '../systems/TargetingSystem';
 
 let nextId = 1;
-const ANIMATED_TOWER_KEYS = new Set(['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'poison']);
+const ANIMATED_TOWER_KEYS = new Set(['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'poison', 'laser', 'command', 'mine']);
 const TOWER_ART_ROTATION_OFFSET: Readonly<Record<string, number>> = {
   arrow: 0,
+  laser: 0,
   sniper: 0,
   poison: Math.PI,
 };

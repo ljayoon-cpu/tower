@@ -63,13 +63,14 @@ describe('tower display frames', () => {
     expect(image.setFrame).toHaveBeenLastCalledWith(0);
   });
 
-  it('leaves towers without a loaded animation sheet on their default frame', () => {
+  it('animates illustrated support towers when their pulse is triggered', () => {
     const { scene, image } = createScene();
-    const tower = new Tower(scene, 'laser', { col: 1, row: 1 }, { x: 64, y: 64 });
+    const tower = new Tower(scene, 'mine', { col: 1, row: 1 }, { x: 64, y: 64 });
 
     tower.playAttack();
-    tower.updateVisual(140);
+    tower.updateVisual(75);
 
-    expect(image.setFrame).not.toHaveBeenCalled();
+    expect(image.setFrame).toHaveBeenLastCalledWith(3);
   });
+
 });
