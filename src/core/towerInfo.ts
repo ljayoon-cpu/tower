@@ -27,6 +27,10 @@ function dpsOf(stats: TowerLevelStats, attack: string): number {
     return Math.round(sum * stats.fireRate);
   }
   if (attack === 'poison') return Math.round(stats.damage * stats.fireRate + (stats.poisonDps ?? 0));
+  if (attack === 'beam') {
+    // 램프가 최대로 쌓인 상태의 단일 대상 지속 피해.
+    return Math.round(stats.damage * stats.fireRate * (stats.beamRampMax ?? 1));
+  }
   return Math.round(stats.damage * stats.fireRate);
 }
 
@@ -41,6 +45,13 @@ function noteOf(key: string, level: number, stats: TowerLevelStats, attack: stri
   }
   if (attack === 'chain') return `연쇄 ${(stats.chainTargets ?? 0) + 1}타`;
   if (attack === 'poison') return `독 지속 ${stats.poisonDps ?? 0}/초`;
+  if (attack === 'beam') return `집중 시 최대 ${Math.round((stats.beamRampMax ?? 1) * 100)}% 피해`;
+  if (attack === 'support') {
+    if (stats.goldPerTick != null) {
+      return `${((stats.goldIntervalMs ?? 0) / 1000).toFixed(1)}초마다 +${stats.goldPerTick}G`;
+    }
+    return `주변 타워 공격력 +${Math.round((stats.buffDamagePct ?? 0) * 100)}% · 연사 +${Math.round((stats.buffFireRatePct ?? 0) * 100)}%`;
+  }
   return '';
 }
 

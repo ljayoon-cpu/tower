@@ -15,6 +15,23 @@ export function chainDamages(base: number, falloff: number, extraJumps: number):
   return out;
 }
 
+/**
+ * 레이저탑 램프 데미지. 같은 대상 연속 명중 스택 `stacks` 에 비례해 배율이
+ * `1 + stacks*rampPct` 로 오르고 `rampMax` 에서 멈춘다. 반올림.
+ */
+export function beamDamage(base: number, stacks: number, rampPct: number, rampMax: number): number {
+  const mult = Math.min(rampMax, 1 + Math.max(0, stacks) * rampPct);
+  return Math.round(base * mult);
+}
+
+/**
+ * 지휘탑 버프 배율. 여러 오라가 겹쳐도 중첩되지 않고 가장 강한 값만 적용한다.
+ * `auras` 는 각 지휘탑이 주는 비율(0.1 = +10%). 빈 배열이면 1.
+ */
+export function buffMultiplier(auras: number[]): number {
+  return 1 + Math.max(0, ...auras, 0);
+}
+
 function dist2(a: Vec2, b: Vec2): number {
   const dx = a.x - b.x, dy = a.y - b.y;
   return dx * dx + dy * dy;

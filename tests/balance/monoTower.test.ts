@@ -40,8 +40,10 @@ describe('single-tower clear audit', () => {
 
     const firstStage = STAGES[0].id;
 
-    // 1) 첫 스테이지는 어떤 타워로든 솔로 클리어 가능해야 한다.
-    for (const key of TOWER_KEYS) {
+    // 1) 첫 스테이지는 직접 공격 타워라면 어떤 것으로든 솔로 클리어 가능해야 한다.
+    //    지원형(지휘탑·금광탑)은 직접 화력이 미약한 게 설계 의도라 제외.
+    const combatKeys = TOWER_KEYS.filter((key) => getTower(key).attack !== 'support');
+    for (const key of combatKeys) {
       const first = rows.find((r) => r.tower === getTower(key).name && r.stage === firstStage)!;
       expect(first.clears, `${getTower(key).name} should solo ${firstStage}`).toBeGreaterThan(0);
     }

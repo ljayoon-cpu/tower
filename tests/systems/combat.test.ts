@@ -1,4 +1,4 @@
-import { chainDamages, buildChain } from '../../src/systems/combat';
+import { chainDamages, buildChain, beamDamage, buffMultiplier } from '../../src/systems/combat';
 import type { Targetable } from '../../src/systems/TargetingSystem';
 
 const mk = (id: number, x: number, y: number, alive = true): Targetable =>
@@ -9,6 +9,29 @@ describe('chainDamages', () => {
     expect(chainDamages(40, 0.5, 3)).toEqual([40, 20, 10, 5]);
     expect(chainDamages(10, 0.6, 0)).toEqual([10]);
     expect(chainDamages(17, 0.65, 2)).toEqual([17, 11, 7]); // round(11.05), round(7.1825)
+  });
+});
+
+describe('beamDamage', () => {
+  it('ramps with consecutive stacks and caps at rampMax', () => {
+    expect(beamDamage(100, 0, 0.2, 3)).toBe(100);
+    expect(beamDamage(100, 3, 0.2, 3)).toBe(160);
+    expect(beamDamage(100, 10, 0.2, 3)).toBe(300); // 1 + 2.0 -> capped at 3.0
+    expect(beamDamage(100, 100, 0.2, 3)).toBe(300);
+  });
+  it('treats negative stacks as zero and rounds', () => {
+    expect(beamDamage(45, -5, 0.15, 2.5)).toBe(45);
+    expect(beamDamage(45, 2, 0.15, 2.5)).toBe(Math.round(45 * 1.3));
+  });
+});
+
+describe('buffMultiplier', () => {
+  it('is 1 with no auras', () => {
+    expect(buffMultiplier([])).toBe(1);
+  });
+  it('takes the strongest aura, never stacking', () => {
+    expect(buffMultiplier([0.1, 0.3, 0.2])).toBeCloseTo(1.3);
+    expect(buffMultiplier([0.25])).toBeCloseTo(1.25);
   });
 });
 

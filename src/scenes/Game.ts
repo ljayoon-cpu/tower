@@ -5,7 +5,7 @@ import {
 } from '../core/constants';
 import { createEventBus } from '../core/eventBus';
 import type { EventBus } from '../core/eventBus';
-import type { GameEvents, StageDef, TileCoord, Vec2 } from '../core/types';
+import type { GameEvents, StageDef, TileCoord, TowerLevelStats, Vec2 } from '../core/types';
 import { Pool } from '../core/pool';
 import { getStage, nextStageId } from '../data/stages';
 import { starsFor } from '../core/stars';
@@ -33,7 +33,7 @@ import { Tower } from '../entities/Tower';
 import { Projectile } from '../entities/Projectile';
 import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius } from '../systems/TargetingSystem';
-import { chainDamages, buildChain } from '../systems/combat';
+import { chainDamages, buildChain, beamDamage, buffMultiplier } from '../systems/combat';
 import { BuildMenu } from '../ui/BuildMenu';
 import { audioFor } from '../ui/audio';
 import type { SoundEffects } from '../core/audio';
@@ -46,6 +46,9 @@ const PROJECTILE_TEXTURE: Record<string, string> = {
   bolt: 'projectile_bolt',
   sniper: 'projectile_sniper',
   poison: 'projectile_poison',
+  laser: 'projectile_laser',
+  command: 'projectile_command',
+  mine: 'projectile_mine',
 };
 
 export class Game extends Phaser.Scene {
@@ -608,27 +611,94 @@ export class Game extends Phaser.Scene {
     });
   }
 
+  /** 지휘탑 버프(사거리 안 아군 데미지·연사 증가, 중첩 없음)를 적용한 실효 스탯. */
+  private effectiveStats(tower: Tower): TowerLevelStats {
+    const base = tower.stats();
+    const dmgAuras: number[] = [];
+    const rateAuras: number[] = [];
+    for (const b of this.towers) {
+      if (b === tower) continue;
+      const bs = b.stats();
+      if (getTower(b.key).attack !== 'support' || bs.buffRadius == null) continue;
+      const dx = b.homePos.x - tower.homePos.x;
+      const dy = b.homePos.y - tower.homePos.y;
+      if (Math.hypot(dx, dy) > bs.buffRadius) continue;
+      dmgAuras.push(bs.buffDamagePct ?? 0);
+      rateAuras.push(bs.buffFireRatePct ?? 0);
+    }
+    if (dmgAuras.length === 0) return base;
+    const dmgMul = buffMultiplier(dmgAuras);
+    const rateMul = buffMultiplier(rateAuras);
+    return { ...base, damage: Math.round(base.damage * dmgMul), fireRate: base.fireRate * rateMul };
+  }
+
+  /** 지원 타워(지휘탑·금광탑): 직접 공격 없음. 금광탑은 주기적으로 골드를 생성한다. */
+  private updateSupportTower(tower: Tower, s: TowerLevelStats, dtMs: number): void {
+    if (s.goldIntervalMs == null || s.goldPerTick == null) return;
+    tower.goldTimerMs += dtMs;
+    while (tower.goldTimerMs >= s.goldIntervalMs) {
+      tower.goldTimerMs -= s.goldIntervalMs;
+      this.eco.earn(s.goldPerTick);
+      this.floatingGold(tower.homePos, s.goldPerTick);
+      this.audio.play('mine');
+    }
+  }
+
+  /** 레이저 조준선을 짧게 그린다(연출 전용, 데미지는 타워 틱에서 처리). */
+  private beamLine(from: Vec2, to: Vec2): void {
+    const add = this.add as { line?: (...a: unknown[]) => Phaser.GameObjects.Line };
+    if (typeof add.line !== 'function' || !this.tweens) return;
+    const line = add.line(0, 0, from.x, from.y, to.x, to.y, COLORS.laser, 0.85)
+      .setOrigin(0, 0).setLineWidth(2).setDepth(15);
+    this.tweens.add({ targets: line, alpha: 0, duration: 120, onComplete: () => line.destroy() });
+  }
+
   private updateTowers(dtMs: number) {
     const targets = this.enemies;
 
     for (const tower of this.towers) {
+      const def = getTower(tower.key);
+      if (def.attack === 'support') {
+        this.updateSupportTower(tower, tower.stats(), dtMs);
+        continue;
+      }
       tower.cooldownMs -= dtMs;
       if (tower.cooldownMs > 0) continue;
-      const s = tower.stats();
+      const s = this.effectiveStats(tower);
       const target = pickTarget(tower.homePos, s.range, targets, tower.priority);
       if (!target) continue;
       tower.cooldownMs = 1000 / s.fireRate;
 
       const enemy = this.enemies.find((e) => e.id === target.id);
       if (!enemy) continue;
-      const def = getTower(tower.key);
       tower.faceToward(enemy.pos);
-      if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
+      if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison' || tower.key === 'laser') {
         this.audio.play(tower.key);
       }
       this.muzzleFlash(tower.homePos, def.key === 'sniper' ? COLORS.sniper : def.attack === 'poison' ? COLORS.poison :
         def.attack === 'splash' ? COLORS.cannon : def.attack === 'slow' ? COLORS.frost :
-          def.attack === 'chain' ? COLORS.bolt : COLORS.arrow);
+          def.attack === 'chain' ? COLORS.bolt : def.attack === 'beam' ? COLORS.laser : COLORS.arrow);
+
+      if (def.attack === 'beam') {
+        // 램프: 같은 대상을 연속 명중할수록 데미지 배율↑. 대상이 바뀌면 스택이
+        // 확 줄지만 0으로 초기화되진 않아, 표적이 자주 바뀌어도 조금은 오른다.
+        if (tower.beamTargetId === enemy.id) tower.beamStacks++;
+        else { tower.beamTargetId = enemy.id; tower.beamStacks = Math.max(0, tower.beamStacks - 3); }
+        const dmg = beamDamage(s.damage, tower.beamStacks, s.beamRampPct ?? 0, s.beamRampMax ?? 1);
+        const heavy = tower.beamStacks > 3;
+        this.beamLine(tower.homePos, enemy.pos);
+        this.fireProjectile(tower.homePos, {
+          speed: 1400,
+          textureKey: PROJECTILE_TEXTURE[tower.key],
+          targetPos: () => (enemy.alive ? enemy.pos : null),
+          onHit: () => {
+            if (!enemy.alive) return;
+            enemy.takeDamage(dmg);
+            this.impactFlash(enemy.pos, COLORS.laser, heavy ? 'heavy' : 'light');
+          },
+        });
+        continue;
+      }
 
       if (def.attack === 'chain') {
         this.fireProjectile(tower.homePos, {

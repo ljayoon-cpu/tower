@@ -69,6 +69,38 @@ describe('tower definitions', () => {
       expect(poisonPerGold).toBeLessThan(arrowPerGold);
     }
   });
+  it('adds a ramping beam tower (레이저탑) that is swarm-weak by design', () => {
+    const laser = getTower('laser');
+    expect(laser).toMatchObject({ key: 'laser', name: '레이저탑', attack: 'beam', maxLevel: 5 });
+    for (const l of laser.levels) {
+      expect(l.beamRampPct!).toBeGreaterThan(0);
+      expect(l.beamRampMax!).toBeGreaterThan(1);
+    }
+    // 램프가 다 쌓이기 전 기본 화력은 저격탑 한 방보다 낮다(즉발 스웜 처리에 불리).
+    expect(laser.levels[4].damage).toBeLessThan(getTower('sniper').levels[4].damage);
+  });
+
+  it('adds support towers (지휘탑 buff, 금광탑 economy) with no real direct damage', () => {
+    const command = getTower('command');
+    const mine = getTower('mine');
+    expect(command.attack).toBe('support');
+    expect(mine.attack).toBe('support');
+    for (const l of command.levels) {
+      expect(l.buffRadius!).toBeGreaterThan(0);
+      expect(l.buffDamagePct!).toBeGreaterThan(0);
+    }
+    for (const l of mine.levels) {
+      expect(l.goldPerTick!).toBeGreaterThan(0);
+      expect(l.goldIntervalMs!).toBeGreaterThan(0);
+    }
+    // 지원형은 직접 화력이 화살탑보다 한참 약해야 한다.
+    expect(command.levels[4].damage).toBeLessThan(getTower('arrow').levels[4].damage);
+    expect(mine.levels[4].damage).toBeLessThan(getTower('arrow').levels[4].damage);
+    // 지휘탑 버프·금광탑 생산은 레벨이 오를수록 세진다.
+    expect(command.levels[4].buffDamagePct!).toBeGreaterThan(command.levels[0].buffDamagePct!);
+    expect(mine.levels[4].goldPerTick!).toBeGreaterThan(mine.levels[0].goldPerTick!);
+  });
+
   it('getTower throws on unknown key', () => {
     expect(() => getTower('nope')).toThrow();
   });

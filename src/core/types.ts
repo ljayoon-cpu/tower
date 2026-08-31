@@ -9,7 +9,7 @@ export interface PathNode {
   branches?: PathNode[];
 }
 
-export type AttackKind = 'single' | 'splash' | 'slow' | 'chain' | 'poison';
+export type AttackKind = 'single' | 'splash' | 'slow' | 'chain' | 'poison' | 'beam' | 'support';
 
 export interface TowerLevelStats {
   damage: number;
@@ -26,6 +26,18 @@ export interface TowerLevelStats {
   poisonRadius?: number;  // 중독 투사체의 적용 반경(px)
 
   armorPierce?: number;   // 방어력에서 무시할 수치
+
+  // beam(레이저탑): 같은 대상을 연속 명중할수록 데미지가 누적 증가한다.
+  beamRampPct?: number;   // 연속 명중마다 더해지는 데미지 비율 (0.15 = +15%p)
+  beamRampMax?: number;   // 누적 데미지 배율 상한 (3 = 최대 300%)
+
+  // support(지휘탑): 사거리 안 아군 타워의 데미지·연사를 올린다. 중첩 없음(최대값만).
+  buffRadius?: number;
+  buffDamagePct?: number;
+  buffFireRatePct?: number;
+  // support(금광탑): goldIntervalMs 마다 goldPerTick 골드를 생성한다.
+  goldPerTick?: number;
+  goldIntervalMs?: number;
 }
 
 export interface TowerDef {

@@ -71,6 +71,42 @@ export const TOWERS: Record<string, TowerDef> = {
       { damage: 24, range: 192, fireRate: 1.7, poisonDps: 86, poisonDurationMs: 2200, poisonRadius: 90 },
     ],
   },
+  laser: {
+    // 집중포화. 같은 대상을 계속 쏘면 데미지가 점점 오른다 — 보스·장갑병 상대로 최강,
+    // 표적이 자주 바뀌는 스웜에는 램프가 안 쌓여 약하다.
+    key: 'laser', name: '레이저탑', attack: 'beam', cost: 110, maxLevel: 5,
+    levels: [
+      { damage: 22,  range: 176, fireRate: 1.4, beamRampPct: 0.12, beamRampMax: 2.2 },
+      { damage: 40,  range: 188, fireRate: 1.5, beamRampPct: 0.14, beamRampMax: 2.4 },
+      { damage: 76,  range: 200, fireRate: 1.6, beamRampPct: 0.16, beamRampMax: 2.7 },
+      { damage: 146, range: 212, fireRate: 1.7, beamRampPct: 0.18, beamRampMax: 3.0 },
+      { damage: 286, range: 226, fireRate: 1.8, beamRampPct: 0.20, beamRampMax: 3.3 },
+    ],
+  },
+  command: {
+    // 지원형. 직접 공격은 미약하지만 사거리 안의 아군 타워 데미지·연사를 올린다.
+    // 타워를 뭉쳐 짓고 머지 위치를 고민하게 만든다.
+    key: 'command', name: '지휘탑', attack: 'support', cost: 140, maxLevel: 5,
+    levels: [
+      { damage: 4,  range: 128, fireRate: 1.0,  buffRadius: 128, buffDamagePct: 0.10, buffFireRatePct: 0.06 },
+      { damage: 8,  range: 134, fireRate: 1.05, buffRadius: 136, buffDamagePct: 0.14, buffFireRatePct: 0.09 },
+      { damage: 15, range: 142, fireRate: 1.1,  buffRadius: 146, buffDamagePct: 0.19, buffFireRatePct: 0.12 },
+      { damage: 29, range: 150, fireRate: 1.15, buffRadius: 158, buffDamagePct: 0.25, buffFireRatePct: 0.16 },
+      { damage: 56, range: 160, fireRate: 1.2,  buffRadius: 172, buffDamagePct: 0.32, buffFireRatePct: 0.20 },
+    ],
+  },
+  mine: {
+    // 경제형. 직접 공격은 미약하지만 일정 주기마다 골드를 생성한다. 초반에 깔수록
+    // 후반 자금이 커지지만 그만큼 방어를 늦게 세워야 한다.
+    key: 'mine', name: '금광탑', attack: 'support', cost: 120, maxLevel: 5,
+    levels: [
+      { damage: 3,  range: 110, fireRate: 0.9,  goldPerTick: 6,  goldIntervalMs: 5000 },
+      { damage: 6,  range: 116, fireRate: 0.95, goldPerTick: 11, goldIntervalMs: 4800 },
+      { damage: 12, range: 124, fireRate: 1.0,  goldPerTick: 19, goldIntervalMs: 4600 },
+      { damage: 23, range: 132, fireRate: 1.05, goldPerTick: 32, goldIntervalMs: 4400 },
+      { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 52, goldIntervalMs: 4200 },
+    ],
+  },
 };
 
 export const TOWER_KEYS = Object.keys(TOWERS);

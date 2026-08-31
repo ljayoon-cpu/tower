@@ -17,7 +17,7 @@
 
 | 구역 | 담당 | 파일 |
 |---|---|---|
-| **타워 수치·메커니즘·밸런스** | 사람이 지정한 담당(현재 Claude) | `src/data/towers.ts`, `src/systems/combat.ts`, `src/systems/TargetingSystem.ts`, `tests/balance/**` |
+| **타워 수치·메커니즘·밸런스** | Codex (2026-08-31 사용자 지정) | `src/data/towers.ts`, `src/systems/combat.ts`, `src/systems/TargetingSystem.ts`, `tests/balance/**` |
 | **적·몬스터·적 상태** | Codex | `src/data/enemies.ts`, `src/systems/EnemyState.ts`, `src/entities/Enemy.ts` |
 | **스테이지·맵·웨이브** | 지정된 담당 | `src/data/stages/**` |
 | 씬·HUD·UI·연출 | 지정된 담당 | `src/scenes/**`, `src/ui/**` |
@@ -29,11 +29,11 @@
 
 ## 현재 상태 (2026-08-31)
 
-- `main`에 전체 코드. `feature/merge-td`는 `main`과 동일(과거 작업 브랜치).
-- 원본 계획 [docs/superpowers/plans/2026-08-30-merge-tower-defense.md](docs/superpowers/plans/2026-08-30-merge-tower-defense.md)의 Task 1~22 완료.
-- 그 뒤: 가독성 패스(체력바·타워 정보·웨이브 미리보기), 머지 대상 하이라이트,
-  고레벨 타워 상향(머지 > 스프레드), 전투 손맛, 보스 체력바, 스테이지 1-6,
-  스테이지 선택 개편, 표적 우선순위, 프로스트 오라.
+- `main`에 전체 코드. Task 1~22 + 가독성/손맛 패스 + 메타 진행(강화 상점) 완료.
+- **무한 모드**(`src/data/endless.ts`, `save.endlessBest`) — 절차적 무한 웨이브.
+- **타워 9종** — 기존 6종 + 레이저(`beam`, 집중 램프)·지휘탑(`support`, 주변 버프)·
+  금광탑(`support`, 골드 생성). 초기 수치는 Claude 스캐폴딩, **밸런싱은 Codex**.
+  램프/버프 순수 함수는 `src/systems/combat.ts`(`beamDamage`, `buffMultiplier`).
 - 실기기(안드로이드/iOS) 검증은 아직 안 됨.
 
 ## 명령어
