@@ -27,6 +27,7 @@ class DisplayObject {
   setInteractive() { return this; }
   setStrokeStyle() { return this; }
   setScale() { return this; }
+  setRotation() { return this; }
   setRadius() { return this; }
   setActive() { return this; }
   clear() { return this; }

@@ -84,6 +84,14 @@ export class Tower {
     this.ring.setVisible(v);
   }
 
+  /** 스프라이트를 표적 쪽으로 회전. 원형(대포)은 회전이 무의미하므로 제외. */
+  faceToward(target: Vec2): void {
+    if (this.key === 'cannon') return;
+    this.sprite.setRotation(
+      Math.atan2(target.y - this.sprite.y, target.x - this.sprite.x) + Math.PI / 2,
+    );
+  }
+
   cyclePriority(): TargetPriority {
     const i = TARGET_PRIORITIES.indexOf(this.priority);
     this.priority = TARGET_PRIORITIES[(i + 1) % TARGET_PRIORITIES.length];

@@ -16,6 +16,7 @@ export class Enemy {
   private slowLeftMs = 0;
   private _done = false;
   private _progress = 0;
+  private _freed = false;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -50,7 +51,7 @@ export class Enemy {
     if (!this.alive) return;
     this._hp -= n;
     if (this._hp <= 0) {
-      this.sprite.setVisible(false);
+      // 스프라이트는 destroy()의 소멸 트윈이 처리한다. 여기선 부가 표시만 정리.
       this.healthBar.setVisible(false);
       this.slowAura.setVisible(false);
     } else {
@@ -112,5 +113,20 @@ export class Enemy {
     }
   }
 
-  destroy(): void { this.sprite.destroy(); this.healthBar.destroy(); this.slowAura.destroy(); }
+  destroy(): void {
+    if (this._freed) return;
+    this._freed = true;
+    this.healthBar.destroy();
+    this.slowAura.destroy();
+    const tweens = (this.scene as Phaser.Scene & { tweens?: Phaser.Tweens.TweenManager }).tweens;
+    if (tweens && this._hp <= 0 && !this._done) {
+      // 처치: 짧게 부풀며 사라진다. 목표 도달(_done)은 조용히 제거.
+      tweens.add({
+        targets: this.sprite, scaleX: 1.7, scaleY: 1.7, alpha: 0, duration: 160,
+        onComplete: () => this.sprite.destroy(),
+      });
+    } else {
+      this.sprite.destroy();
+    }
+  }
 }

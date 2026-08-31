@@ -325,6 +325,7 @@ export class Game extends Phaser.Scene {
             this.removeTower(dragged);
             this.snapHome(targetTower);
             this.audio.play('merge');
+            this.mergePop(targetTower);
             return;
           }
         }
@@ -514,6 +515,7 @@ export class Game extends Phaser.Scene {
       const enemy = this.enemies.find((e) => e.id === target.id);
       if (!enemy) continue;
       const def = getTower(tower.key);
+      tower.faceToward(enemy.pos);
       if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt') {
         this.audio.play(tower.key);
       }
@@ -577,6 +579,37 @@ export class Game extends Phaser.Scene {
     });
   }
 
+  /** 머지 성공 시 결과 타워가 잠깐 커졌다 돌아온다. */
+  private mergePop(tower: Tower): void {
+    if (!this.tweens) return;
+    this.tweens.add({
+      targets: tower.sprite,
+      scale: tower.sprite.scale * 1.35,
+      duration: 110,
+      yoyo: true,
+      ease: 'Quad.out',
+    });
+  }
+
+  /** 처치 지점에서 떠오르며 사라지는 골드 표시. */
+  private floatingGold(pos: Vec2, amount: number): void {
+    if (!this.tweens || typeof this.add.text !== 'function') return;
+    const label = this.add
+      .text(pos.x, pos.y, `+${amount}`, {
+        fontFamily: 'monospace', fontSize: '18px', color: '#ffcc44',
+      })
+      .setOrigin(0.5)
+      .setDepth(30);
+    this.tweens.add({
+      targets: label,
+      y: pos.y - 34,
+      alpha: 0,
+      duration: 620,
+      ease: 'Quad.out',
+      onComplete: () => label.destroy(),
+    });
+  }
+
   update(_time: number, dtMsRaw: number) {
     if (!this.running || this.paused) return;
     // The HUD may consume pointerup before the Game scene sees it.
@@ -605,7 +638,10 @@ export class Game extends Phaser.Scene {
     // 처리된 적 정리
     const removed = this.enemies.filter((e) => !e.alive);
     for (const e of removed) {
-      if (e.hp <= 0) this.bus.emit('enemy:killed', { bounty: e.def.bounty });
+      if (e.hp <= 0) {
+        this.bus.emit('enemy:killed', { bounty: e.def.bounty });
+        this.floatingGold(e.pos, e.def.bounty);
+      }
       this.waves.notifyEnemyRemoved();
       if (!this.running) return;
       e.destroy();
