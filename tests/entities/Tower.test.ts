@@ -51,9 +51,21 @@ describe('tower display frames', () => {
     expect(tower.level).toBe(3);
   });
 
-  it('leaves towers without a loaded animation sheet on their default frame', () => {
+  it('animates the newly illustrated bolt tower with the same attack timing', () => {
     const { scene, image } = createScene();
     const tower = new Tower(scene, 'bolt', { col: 1, row: 1 }, { x: 64, y: 64 });
+
+    tower.playAttack();
+    expect(image.setFrame).toHaveBeenLastCalledWith(2);
+    tower.updateVisual(75);
+    expect(image.setFrame).toHaveBeenLastCalledWith(3);
+    tower.updateVisual(90);
+    expect(image.setFrame).toHaveBeenLastCalledWith(0);
+  });
+
+  it('leaves towers without a loaded animation sheet on their default frame', () => {
+    const { scene, image } = createScene();
+    const tower = new Tower(scene, 'laser', { col: 1, row: 1 }, { x: 64, y: 64 });
 
     tower.playAttack();
     tower.updateVisual(140);

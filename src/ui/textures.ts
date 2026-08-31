@@ -13,28 +13,6 @@ export function buildTextures(scene: Phaser.Scene): void {
     g.generateTexture(key, s, s);
   };
 
-  g.clear();
-  g.fillStyle(0x3d3420, 1); g.fillCircle(24, 24, 22);
-  g.fillStyle(COLORS.bolt, 1); g.fillCircle(24, 24, 15);
-  g.fillStyle(0xffffbf, 1);
-  g.fillPoints([
-    new Phaser.Math.Vector2(28, 4), new Phaser.Math.Vector2(15, 24), new Phaser.Math.Vector2(24, 24),
-    new Phaser.Math.Vector2(19, 44), new Phaser.Math.Vector2(35, 20), new Phaser.Math.Vector2(26, 20),
-  ], true);
-  g.generateTexture('tower_bolt', 48, 48);
-
-  g.clear();
-  g.fillStyle(0x2c1d42, 1); g.fillCircle(24, 24, 22);
-  g.fillStyle(COLORS.sniper, 1); g.fillCircle(24, 29, 14); g.fillRect(21, 4, 6, 27);
-  g.fillStyle(0xf4ddff, 1); g.fillCircle(24, 14, 7); g.fillCircle(24, 14, 3);
-  g.lineStyle(2, 0xf4ddff, 0.9); g.strokeCircle(24, 14, 10); g.generateTexture('tower_sniper', 48, 48);
-
-  g.clear();
-  g.fillStyle(0x173c2b, 1); g.fillCircle(24, 24, 22);
-  g.fillStyle(COLORS.poison, 1); g.fillCircle(24, 29, 14); g.fillRect(17, 8, 14, 17);
-  g.fillStyle(0xc8ff8d, 1); g.fillCircle(19, 28, 4); g.fillCircle(28, 34, 3);
-  g.fillStyle(0xe9ffd3, 1); g.fillRect(19, 5, 10, 5); g.generateTexture('tower_poison', 48, 48);
-
   // 레이저탑: 붉은 렌즈 + 조준선.
   g.clear();
   g.fillStyle(0x3a1420, 1); g.fillCircle(24, 24, 22);
