@@ -216,7 +216,9 @@ export class Enemy {
 
     const a = PathManager.advance(this.polyline, this.traveled);
     this._progress = a.progress;
-    this.sprite.setPosition(a.pos.x, a.pos.y);
+    // 질주병은 달리는 느낌을 주려 살짝 위아래로 통통 튄다.
+    const bob = this.def.key === 'fast' && !a.done ? Math.sin(this.traveled * 0.06) * 3 : 0;
+    this.sprite.setPosition(a.pos.x, a.pos.y + bob);
     if (a.done) {
       this._done = true;
       this.sprite.setVisible(false);
@@ -249,8 +251,12 @@ export class Enemy {
     this.armorBreakAura.destroy();
     const tweens = (this.scene as Phaser.Scene & { tweens?: Phaser.Tweens.TweenManager }).tweens;
     if (tweens && this.state.hp <= 0 && !this._done) {
+      // 현재 크기 기준으로 줄이며 사라진다(스프라이트 원본 크기가 달라도 안전).
+      const sx = this.sprite.scaleX;
+      const sy = this.sprite.scaleY;
       tweens.add({
-        targets: this.sprite, scaleX: 1.7, scaleY: 1.7, alpha: 0, duration: 160,
+        targets: this.sprite, scaleX: sx * 0.5, scaleY: sy * 0.5, alpha: 0, duration: 150,
+        ease: 'Quad.in',
         onComplete: () => this.sprite.destroy(),
       });
     } else {
