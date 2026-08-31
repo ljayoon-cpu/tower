@@ -48,7 +48,9 @@ export const stage25: StageDef = {
     ],
   },
   startGold: 360,
-  startLives: 20,
+  // 보스 두 마리(목표 피해 6)를 모두 놓치면 생명이 0이 된다.
+  // 보스전을 잡지 않고 잔여 생명으로 통과하는 전략은 허용하지 않는다.
+  startLives: 12,
   starThresholds: [0.3, 0.6, 0.9],
   bossStage: true,
   waves: [
