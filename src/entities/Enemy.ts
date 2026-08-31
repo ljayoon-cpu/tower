@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { BossPhaseDef, EnemyDef, Vec2 } from '../core/types';
+import type { BossPhaseDef, EnemyDef, MovementLayer, Vec2 } from '../core/types';
 import { PathManager } from '../systems/PathManager';
 import { EnemyState, type DamagePacket, type EnemyModifiers } from '../systems/EnemyState';
 
@@ -141,6 +141,7 @@ export class Enemy {
   }
   get progress(): number { return this._progress; }
   get intercepts(): boolean { return this.def.intercepts === true; }
+  get layer(): MovementLayer { return this.def.movementLayer ?? 'ground'; }
   get movementSpeedMultiplier(): number { return this.bossSpeedMultiplier; }
   /** 0~1. 남은 체력 비율(음수는 0으로 고정). */
   get healthRatio(): number { return Math.max(0, this.state.hp) / this.state.maxHp; }

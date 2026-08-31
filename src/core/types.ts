@@ -26,6 +26,8 @@ export interface TowerLevelStats {
   poisonRadius?: number;  // 중독 투사체의 적용 반경(px)
 
   armorPierce?: number;   // 방어력에서 무시할 수치
+  /** 공중 표적에 곱하는 피해 배율. 기본 1. 대공탑(창공탑)이 크게 가진다. */
+  airDamageMultiplier?: number;
 
   // 화살탑 머지 3·5합: 한 번에 여러 발을 근처 표적에 쏜다.
   projectileCount?: number;
@@ -55,6 +57,10 @@ export interface TowerDef {
   attack: AttackKind;
   cost: number;         // Lv1 설치 비용
   maxLevel: number;     // 5
+  /** 지상 표적을 조준하는가. 기본 true. */
+  targetsGround?: boolean;
+  /** 공중 표적을 조준하는가. 기본 true. 파열탑·역병탑은 false. */
+  targetsAir?: boolean;
   levels: TowerLevelStats[]; // length === maxLevel, index 0 = Lv1
 }
 

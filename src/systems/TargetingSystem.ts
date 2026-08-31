@@ -1,4 +1,4 @@
-import type { Vec2 } from '../core/types';
+import type { MovementLayer, Vec2 } from '../core/types';
 
 export interface Targetable {
   id: number;
@@ -8,6 +8,8 @@ export interface Targetable {
   hp?: number;
   /** 소환 부하처럼 단일 공격의 표적을 먼저 받는 유닛. */
   intercepts?: boolean;
+  /** 없으면 'ground'로 본다. */
+  layer?: MovementLayer;
 }
 
 /** 선두(경로 최전방) / 후미 / 최대체력 / 최근접. */
@@ -64,7 +66,15 @@ export function pickTarget(
   return best;
 }
 
-export function enemiesInRadius(center: Vec2, radius: number, enemies: Targetable[]): Targetable[] {
+export function enemiesInRadius(
+  center: Vec2,
+  radius: number,
+  enemies: Targetable[],
+  layers?: ReadonlySet<MovementLayer>,
+): Targetable[] {
   const r2 = radius * radius;
-  return enemies.filter((e) => e.alive && dist2(center, e.pos) <= r2);
+  return enemies.filter((e) =>
+    e.alive
+    && dist2(center, e.pos) <= r2
+    && (!layers || layers.has(e.layer ?? 'ground')));
 }
