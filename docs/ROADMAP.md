@@ -42,7 +42,18 @@
       머지 커밋 시 클리어 가능, 타임아웃 없음.
 - [ ] 스테이지 데이터 추가 시 `tests/data/stages.test.ts`의 `STAGE_IDS`/`nextStageId` 갱신
 - [ ] 새 적 1종 (예: 방어막/분열) — `EnemyDef`에 필드 추가, `armorType`는 이미 자리만 있음
-- [ ] 새 타워 1종은 신중히 (4종 밸런스가 이미 빡빡함)
+
+- [ ] **새 타워 1종 (Codex 담당)** — 건드릴 파일:
+  - `src/core/types.ts` `AttackKind`에 새 값 추가
+  - `src/data/towers.ts` 정의 + `TowerLevelStats`에 필요한 필드
+  - `src/ui/textures.ts` 새 도형, `COLORS`(`src/core/constants.ts`)에 색
+  - `src/scenes/Game.ts` `updateTowers`의 `onHit` 분기에 공격 처리
+  - `src/ui/BuildMenu.ts`는 `TOWER_KEYS`를 순회하므로 대개 자동
+  - 테스트: `tests/data/definitions.test.ts`(속성별 필드 단언), 공격이 순수 계산이면
+    `src/systems/combat.ts` + 단위 테스트
+  - **밸런스:** 머지 우위를 깨지 않을 것. `tests/balance/harness.ts`의 전략에 새 타워를
+    추가하고 `balance.test.ts` 회귀 통과 확인. 4종이 이미 빡빡하니 니치(대공/관통/버프 등)로.
+  - 겹침 주의: 이 시기 다른 작업은 `Game.ts`·`HUD.ts` 대규모 수정을 피한다.
 
 ### D. 깊이 (중간)
 - [ ] 웨이브 사이 이자(interest) 또는 웨이브 클리어 보너스 조정 — 저축 유인
