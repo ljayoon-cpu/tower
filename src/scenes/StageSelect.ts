@@ -5,6 +5,7 @@ import { loadSave, isUnlocked } from '../core/save';
 import type { StageDef } from '../core/types';
 import { audioFor } from '../ui/audio';
 import { attachPressFeedback, fadeInFromBlack, fadeToScene } from '../ui/interactionFeedback';
+import { worldLabel, worldMapTheme } from '../ui/worldMap';
 
 const CARD_H = 104;
 const CARD_GAP = 16;
@@ -36,19 +37,27 @@ export class StageSelect extends Phaser.Scene {
       const y = LIST_TOP + CARD_H / 2 + i * (CARD_H + CARD_GAP);
       const unlocked = isUnlocked(save, stage.id);
       const stars = save.stages[stage.id]?.stars ?? 0;
+      const world = stage.id.split('-')[0];
+      const worldStart = stage.id === `${world}-1`;
+      const mapTheme = worldMapTheme(world);
 
       const box = this.add.rectangle(GAME_WIDTH / 2, y, 470, CARD_H, unlocked ? 0x1b1d33 : 0x14141f)
         .setStrokeStyle(2, unlocked ? 0x66ccff : 0x333344);
+      const rail = this.add.rectangle(GAME_WIDTH / 2 - 228, y, 10, CARD_H - 8,
+        unlocked ? mapTheme.accent : 0x333344, unlocked ? 0.9 : 0.7);
       const title = this.add.text(GAME_WIDTH / 2, y - 24, unlocked ? stage.id : `${stage.id} 🔒`, {
         fontFamily: 'monospace', fontSize: '32px', color: unlocked ? '#f2f2f7' : '#666677',
       }).setOrigin(0.5);
       const starText = this.add.text(GAME_WIDTH / 2, y + 12, '★★★☆☆☆'.slice(3 - stars, 6 - stars), {
         fontFamily: 'monospace', fontSize: '24px', color: '#ffcc44',
       }).setOrigin(0.5);
-      const brief = this.add.text(GAME_WIDTH / 2, y + 38, unlocked ? stageBrief(stage) : '', {
+      const subtitle = worldStart
+        ? `${worldLabel(world)}${unlocked ? ` · ${stageBrief(stage)}` : ''}`
+        : (unlocked ? stageBrief(stage) : '');
+      const brief = this.add.text(GAME_WIDTH / 2, y + 38, subtitle, {
         fontFamily: 'monospace', fontSize: '17px', color: '#8d98bb',
       }).setOrigin(0.5);
-      list.add([box, title, starText, brief]);
+      list.add([box, rail, title, starText, brief]);
 
       if (unlocked) {
         box.setInteractive({ useHandCursor: true });
