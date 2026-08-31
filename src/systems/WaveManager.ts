@@ -5,6 +5,8 @@ import type { EnemyModifiers } from './EnemyState';
 export interface SpawnRequest {
   enemyKey: string;
   modifiers: EnemyModifiers;
+  /** 스폰 경로 인덱스. undefined = 무작위 경로. */
+  lane?: number;
 }
 
 interface GroupState {
@@ -13,6 +15,7 @@ interface GroupState {
   intervalMs: number;
   nextAtMs: number; // 웨이브 경과시간 기준 다음 스폰 시각
   modifiers: EnemyModifiers;
+  lane?: number;
 }
 
 export class WaveManager {
@@ -69,6 +72,7 @@ export class WaveManager {
         speedMultiplier: g.speedMultiplier,
         shieldMultiplier: g.shieldMultiplier,
       },
+      lane: g.lane,
     }));
     this.scheduledThisWave = wave.groups.reduce((s, g) => s + g.count, 0);
     this.bus.emit('wave:started', { index: this._waveIndex, total: this.waves.length });
@@ -87,7 +91,7 @@ export class WaveManager {
     const out: SpawnRequest[] = [];
     for (const g of this.groups) {
       while (g.remaining > 0 && this.elapsedMs >= g.nextAtMs) {
-        out.push({ enemyKey: g.enemyKey, modifiers: g.modifiers });
+        out.push({ enemyKey: g.enemyKey, modifiers: g.modifiers, lane: g.lane });
         g.remaining--;
         g.nextAtMs += g.intervalMs > 0 ? g.intervalMs : 1;
       }

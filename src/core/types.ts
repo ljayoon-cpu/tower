@@ -110,6 +110,9 @@ export interface WaveGroup {
   hpMultiplier?: number;
   speedMultiplier?: number;
   shieldMultiplier?: number;
+  /** 스폰 경로 인덱스(PathManager.routes()). 여러 스폰 지점이 있는 맵에서 어느
+   *  입구로 나올지 지정. 생략 시 매 적마다 무작위 경로(모든 입구에 분산). */
+  lane?: number;
 }
 
 export interface Wave {

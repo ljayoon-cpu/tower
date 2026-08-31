@@ -569,10 +569,14 @@ export class Game extends Phaser.Scene {
     modifiers: EnemyModifiers = {},
     countsForWave = true,
     summonedById: number | null = null,
+    lane?: number,
   ) {
     const def = getEnemy(enemyKey);
-    const route = this.path.chooseRoute(this.rng);
-    const enemy = new Enemy(this, def, route.polyline, modifiers, countsForWave, summonedById);
+    const allRoutes = this.path.routes();
+    const polyline = lane != null && lane >= 0 && lane < allRoutes.length
+      ? allRoutes[lane]
+      : this.path.chooseRoute(this.rng).polyline;
+    const enemy = new Enemy(this, def, polyline, modifiers, countsForWave, summonedById);
     this.enemies.push(enemy);
     if (countsForWave) this.waves.notifyEnemySpawned();
     if (def.isBoss) this.bus.emit('boss:spawned', { name: def.name });
@@ -832,7 +836,9 @@ export class Game extends Phaser.Scene {
     }
     const dtMs = dtMsRaw * this.speedMul;
 
-    for (const req of this.waves.update(dtMs)) this.spawnEnemy(req.enemyKey, req.modifiers);
+    for (const req of this.waves.update(dtMs)) {
+      this.spawnEnemy(req.enemyKey, req.modifiers, true, null, req.lane);
+    }
 
     const secs = this.waves.secondsToNextWave();
     if (secs !== this.lastCountdown) {

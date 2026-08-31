@@ -5,6 +5,7 @@ import { PathManager } from '../../src/systems/PathManager';
 import {
   ENDLESS_STAGE_ID,
   endlessStage,
+  endlessSpawnPhase,
   endlessWave,
   endlessWaves,
 } from '../../src/data/endless';
@@ -47,6 +48,29 @@ describe('endless wave generator', () => {
     expect(has(5, 'shield')).toBe(true);
   });
 
+  it('escalates spawn points: alternating one entrance, then split, then both', () => {
+    expect(endlessSpawnPhase(1)).toBe('single');
+    expect(endlessSpawnPhase(5)).toBe('single');
+    expect(endlessSpawnPhase(6)).toBe('split');
+    expect(endlessSpawnPhase(14)).toBe('split');
+    expect(endlessSpawnPhase(15)).toBe('both');
+
+    // single 페이즈: 모든 그룹이 한 레인, 웨이브마다 번갈아.
+    const w1 = endlessWave(1).groups.map((g) => g.lane);
+    const w2 = endlessWave(2).groups.map((g) => g.lane);
+    expect(new Set(w1).size).toBe(1);
+    expect(new Set(w2).size).toBe(1);
+    expect(w1[0]).not.toBe(w2[0]);
+
+    // split 페이즈: 코어 스웜이 두 레인으로 갈린다.
+    const core8 = endlessWave(8).groups.filter((g) => g.enemy === 'fast' || g.enemy === 'normal');
+    expect(new Set(core8.map((g) => g.lane)).size).toBe(2);
+
+    // both 페이즈: 양쪽 입구에서 fast 가 동시에 나온다.
+    const fast20 = endlessWave(20).groups.filter((g) => g.enemy === 'fast');
+    expect(new Set(fast20.map((g) => g.lane))).toEqual(new Set([0, 1]));
+  });
+
   it('endlessWaves returns the requested length', () => {
     expect(endlessWaves(12)).toHaveLength(12);
     expect(endlessWaves()).toHaveLength(200);
@@ -66,12 +90,15 @@ describe('endless stage', () => {
     for (const row of s.grid) expect(row).toHaveLength(GRID_COLS);
   });
 
-  it('has a single traversable route ending at the goal', () => {
+  it('has two entrances that both reach the goal', () => {
     const s = endlessStage();
     const routes = new PathManager(s.path).routes();
-    expect(routes).toHaveLength(1);
-    expect(routes.length).toBe(s.goals.length);
-    const end = routes[0][routes[0].length - 1];
-    expect(Math.hypot(end.x - s.goals[0].x, end.y - s.goals[0].y)).toBeLessThan(1);
+    expect(routes).toHaveLength(2);
+    // 서로 다른 스폰 지점.
+    expect(routes[0][0]).not.toEqual(routes[1][0]);
+    for (const r of routes) {
+      const end = r[r.length - 1];
+      expect(Math.hypot(end.x - s.goals[0].x, end.y - s.goals[0].y)).toBeLessThan(1);
+    }
   });
 });
