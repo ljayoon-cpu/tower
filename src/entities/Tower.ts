@@ -18,9 +18,13 @@ export class Tower {
   priority: TargetPriority = 'first';
   /** 발사 쿨다운(ms). Task 15 에서 사용. */
   cooldownMs = 0;
-  /** beam(레이저탑): 마지막 명중 대상 id 와 연속 명중 스택. 대상이 바뀌면 리셋. */
+  /** beam(레이저탑): 현재 조준 중인 대상 id, 그 대상에 빔이 머문 시간(ms), 스파크 연출 타이머. */
   beamTargetId: number | null = null;
-  beamStacks = 0;
+  beamLockMs = 0;
+  beamFxMs = 0;
+  beamTickMs = 0;
+  /** 씬이 소유·갱신하는 지속 빔 그래픽. */
+  beamGfx?: Phaser.GameObjects.Line;
   /** support(금광탑): 골드 생성까지 누적된 시간(ms). */
   goldTimerMs = 0;
   readonly sprite: Phaser.GameObjects.Image;
@@ -122,6 +126,7 @@ export class Tower {
     this.sprite.destroy();
     this.ring.destroy();
     this.mergeHint.destroy();
+    this.beamGfx?.destroy();
   }
 }
 

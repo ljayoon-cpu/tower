@@ -658,13 +658,68 @@ export class Game extends Phaser.Scene {
     }
   }
 
-  /** 레이저 조준선을 짧게 그린다(연출 전용, 데미지는 타워 틱에서 처리). */
-  private beamLine(from: Vec2, to: Vec2): void {
+  /** 레이저탑: 한 대상을 계속 지지는 지속 빔. 매 프레임 조준·연출, 데미지는 100ms마다 틱.
+   *  같은 대상에 오래 머물수록 데미지가 램프업하고, 대상이 바뀌면 대부분 잃는다. */
+  private updateBeamTower(tower: Tower, dtMs: number): void {
+    const s = this.effectiveStats(tower);
+    const r2 = s.range * s.range;
+    const inRange = (e: Enemy) => {
+      const dx = e.pos.x - tower.homePos.x;
+      const dy = e.pos.y - tower.homePos.y;
+      return dx * dx + dy * dy <= r2;
+    };
+    let enemy = tower.beamTargetId != null
+      ? this.enemies.find((e) => e.id === tower.beamTargetId && e.alive && inRange(e))
+      : undefined;
+    if (!enemy) {
+      const t = pickTarget(tower.homePos, s.range, this.enemies, tower.priority);
+      enemy = t ? this.enemies.find((e) => e.id === t.id) : undefined;
+      if (enemy && tower.beamTargetId !== enemy.id) tower.beamLockMs *= 0.35;
+      tower.beamTargetId = enemy?.id ?? null;
+    }
+    if (!enemy) {
+      tower.beamLockMs = Math.max(0, tower.beamLockMs - dtMs * 1.5);
+      tower.beamGfx?.setVisible(false);
+      return;
+    }
+
+    tower.beamLockMs += dtMs;
+    tower.faceToward(enemy.pos);
+    const dmgPerHit = beamDamage(s.damage, (tower.beamLockMs / 1000) * 2.6, s.beamRampPct ?? 0, s.beamRampMax ?? 1);
+    const mult = s.damage > 0 ? dmgPerHit / s.damage : 1;
+
+    // 데미지 틱: 100ms 마다 dps 의 1/10 씩. 한 방이 방어력보다 커지도록 나눠 넣는다.
+    tower.beamTickMs += dtMs;
+    while (tower.beamTickMs >= 100) {
+      tower.beamTickMs -= 100;
+      if (!enemy.alive) break;
+      enemy.takeDamage({ amount: dmgPerHit * s.fireRate * 0.1, armorPierce: 2 }, false);
+      enemy.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
+    }
+
+    this.drawBeam(tower, enemy.pos, mult);
+    tower.beamFxMs += dtMs;
+    if (tower.beamFxMs >= 230) {
+      tower.beamFxMs = 0;
+      this.impactFlash(enemy.pos, COLORS.laser, mult > 2 ? 'heavy' : 'light');
+      this.audio.play('laser');
+    }
+  }
+
+  /** 지속 빔 그래픽을 대상까지 갱신한다(램프에 따라 굵기·밝기). 시뮬(테스트)에선 생략. */
+  private drawBeam(tower: Tower, to: Vec2, mult: number): void {
     const add = this.add as { line?: (...a: unknown[]) => Phaser.GameObjects.Line };
-    if (typeof add.line !== 'function' || !this.tweens) return;
-    const line = add.line(0, 0, from.x, from.y, to.x, to.y, COLORS.laser, 0.85)
-      .setOrigin(0, 0).setLineWidth(2).setDepth(15);
-    this.tweens.add({ targets: line, alpha: 0, duration: 120, onComplete: () => line.destroy() });
+    if (typeof add.line !== 'function') return;
+    const from = tower.homePos;
+    if (!tower.beamGfx) {
+      tower.beamGfx = add.line(0, 0, from.x, from.y, to.x, to.y, COLORS.laser, 0.9)
+        .setOrigin(0, 0).setDepth(14);
+    }
+    tower.beamGfx
+      .setVisible(true)
+      .setTo(from.x, from.y, to.x, to.y)
+      .setLineWidth(1.6 + mult * 1.4)
+      .setAlpha(0.5 + Math.min(0.45, (mult - 1) * 0.22));
   }
 
   private updateTowers(dtMs: number) {
@@ -674,6 +729,10 @@ export class Game extends Phaser.Scene {
       const def = getTower(tower.key);
       if (def.attack === 'support') {
         this.updateSupportTower(tower, tower.stats(), dtMs);
+        continue;
+      }
+      if (def.attack === 'beam') {
+        this.updateBeamTower(tower, dtMs);
         continue;
       }
       tower.cooldownMs -= dtMs;
@@ -686,34 +745,12 @@ export class Game extends Phaser.Scene {
       const enemy = this.enemies.find((e) => e.id === target.id);
       if (!enemy) continue;
       tower.faceToward(enemy.pos);
-      if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison' || tower.key === 'laser') {
+      if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
         this.audio.play(tower.key);
       }
       this.muzzleFlash(tower.homePos, def.key === 'sniper' ? COLORS.sniper : def.attack === 'poison' ? COLORS.poison :
         def.attack === 'splash' ? COLORS.cannon : def.attack === 'slow' ? COLORS.frost :
-          def.attack === 'chain' ? COLORS.bolt : def.attack === 'beam' ? COLORS.laser : COLORS.arrow);
-
-      if (def.attack === 'beam') {
-        // 램프: 같은 대상을 연속 명중할수록 데미지 배율↑. 대상이 바뀌면 스택이
-        // 확 줄지만 0으로 초기화되진 않아, 표적이 자주 바뀌어도 조금은 오른다.
-        if (tower.beamTargetId === enemy.id) tower.beamStacks++;
-        else { tower.beamTargetId = enemy.id; tower.beamStacks = Math.max(0, tower.beamStacks - 3); }
-        const dmg = beamDamage(s.damage, tower.beamStacks, s.beamRampPct ?? 0, s.beamRampMax ?? 1);
-        const heavy = tower.beamStacks > 3;
-        this.beamLine(tower.homePos, enemy.pos);
-        this.fireProjectile(tower.homePos, {
-          speed: 1400,
-          textureKey: PROJECTILE_TEXTURE[tower.key],
-          targetPos: () => (enemy.alive ? enemy.pos : null),
-          onHit: () => {
-            if (!enemy.alive) return;
-            enemy.takeDamage(dmg);
-            enemy.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
-            this.impactFlash(enemy.pos, COLORS.laser, heavy ? 'heavy' : 'light');
-          },
-        });
-        continue;
-      }
+          def.attack === 'chain' ? COLORS.bolt : COLORS.arrow);
 
       if (def.attack === 'chain') {
         this.fireProjectile(tower.homePos, {

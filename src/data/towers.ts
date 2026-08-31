@@ -74,13 +74,13 @@ export const TOWERS: Record<string, TowerDef> = {
   laser: {
     // 집중포화. 같은 대상을 계속 쏘면 데미지가 점점 오른다 — 보스·장갑병 상대로 최강,
     // 표적이 자주 바뀌는 스웜에는 램프가 안 쌓여 약하다.
-    key: 'laser', name: '레이저탑', attack: 'beam', cost: 110, maxLevel: 5,
+    key: 'laser', name: '레이저탑', attack: 'beam', cost: 115, maxLevel: 5,
     levels: [
-      { damage: 22,  range: 176, fireRate: 1.4, beamRampPct: 0.12, beamRampMax: 2.2 },
-      { damage: 40,  range: 188, fireRate: 1.5, beamRampPct: 0.14, beamRampMax: 2.4 },
-      { damage: 76,  range: 200, fireRate: 1.6, beamRampPct: 0.16, beamRampMax: 2.7, armorBreakPercent: 0.25, armorBreakDurationMs: 900 },
-      { damage: 146, range: 212, fireRate: 1.7, beamRampPct: 0.18, beamRampMax: 3.0, armorBreakPercent: 0.25, armorBreakDurationMs: 900 },
-      { damage: 286, range: 226, fireRate: 1.8, beamRampPct: 0.20, beamRampMax: 3.3, armorBreakPercent: 0.45, armorBreakDurationMs: 1200 },
+      { damage: 15,  range: 176, fireRate: 1.4, beamRampPct: 0.10, beamRampMax: 2.0 },
+      { damage: 27,  range: 188, fireRate: 1.5, beamRampPct: 0.11, beamRampMax: 2.2 },
+      { damage: 50,  range: 200, fireRate: 1.6, beamRampPct: 0.12, beamRampMax: 2.4, armorBreakPercent: 0.25, armorBreakDurationMs: 900 },
+      { damage: 96,  range: 212, fireRate: 1.7, beamRampPct: 0.13, beamRampMax: 2.7, armorBreakPercent: 0.25, armorBreakDurationMs: 900 },
+      { damage: 186, range: 226, fireRate: 1.8, beamRampPct: 0.14, beamRampMax: 3.0, armorBreakPercent: 0.45, armorBreakDurationMs: 1200 },
     ],
   },
   command: {
