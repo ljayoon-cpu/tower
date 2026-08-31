@@ -23,6 +23,7 @@ import { PathManager } from '../systems/PathManager';
 import { WaveManager } from '../systems/WaveManager';
 import { EconomyManager } from '../systems/EconomyManager';
 import { Rng } from '../core/rng';
+import { chooseTowerBan, isTowerBanned } from '../core/runRules';
 
 import { Enemy } from '../entities/Enemy';
 import type { EnemyModifiers } from '../systems/EnemyState';
@@ -76,6 +77,8 @@ export class Game extends Phaser.Scene {
   /** 마지막으로 HUD에 알린 카운트다운 초. 값이 바뀔 때만 emit. */
   private lastCountdown: number | null = -1;
   private tutorial?: Tutorial;
+  /** 이 판이 끝날 때까지 설치할 수 없는 타워. */
+  private bannedTowerKey: string | null = null;
 
   private static readonly WAVE_GAP_MS = 8000;
 
@@ -94,6 +97,9 @@ export class Game extends Phaser.Scene {
     this.waves = new WaveManager(this.stage.waves, this.bus);
     // 튜토리얼 중에는 자동 웨이브를 보류 — 플레이어가 첫 웨이브를 직접 시작한다.
     this.tutorial = this.stage.id === '1-1' && !loadSave().tutorialDone ? new Tutorial() : undefined;
+    // 첫 튜토리얼은 화살탑 설치를 요구하므로 그때만 화살탑을 추첨에서 제외한다.
+    const banCandidates = this.tutorial ? TOWER_KEYS.filter((key) => key !== 'arrow') : TOWER_KEYS;
+    this.bannedTowerKey = chooseTowerBan(banCandidates, this.rng);
     if (!this.tutorial) this.waves.enableAutoAdvance(Game.WAVE_GAP_MS);
     this.lastCountdown = -1;
     this.eco = new EconomyManager(this.stage.startGold, this.bus);
@@ -176,6 +182,7 @@ export class Game extends Phaser.Scene {
       totalWaves: this.waves.totalWaves,
       waves: this.stage.waves,
       tutorialText: this.tutorial?.text ?? null,
+      bannedTowerName: getTower(this.bannedTowerKey).name,
       onSkipTutorial: () => this.finishTutorial(),
       onNextWave: () => { if (this.running && !this.paused) this.waves.startNextWave(); },
       getRoster: () => this.towers.map((t) => ({ key: t.key, level: t.level })),
@@ -255,6 +262,7 @@ export class Game extends Phaser.Scene {
         if (this.pendingTile) this.placeTower(key, this.pendingTile);
       },
       canAfford: (key) => this.eco.canAfford(getTower(key).cost),
+      isBanned: (key) => isTowerBanned(key, this.bannedTowerKey),
     });
 
     // 플레이 영역 전체를 덮는 투명 입력 캐처. depth 를 최하위로 두어
@@ -284,7 +292,8 @@ export class Game extends Phaser.Scene {
     this.pendingTile = tile;
     const c = this.grid.tileToPixelCenter(tile);
     // 구매 전 사거리 미리보기: 첫 타워 옵션의 Lv1 사거리
-    const previewRange = getTower(TOWER_KEYS[0]).levels[0].range;
+    const previewKey = TOWER_KEYS.find((key) => !isTowerBanned(key, this.bannedTowerKey)) ?? TOWER_KEYS[0];
+    const previewRange = getTower(previewKey).levels[0].range;
     this.buildPreview?.destroy();
     this.buildPreview = this.add
       .circle(c.x, c.y, previewRange, 0xffffff, 0.04)
@@ -513,6 +522,7 @@ export class Game extends Phaser.Scene {
 
   private placeTower(key: string, tile: TileCoord): void {
     if (!this.running || this.paused) return;
+    if (isTowerBanned(key, this.bannedTowerKey)) return;
     const def = getTower(key);
     if (!this.grid.canPlace(tile)) return;
     if (!this.eco.spend(def.cost)) return;
