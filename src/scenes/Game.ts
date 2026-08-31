@@ -179,7 +179,7 @@ export class Game extends Phaser.Scene {
 
     this.selectedTower = undefined;
     this.inspectText = this.add
-      .text(20, 148, '', {
+      .text(20, 162, '', {
         fontFamily: 'monospace', fontSize: '19px', color: '#cdd6f4',
         lineSpacing: 3, backgroundColor: '#0f1020cc', padding: { x: 8, y: 5 },
       })
@@ -422,7 +422,10 @@ export class Game extends Phaser.Scene {
       this.sellButton.setVisible(false);
       return;
     }
-    const y = this.inspectText.y + this.inspectText.height + 6;
+    // Phaser Text.height는 한글 라인 높이를 실제보다 낮게 잡아 버튼이 설명을 덮었다.
+    // 줄 수 기준으로 넉넉히 띄운다.
+    const lineCount = this.inspectText.text.split('\n').length;
+    const y = this.inspectText.y + lineCount * 27 + 18;
     const maxed = tower.level >= tower.maxLevel;
     if (maxed) {
       this.upgradeButton.setVisible(false);
@@ -518,6 +521,19 @@ export class Game extends Phaser.Scene {
             this.advanceTutorial('merged');
             return;
           }
+        }
+        // 합칠 수 없는 다른 타워 위에 놓으면 → 두 타워 자리 교체.
+        if (targetTower && targetTower.id !== dragged.id) {
+          const from = dragged.tile;
+          const to = targetTower.tile;
+          this.grid.release(from);
+          this.grid.release(to);
+          this.grid.occupy(to, dragged.id);
+          this.grid.occupy(from, targetTower.id);
+          dragged.relocate(to, this.grid.tileToPixelCenter(to));
+          targetTower.relocate(from, this.grid.tileToPixelCenter(from));
+          this.audio.play('place');
+          return;
         }
         // 빈 BUILDABLE 타일 → 이동 배치. 골드 무료, 타일 수는 그대로라 자원 압박은 유지.
         if (dropTile.col !== dragged.tile.col || dropTile.row !== dragged.tile.row) {
