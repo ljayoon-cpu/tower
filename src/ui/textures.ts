@@ -114,12 +114,7 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.clear(); g.fillStyle(0xf0a85a, 1); g.fillTriangle(9, 3, 17, 16, 1, 16); g.generateTexture('enemy_splitterling', 18, 18);
   // 과부하 병기는 화로 코어와 대검이 보이는 애니메이션 시트를 Preload에서 로드한다.
   // 파쇄 전차는 강철 궤도와 전면 분쇄기가 보이는 애니메이션 시트를 Preload에서 로드한다.
-  // 왕관·방패·어깨 장갑을 써서, 화면에 나타나는 순간 보스임을 알아보게 한다.
-  g.clear(); g.fillStyle(0x5d1727, 1); g.fillCircle(28, 32, 25);
-  g.fillStyle(COLORS.enemyBoss, 1); g.fillCircle(28, 30, 19);
-  g.fillStyle(0xffd65c, 1); g.fillTriangle(10, 20, 18, 4, 26, 20); g.fillTriangle(22, 20, 30, 1, 38, 20); g.fillTriangle(34, 20, 42, 6, 50, 20);
-  g.fillStyle(0x35111b, 1); g.fillRect(16, 27, 24, 17); g.fillStyle(0xffc4cd, 1); g.fillCircle(22, 32, 3); g.fillCircle(34, 32, 3);
-  g.lineStyle(3, 0xffe6a3, 0.9); g.strokeCircle(28, 30, 24); g.generateTexture('enemy_boss', 56, 56);
+  // 공성 지휘관은 왕관·방패·지휘 코어가 보이는 애니메이션 시트를 Preload에서 로드한다.
 
   // 공중 편대: 전부 하늘빛 계열, 실루엣으로 역할 구분.
   g.clear(); g.fillStyle(0x9fd8ff, 1); g.fillTriangle(11, 2, 21, 20, 1, 20); g.fillStyle(0xe7f6ff, 1); g.fillCircle(11, 13, 3);

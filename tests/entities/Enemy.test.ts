@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import {
-  berserkerWalkFrameAt, crusherWalkFrameAt, Enemy, fastWalkFrameAt, minionHoverFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
+  berserkerWalkFrameAt, bossWalkFrameAt, crusherWalkFrameAt, Enemy, fastWalkFrameAt, minionHoverFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
   shieldWalkFrameAt, splitterWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt,
 } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
@@ -118,6 +118,12 @@ describe('berserker walk animation', () => {
 describe('crusher walk animation', () => {
   it('loops through four slow tread frames', () => {
     expect([0, 259, 260, 520, 780, 1040].map(crusherWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+  });
+});
+
+describe('siege commander walk animation', () => {
+  it('loops four command poses while the boss advances', () => {
+    expect([0, 179, 180, 360, 540, 720].map(bossWalkFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
   });
 });
 
