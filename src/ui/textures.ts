@@ -97,17 +97,11 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.clear(); g.fillStyle(COLORS.sniper, 1); g.fillRect(3, 12, 28, 8); g.fillStyle(0xffffff, 1); g.fillRect(24, 13, 10, 6); g.generateTexture('projectile_sniper', 36, 32);
   g.clear(); g.fillStyle(COLORS.poison, 1); g.fillCircle(16, 18, 10); g.fillTriangle(10, 12, 16, 2, 22, 12); g.fillStyle(0xd7ff9e, 1); g.fillCircle(12, 16, 3); g.generateTexture('projectile_poison', 32, 32);
 
-  // 적도 실루엣만 봐도 대처법을 짐작할 수 있게 만든다.
-  // 청록 육각형=방어막, 은색 외곽=장갑, 초록 고리=재생, 보라 룬=소환, 작은 마름모=호위 부하다.
-  g.clear(); g.fillStyle(0x1c5374, 1); g.fillCircle(16, 16, 15); g.lineStyle(3, 0x71dfff, 1);
-  g.strokePoints([new Phaser.Math.Vector2(16, 2), new Phaser.Math.Vector2(29, 9), new Phaser.Math.Vector2(29, 23), new Phaser.Math.Vector2(16, 30), new Phaser.Math.Vector2(3, 23), new Phaser.Math.Vector2(3, 9)], true);
-  g.generateTexture('enemy_shield', 32, 32);
-  g.clear(); g.fillStyle(0x9aa5b1, 1); g.fillCircle(18, 18, 18); g.fillStyle(0x46515e, 1); g.fillCircle(18, 18, 10); g.lineStyle(3, 0xe8eef4, 1); g.strokeCircle(18, 18, 17); g.generateTexture('enemy_tank', 36, 36);
+  // 지상 보병(보행·질주·장갑·방어막)은 걷기 스프라이트 시트를 Preload에서 로드한다.
+  // 나머지 적은 실루엣만 봐도 대처법을 짐작하게 도형으로. (초록 고리=재생, 보라 룬=소환, 마름모=부하)
   g.clear(); g.fillStyle(0x3b803f, 1); g.fillCircle(16, 16, 15); g.lineStyle(3, 0xb9ff84, 1); g.strokeCircle(16, 16, 11); g.fillStyle(0xe7ffcf, 1); g.fillTriangle(15, 5, 26, 16, 20, 16); g.generateTexture('enemy_regenerator', 32, 32);
   g.clear(); g.fillStyle(0x402660, 1); g.fillCircle(18, 18, 17); g.fillStyle(0xd69aff, 1); g.fillPoints([new Phaser.Math.Vector2(18, 4), new Phaser.Math.Vector2(32, 18), new Phaser.Math.Vector2(18, 32), new Phaser.Math.Vector2(4, 18)], true); g.fillStyle(0x250f3b, 1); g.fillCircle(18, 18, 6); g.generateTexture('enemy_summoner', 36, 36);
   g.clear(); g.fillStyle(0xffd75a, 1); g.fillPoints([new Phaser.Math.Vector2(10, 1), new Phaser.Math.Vector2(19, 10), new Phaser.Math.Vector2(10, 19), new Phaser.Math.Vector2(1, 10)], true); g.lineStyle(2, 0xfff1ad, 1); g.strokePoints([new Phaser.Math.Vector2(10, 1), new Phaser.Math.Vector2(19, 10), new Phaser.Math.Vector2(10, 19), new Phaser.Math.Vector2(1, 10)], true); g.generateTexture('enemy_minion', 20, 20);
-  circle('enemy_normal', COLORS.enemyNormal, 14);
-  circle('enemy_tank', COLORS.enemyTank, 20);
   // 분열체: 금 간 주황 덩어리. 조각은 작은 삼각형.
   g.clear(); g.fillStyle(0xe8963a, 1); g.fillCircle(16, 16, 15); g.lineStyle(2, 0x3a1f0c, 1);
   g.lineBetween(16, 2, 14, 16); g.lineBetween(14, 16, 16, 30); g.lineBetween(14, 16, 3, 12); g.lineBetween(14, 16, 28, 20);

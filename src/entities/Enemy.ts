@@ -6,10 +6,31 @@ import { EnemyState, type DamagePacket, type EnemyModifiers } from '../systems/E
 let nextId = 1;
 const FAST_WALK_FRAME_MS = 90;
 const FAST_WALK_FRAME_COUNT = 4;
+const NORMAL_WALK_FRAME_MS = 160;
+const NORMAL_WALK_FRAME_COUNT = 4;
+const TANK_WALK_FRAME_MS = 220;
+const TANK_WALK_FRAME_COUNT = 4;
+const SHIELD_WALK_FRAME_MS = 140;
+const SHIELD_WALK_FRAME_COUNT = 4;
 
 /** 질주병의 이동 시간에 해당하는 스프라이트 시트 프레임. */
 export function fastWalkFrameAt(elapsedMs: number): number {
   return Math.floor(elapsedMs / FAST_WALK_FRAME_MS) % FAST_WALK_FRAME_COUNT;
+}
+
+/** 보행병은 질주병보다 느린 리듬으로 걷는다. */
+export function normalWalkFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / NORMAL_WALK_FRAME_MS) % NORMAL_WALK_FRAME_COUNT;
+}
+
+/** 장갑병은 묵직한 발걸음으로 가장 느리게 움직인다. */
+export function tankWalkFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / TANK_WALK_FRAME_MS) % TANK_WALK_FRAME_COUNT;
+}
+
+/** 방어막병은 방패를 앞세우고 일정한 리듬으로 전진한다. */
+export function shieldWalkFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / SHIELD_WALK_FRAME_MS) % SHIELD_WALK_FRAME_COUNT;
 }
 
 export class Enemy {
@@ -26,7 +47,7 @@ export class Enemy {
   private readonly armorBreakAura: Phaser.GameObjects.Arc;
   private readonly barWidth: number;
   private traveled = 0;
-  private fastWalkElapsedMs = 0;
+  private walkElapsedMs = 0;
   private slowMul = 1;
   private slowLeftMs = 0;
   private summonLeftMs: number;
@@ -58,8 +79,11 @@ export class Enemy {
     this.deathSpawnPending = def.deathSpawn != null;
     const start = polyline[0];
     this.sprite = scene.add.image(start.x, start.y, `enemy_${def.key}`);
-    // 128px 프레임을 길 타일 안에서 읽히는 약 45px 크기로 표시한다.
+    // 128px 걷기 시트를 길 타일 안에서 읽히는 크기로 표시한다.
     if (def.key === 'fast') this.sprite.setScale(0.5);
+    if (def.key === 'normal') this.sprite.setScale(0.6);
+    if (def.key === 'tank') this.sprite.setScale(0.55);
+    if (def.key === 'shield') this.sprite.setScale(0.56);
     this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
@@ -223,11 +247,15 @@ export class Enemy {
     this.summonedAlive = Math.max(0, this.summonedAlive - 1);
   }
 
-  private updateFastWalk(movingMs: number): void {
-    if (this.def.key !== 'fast' || movingMs <= 0) return;
-    this.fastWalkElapsedMs += movingMs;
+  private updateWalkAnimation(movingMs: number): void {
+    if (movingMs <= 0 || (this.def.key !== 'fast' && this.def.key !== 'normal' && this.def.key !== 'tank' && this.def.key !== 'shield')) return;
+    this.walkElapsedMs += movingMs;
     const sprite = this.sprite as Phaser.GameObjects.Image & { setFrame?: (frame: number) => unknown };
-    sprite.setFrame?.(fastWalkFrameAt(this.fastWalkElapsedMs));
+    const frame = this.def.key === 'fast' ? fastWalkFrameAt(this.walkElapsedMs)
+      : this.def.key === 'normal' ? normalWalkFrameAt(this.walkElapsedMs)
+        : this.def.key === 'tank' ? tankWalkFrameAt(this.walkElapsedMs)
+          : shieldWalkFrameAt(this.walkElapsedMs);
+    sprite.setFrame?.(frame);
   }
 
   update(dtMs: number, speedMul: number): void {
@@ -238,7 +266,7 @@ export class Enemy {
     if (!this.alive) { this.hideIndicators(); return; }
 
     const movingMs = simulationMs - frozenMs;
-    this.updateFastWalk(movingMs);
+    this.updateWalkAnimation(movingMs);
     const slowedMs = Math.min(movingMs, Math.max(0, this.slowLeftMs));
     // 광전사: 체력이 rageBelow 이하면 이동속도 폭증.
     const rage = this.def.rageBelow != null && this.healthRatio <= this.def.rageBelow
@@ -251,7 +279,7 @@ export class Enemy {
 
     const a = PathManager.advance(this.polyline, this.traveled);
     this._progress = a.progress;
-    // 질주병은 걷기 스프라이트 시트(updateFastWalk)가 달리는 느낌을 낸다.
+    // 질주병은 걷기 스프라이트 시트가 달리는 느낌을 낸다.
     this.sprite.setPosition(a.pos.x, a.pos.y);
     if (a.done) {
       this._done = true;
