@@ -161,6 +161,7 @@ export class Game extends Phaser.Scene {
       totalWaves: this.waves.totalWaves,
       waves: this.stage.waves,
       onNextWave: () => { if (this.running && !this.paused) this.waves.startNextWave(); },
+      getRoster: () => this.towers.map((t) => ({ key: t.key, level: t.level })),
       onToggleSpeed: () => this.toggleSpeed(),
       onTogglePause: () => this.togglePause(),
       onQuit: () => {

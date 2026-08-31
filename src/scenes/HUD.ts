@@ -5,6 +5,8 @@ import type { GameEvents, Wave } from '../core/types';
 import { audioFor } from '../ui/audio';
 import { waveSummary } from '../core/waveInfo';
 import { getEnemy } from '../data/enemies';
+import { getTower } from '../data/towers';
+import { summarizeTowers } from '../core/towerRoster';
 
 export interface HudInit {
   bus: EventBus<GameEvents>;
@@ -16,6 +18,14 @@ export interface HudInit {
   onToggleSpeed: () => void;
   onTogglePause: () => void;
   onQuit: () => void;
+  /** 일시정지 화면에 표시할 현재 타워 구성. */
+  getRoster: () => ReadonlyArray<{ key: string; level: number }>;
+}
+
+function rosterText(towers: ReadonlyArray<{ key: string; level: number }>): string {
+  const groups = summarizeTowers(towers);
+  if (groups.length === 0) return '설치한 타워 없음';
+  return groups.map((g) => `${getTower(g.key).name} Lv${g.level}×${g.count}`).join('   ');
 }
 
 function previewText(waves: Wave[], nextIndex: number): string {
@@ -77,8 +87,12 @@ export class HUD extends Phaser.Scene {
     const overlay = this.add.container(0, 0).setDepth(2000).setVisible(false);
     const shade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.72).setInteractive();
     const panel = this.add.rectangle(GAME_WIDTH / 2, 620, 460, 370, 0x1b1d33).setStrokeStyle(2, 0x66ccff);
-    const heading = this.add.text(GAME_WIDTH / 2, 500, '일시정지', { ...style, fontSize: '42px' }).setOrigin(0.5);
-    overlay.add([shade, panel, heading]);
+    const heading = this.add.text(GAME_WIDTH / 2, 490, '일시정지', { ...style, fontSize: '42px' }).setOrigin(0.5);
+    const roster = this.add.text(GAME_WIDTH / 2, 548, '', {
+      ...style, fontSize: '17px', color: '#b7bdd5', align: 'center',
+      wordWrap: { width: 420 }, lineSpacing: 4,
+    }).setOrigin(0.5);
+    overlay.add([shade, panel, heading, roster]);
     const resume = button(GAME_WIDTH / 2, 615, 320, '▶ 계속하기', data.onTogglePause);
     const quit = button(GAME_WIDTH / 2, 710, 320, '포기하고 스테이지 선택', data.onQuit);
     overlay.add([resume.bg, resume.text, quit.bg, quit.text]);
@@ -113,7 +127,10 @@ export class HUD extends Phaser.Scene {
       }
     });
     on('speed:changed', ({ multiplier }) => speed.text.setText(`${multiplier}x`));
-    on('pause:changed', ({ paused }) => overlay.setVisible(paused));
+    on('pause:changed', ({ paused }) => {
+      if (paused) roster.setText(rosterText(data.getRoster()));
+      overlay.setVisible(paused);
+    });
     on('boss:spawned', ({ name }) => {
       bossLabel.setText(`${name}`);
       bossFill.width = bossMaxW;
