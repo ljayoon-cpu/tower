@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon-192.png', 'icons/icon-512.png', 'sfx/*.wav'],
+      includeAssets: ['icons/icon-192.png', 'icons/icon-512.png', 'sfx/*.wav', 'art/enemies/*.png'],
       manifest: {
         lang: 'ko',
         name: '머지 타워디펜스',
