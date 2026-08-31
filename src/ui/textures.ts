@@ -108,9 +108,8 @@ export function buildTextures(scene: Phaser.Scene): void {
   g.clear(); g.fillStyle(COLORS.ballista, 1); g.fillTriangle(34, 8, 34, 24, 6, 16); g.fillRect(2, 14, 24, 4);
   g.fillStyle(0xffffff, 1); g.fillRect(26, 14, 6, 4); g.generateTexture('projectile_ballista', 36, 32);
 
-  // 지상 보병 + 재생충 + 소환사는 걷기 스프라이트 시트를 Preload에서 로드한다.
-  // 나머지 적은 실루엣만 봐도 대처법을 짐작하게 도형으로. (마름모=호위 부하)
-  g.clear(); g.fillStyle(0xffd75a, 1); g.fillPoints([new Phaser.Math.Vector2(10, 1), new Phaser.Math.Vector2(19, 10), new Phaser.Math.Vector2(10, 19), new Phaser.Math.Vector2(1, 10)], true); g.lineStyle(2, 0xfff1ad, 1); g.strokePoints([new Phaser.Math.Vector2(10, 1), new Phaser.Math.Vector2(19, 10), new Phaser.Math.Vector2(10, 19), new Phaser.Math.Vector2(1, 10)], true); g.generateTexture('enemy_minion', 20, 20);
+  // 지상 보병 + 재생충 + 소환사 + 조립 드론은 애니메이션 시트를 Preload에서 로드한다.
+  // 나머지 적은 실루엣만 봐도 대처법을 짐작하게 도형으로 만든다.
   // 분열체: 금 간 주황 덩어리. 조각은 작은 삼각형.
   g.clear(); g.fillStyle(0xe8963a, 1); g.fillCircle(16, 16, 15); g.lineStyle(2, 0x3a1f0c, 1);
   g.lineBetween(16, 2, 14, 16); g.lineBetween(14, 16, 16, 30); g.lineBetween(14, 16, 3, 12); g.lineBetween(14, 16, 28, 20);
