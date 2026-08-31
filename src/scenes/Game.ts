@@ -472,12 +472,23 @@ export class Game extends Phaser.Scene {
           const a: MergeCandidate = { id: dragged.id, key: dragged.key, level: dragged.level };
           const b: MergeCandidate = { id: targetTower.id, key: targetTower.key, level: targetTower.level };
           if (canMerge(a, b, dragged.maxLevel)) {
+            const sourceVisual = {
+              origin: { ...dragged.homePos },
+              texture: `tower_${dragged.key}`,
+              scale: dragged.sprite.scale,
+              rotation: dragged.sprite.rotation,
+            };
             targetTower.setLevel(mergeResultLevel(targetTower.level));
             this.grid.release(dragged.tile);
             this.removeTower(dragged);
             this.snapHome(targetTower);
-            this.audio.play('merge');
-            this.mergePop(targetTower);
+            this.mergeFeedback(
+              sourceVisual.origin,
+              sourceVisual.texture,
+              sourceVisual.scale,
+              sourceVisual.rotation,
+              targetTower,
+            );
             this.advanceTutorial('merged');
             return;
           }
@@ -1003,9 +1014,47 @@ export class Game extends Phaser.Scene {
     this.tweens.add({ targets: flash, scale: 2.1, alpha: 0, duration: 100, onComplete: () => flash.destroy() });
   }
 
-  /** 머지 성공 시 결과 타워가 잠깐 커졌다 돌아온다. */
+  /** 드래그한 타워가 원래 자리에서 결과 타워로 빨려 들어간 뒤, 합체가 터진다. */
+  private mergeFeedback(origin: Vec2, texture: string, scale: number, rotation: number, tower: Tower): void {
+    if (!this.tweens || typeof this.add.image !== 'function') {
+      this.audio.play('merge');
+      this.mergePop(tower);
+      return;
+    }
+    const source = this.add.image(origin.x, origin.y, texture)
+      .setScale(scale)
+      .setRotation(rotation)
+      .setDepth(24);
+    this.tweens.add({
+      targets: source,
+      x: tower.sprite.x,
+      y: tower.sprite.y,
+      scale: tower.sprite.scale * 0.35,
+      alpha: 0,
+      duration: 150,
+      ease: 'Quad.in',
+      onComplete: () => {
+        source.destroy();
+        this.audio.play('merge');
+        this.mergePop(tower);
+      },
+    });
+  }
+
+  /** 머지/강화 성공 시 결과 타워가 커지고, 그 자리에서 1회 링이 퍼진다. */
   private mergePop(tower: Tower): void {
     if (!this.tweens) return;
+    const ring = this.add.circle(tower.sprite.x, tower.sprite.y, TILE * 0.22, 0xffe87a, 0.38)
+      .setStrokeStyle(2, 0xfff2a7, 0.95)
+      .setDepth(23);
+    this.tweens.add({
+      targets: ring,
+      scale: 2.6,
+      alpha: 0,
+      duration: 260,
+      ease: 'Quad.out',
+      onComplete: () => ring.destroy(),
+    });
     this.tweens.add({
       targets: tower.sprite,
       scale: tower.sprite.scale * 1.35,
