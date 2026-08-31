@@ -23,6 +23,10 @@ export class Preload extends Phaser.Scene {
       frameWidth: 128,
       frameHeight: 128,
     });
+    this.load.spritesheet('enemy_summoner', 'art/enemies/rift-summoner-walk-v1.png', {
+      frameWidth: 128,
+      frameHeight: 128,
+    });
     // 4프레임 질주 시트. Enemy가 이동 시간에 맞춰 프레임을 순환한다.
     this.load.spritesheet('enemy_fast', 'art/enemies/fast-hound-walk-v1.png', {
       frameWidth: 128,

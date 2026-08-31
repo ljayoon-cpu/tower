@@ -14,6 +14,7 @@ const SHIELD_WALK_FRAME_MS = 140;
 const SHIELD_WALK_FRAME_COUNT = 4;
 const REGENERATOR_WALK_FRAME_MS = 185;
 const REGENERATOR_WALK_FRAME_COUNT = 4;
+const SUMMONER_WALK_FRAME_MS = 205;
 
 /** 질주병의 이동 시간에 해당하는 스프라이트 시트 프레임. */
 export function fastWalkFrameAt(elapsedMs: number): number {
@@ -38,6 +39,11 @@ export function shieldWalkFrameAt(elapsedMs: number): number {
 /** 재생충은 느린 기어가기와 함께 치료 고리를 맥동시킨다. */
 export function regeneratorWalkFrameAt(elapsedMs: number): number {
   return Math.floor(elapsedMs / REGENERATOR_WALK_FRAME_MS) % REGENERATOR_WALK_FRAME_COUNT;
+}
+
+/** 균열 소환사가 포탈을 유지하며 부유할 때의 스프라이트 시트 프레임. */
+export function summonerWalkFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / SUMMONER_WALK_FRAME_MS) % 4;
 }
 
 export class Enemy {
@@ -87,6 +93,7 @@ export class Enemy {
     if (def.key === 'tank') this.sprite.setScale(0.55);
     if (def.key === 'shield') this.sprite.setScale(0.56);
     if (def.key === 'regenerator') this.sprite.setScale(0.58);
+    if (def.key === 'summoner') this.sprite.setScale(0.6);
     this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
@@ -241,14 +248,15 @@ export class Enemy {
   }
 
   private updateWalkAnimation(movingMs: number): void {
-    if (movingMs <= 0 || (this.def.key !== 'fast' && this.def.key !== 'normal' && this.def.key !== 'tank' && this.def.key !== 'shield' && this.def.key !== 'regenerator')) return;
+    if (movingMs <= 0 || (this.def.key !== 'fast' && this.def.key !== 'normal' && this.def.key !== 'tank' && this.def.key !== 'shield' && this.def.key !== 'regenerator' && this.def.key !== 'summoner')) return;
     this.walkElapsedMs += movingMs;
     const sprite = this.sprite as Phaser.GameObjects.Image & { setFrame?: (frame: number) => unknown };
     const frame = this.def.key === 'fast' ? fastWalkFrameAt(this.walkElapsedMs)
       : this.def.key === 'normal' ? normalWalkFrameAt(this.walkElapsedMs)
         : this.def.key === 'tank' ? tankWalkFrameAt(this.walkElapsedMs)
           : this.def.key === 'shield' ? shieldWalkFrameAt(this.walkElapsedMs)
-            : regeneratorWalkFrameAt(this.walkElapsedMs);
+            : this.def.key === 'regenerator' ? regeneratorWalkFrameAt(this.walkElapsedMs)
+              : summonerWalkFrameAt(this.walkElapsedMs);
     sprite.setFrame?.(frame);
   }
 
