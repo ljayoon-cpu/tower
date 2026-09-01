@@ -352,6 +352,12 @@ describe('BottomSheet path mode', () => {
   제목 `${def.name} — 경로 선택`, `(['a','b'] as const).forEach` 로 카드 —
   PathChoiceMenu.open 의 카드 렌더 그대로(`CARD_W=200, CARD_H=150, GAP=14`, name `#ffcc44`, desc + Lv5 DPS).
   카드 hit `attachPressFeedback(scene, cardHit, [cardHit, name], audioFor(scene), () => { const p = key; this.hide(); this.opts.onPathPick(p); })`.
+  카드에 **엠블럼 아이콘**도 추가: `public/art/paths/` 에 64x64 PNG 12장 있음(main `a8274ae`).
+  Preload 에 `this.load.image('path_${towerKey}_${p}', 'art/paths/<file>')` 로 로드하거나 파일명 규칙으로 직접.
+  파일명 매핑 — arrow: `arrow-rapid-emblem-v1`(a)/`arrow-pierce-emblem-v1`(b),
+  cannon: `cannon-suppress`(a)/`cannon-carpet`(b), frost: `frost-freeze`(a)/`frost-aura`(b),
+  bolt: `bolt-overload`(a)/`bolt-lance`(b), sniper: `sniper-execute`(a)/`sniper-rail`(b),
+  poison: `poison-corrupt`(a)/`poison-spread`(b). 카드 상단에 `scene.add.image(...).setScale(...)`.
 - `hide()`: 기존대로. (`_mode` 즉시 null → 다음 `showBuild` 허용.)
 
 - [ ] **Step 3: 통과** — `npx vitest run tests/ui/bottomSheet.test.ts` PASS, `npm run build` OK.
