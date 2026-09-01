@@ -54,6 +54,11 @@ export class WorldProgressMap {
       graphics.fillStyle(color, unlocked ? 0.9 : 0.45);
       if (chapter.world === '2') {
         graphics.fillTriangle(x, y - 9, x - 7, y + 7, x + 7, y + 7);
+      } else if (chapter.world === '3') {
+        graphics.fillRect(x - 7, y - 2, 14, 7);
+        graphics.fillTriangle(x - 10, y - 1, x - 2, y - 7, x - 2, y + 5);
+        graphics.fillTriangle(x + 10, y - 1, x + 2, y - 7, x + 2, y + 5);
+        graphics.fillRect(x - 4, y + 5, 8, 4);
       } else {
         graphics.fillRect(x - 8, y - 5, 16, 12);
         graphics.fillRect(x - 8, y - 9, 4, 5); graphics.fillRect(x + 4, y - 9, 4, 5);
