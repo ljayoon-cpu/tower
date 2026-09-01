@@ -33,6 +33,8 @@ class DisplayObject {
   setActive() { return this; }
   setTexture() { return this; }
   setFrame() { return this; }
+  setTint() { return this; }
+  setAlpha() { return this; }
   clear() { return this; }
   fillStyle() { return this; }
   fillRect() { return this; }

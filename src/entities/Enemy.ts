@@ -34,6 +34,18 @@ const GUNSHIP_HOVER_FRAME_MS = 180;
 const CARRIER_HOVER_FRAME_MS = 220;
 const AIRBOSS_HOVER_FRAME_MS = 260;
 const AIR_HOVER_FRAME_COUNT = 4;
+const ENEMY_OUTLINE_TINT = 0x060914;
+const ENEMY_OUTLINE_ALPHA = 0.9;
+const ENEMY_OUTLINE_SCALE_GROWTH = 0.018;
+const ENEMY_RIM_TINT = 0x9edfff;
+const ENEMY_RIM_ALPHA = 0.35;
+const ENEMY_RIM_OFFSET_X = -0.75;
+const ENEMY_RIM_OFFSET_Y = -0.75;
+const ENEMY_SCALES: Readonly<Record<string, number>> = {
+  fast: 0.5, normal: 0.6, tank: 0.55, shield: 0.56, regenerator: 0.58,
+  summoner: 0.6, minion: 0.34, splitter: 0.52, berserker: 0.55, crusher: 0.66,
+  boss: 0.7, splitterling: 0.28, drone: 0.25, gunship: 0.4, carrier: 0.44, airboss: 0.62,
+};
 
 /** 질주병의 이동 시간에 해당하는 스프라이트 시트 프레임. */
 export function fastWalkFrameAt(elapsedMs: number): number {
@@ -118,6 +130,8 @@ export function airbossHoverFrameAt(elapsedMs: number): number {
 export class Enemy {
   readonly id = nextId++;
   readonly sprite: Phaser.GameObjects.Image;
+  private readonly outline: Phaser.GameObjects.Image;
+  private readonly rim: Phaser.GameObjects.Image;
   readonly state: EnemyState;
   readonly countsForWave: boolean;
   readonly summonedById: number | null;
@@ -165,24 +179,15 @@ export class Enemy {
     this.deathSpawnPending = def.deathSpawn != null;
     const start = polyline[0];
     this.groundPos = { x: start.x, y: start.y };
-    this.sprite = scene.add.image(start.x, start.y, `enemy_${def.key}`);
-    // 128px 걷기 시트를 길 타일 안에서 읽히는 크기로 표시한다.
-    if (def.key === 'fast') this.sprite.setScale(0.5);
-    if (def.key === 'normal') this.sprite.setScale(0.6);
-    if (def.key === 'tank') this.sprite.setScale(0.55);
-    if (def.key === 'shield') this.sprite.setScale(0.56);
-    if (def.key === 'regenerator') this.sprite.setScale(0.58);
-    if (def.key === 'summoner') this.sprite.setScale(0.6);
-    if (def.key === 'minion') this.sprite.setScale(0.34);
-    if (def.key === 'splitter') this.sprite.setScale(0.52);
-    if (def.key === 'berserker') this.sprite.setScale(0.55);
-    if (def.key === 'crusher') this.sprite.setScale(0.66);
-    if (def.key === 'boss') this.sprite.setScale(0.7);
-    if (def.key === 'splitterling') this.sprite.setScale(0.28);
-    if (def.key === 'drone') this.sprite.setScale(0.25);
-    if (def.key === 'gunship') this.sprite.setScale(0.4);
-    if (def.key === 'carrier') this.sprite.setScale(0.44);
-    if (def.key === 'airboss') this.sprite.setScale(0.62);
+    const texture = `enemy_${def.key}`;
+    // 본체 아래의 두 실루엣은 맵의 밝은 길 위에서도 적 윤곽을 유지한다.
+    // 같은 프레임을 쓰므로 별도 텍스처·PWA 용량 증가는 없다.
+    this.outline = scene.add.image(start.x, start.y, texture)
+      .setTint(ENEMY_OUTLINE_TINT).setAlpha(ENEMY_OUTLINE_ALPHA).setDepth(-0.2);
+    this.rim = scene.add.image(start.x + ENEMY_RIM_OFFSET_X, start.y + ENEMY_RIM_OFFSET_Y, texture)
+      .setTint(ENEMY_RIM_TINT).setAlpha(ENEMY_RIM_ALPHA).setDepth(-0.1);
+    this.sprite = scene.add.image(start.x, start.y, texture);
+    this.setVisualScale(ENEMY_SCALES[def.key] ?? 1);
     this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
@@ -209,6 +214,8 @@ export class Enemy {
     if ((def.movementLayer ?? 'ground') === 'air') {
       this.shadow = scene.add.ellipse(start.x, start.y, 20, 8, 0x000000, 0.28).setDepth(3) as never;
       this.sprite.setDepth(12);
+      this.outline.setDepth(11.8);
+      this.rim.setDepth(11.9);
       // 공중 스프라이트가 depth 12라 상태 오라(기본 depth 4~5)가 가려진다 — 위로 끌어올린다.
       for (const aura of [this.slowAura, this.freezeAura, this.poisonAura, this.armorBreakAura]) aura.setDepth(13);
     }
@@ -237,6 +244,31 @@ export class Enemy {
   get movementSpeedMultiplier(): number { return this.bossSpeedMultiplier; }
   /** 0~1. 남은 체력 비율(음수는 0으로 고정). */
   get healthRatio(): number { return Math.max(0, this.state.hp) / this.state.maxHp; }
+
+
+  private setVisualScale(scale: number): void {
+    this.sprite.setScale(scale);
+    this.outline.setScale(scale + ENEMY_OUTLINE_SCALE_GROWTH);
+    this.rim.setScale(scale);
+  }
+
+  private setVisualFrame(frame: number): void {
+    this.sprite.setFrame(frame);
+    this.outline.setFrame(frame);
+    this.rim.setFrame(frame);
+  }
+
+  private setVisualPosition(x: number, y: number): void {
+    this.sprite.setPosition(x, y);
+    this.outline.setPosition(x, y);
+    this.rim.setPosition(x + ENEMY_RIM_OFFSET_X, y + ENEMY_RIM_OFFSET_Y);
+  }
+
+  private setVisualVisible(visible: boolean): void {
+    this.sprite.setVisible(visible);
+    this.outline.setVisible(visible);
+    this.rim.setVisible(visible);
+  }
 
   /** 실제로 깎은 체력+보호막 총량을 돌려준다(타워별 기여도 집계용). */
   takeDamage(packet: number | DamagePacket, flash = true): number {
@@ -369,7 +401,6 @@ export class Enemy {
   private updateWalkAnimation(movingMs: number): void {
     if (movingMs <= 0 || !Enemy.WALK_ANIMATED.has(this.def.key)) return;
     this.walkElapsedMs += movingMs;
-    const sprite = this.sprite as Phaser.GameObjects.Image & { setFrame?: (frame: number) => unknown };
     const frame = this.def.key === 'fast' ? fastWalkFrameAt(this.walkElapsedMs)
       : this.def.key === 'normal' ? normalWalkFrameAt(this.walkElapsedMs)
         : this.def.key === 'tank' ? tankWalkFrameAt(this.walkElapsedMs)
@@ -382,18 +413,17 @@ export class Enemy {
                       : this.def.key === 'crusher' ? crusherWalkFrameAt(this.walkElapsedMs)
                         : this.def.key === 'boss' ? bossWalkFrameAt(this.walkElapsedMs)
                           : splitterlingHoverFrameAt(this.walkElapsedMs);
-    sprite.setFrame?.(frame);
+    this.setVisualFrame(frame);
   }
 
   private updateAirAnimation(movingMs: number): void {
     if (movingMs <= 0 || !Enemy.AIR_ANIMATED.has(this.def.key)) return;
     this.walkElapsedMs += movingMs;
-    const sprite = this.sprite as Phaser.GameObjects.Image & { setFrame?: (frame: number) => unknown };
     const frame = this.def.key === 'drone' ? droneHoverFrameAt(this.walkElapsedMs)
       : this.def.key === 'gunship' ? gunshipHoverFrameAt(this.walkElapsedMs)
         : this.def.key === 'carrier' ? carrierHoverFrameAt(this.walkElapsedMs)
           : airbossHoverFrameAt(this.walkElapsedMs);
-    sprite.setFrame?.(frame);
+    this.setVisualFrame(frame);
   }
 
   update(dtMs: number, speedMul: number): void {
@@ -422,11 +452,11 @@ export class Enemy {
     this.groundPos = { x: a.pos.x, y: a.pos.y };
     const bob = this.layer === 'air' ? Math.sin(this.walkElapsedMs / 260) * 2 : 0;
     const renderY = this.layer === 'air' ? a.pos.y - AIR_ALTITUDE + bob : a.pos.y;
-    this.sprite.setPosition(a.pos.x, renderY);
+    this.setVisualPosition(a.pos.x, renderY);
     this.shadow?.setPosition(a.pos.x, a.pos.y);
     if (a.done) {
       this._done = true;
-      this.sprite.setVisible(false);
+      this.setVisualVisible(false);
       this.shadow?.setVisible(false);
       this.hideIndicators();
     } else {
@@ -464,9 +494,15 @@ export class Enemy {
       tweens.add({
         targets: this.sprite, scaleX: sx * 0.5, scaleY: sy * 0.5, alpha: 0, duration: 150,
         ease: 'Quad.in',
-        onComplete: () => this.sprite.destroy(),
+        onComplete: () => {
+          this.outline.destroy();
+          this.rim.destroy();
+          this.sprite.destroy();
+        },
       });
     } else {
+      this.outline.destroy();
+      this.rim.destroy();
       this.sprite.destroy();
     }
   }
