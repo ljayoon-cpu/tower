@@ -41,7 +41,7 @@ function wall(key: string): Strategy {
 describe('air layer is enforced in real combat (Game.updateTowers)', () => {
   it('역병탑/파열탑(지상 전용)은 공중 웨이브에 아무 것도 못 하고 방어에 실패한다', () => {
     for (const key of ['poison', 'cannon']) {
-      const r = simulate(airWaveStage(DRONE_WAVE), wall(key), 1);
+      const r = simulate(airWaveStage(DRONE_WAVE), wall(key), /* seed */ 1);
       expect(r.won, `${key} should not clear an all-air wave`).toBe(false);
       expect(r.lives, `${key} should leak every drone`).toBe(0);
     }

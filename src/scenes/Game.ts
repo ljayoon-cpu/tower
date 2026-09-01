@@ -950,6 +950,8 @@ export class Game extends Phaser.Scene {
             return e && e.alive ? e.renderPos : null;
           },
           onHit: (hitPos) => {
+            // hitPos 는 렌더 평면(공중은 고도 포함). 아래 splash/poison 반경은 지상 좌표(enemy.pos)와
+            // 비교하지만 두 타워 모두 지상 전용이라 hitPos ≈ 지상점이라 무해. 공중 광역이 생기면 renderPos 반경으로.
             if (def.attack === 'poison') {
               this.impactFlash(hitPos, COLORS.poison, 'light');
               const pierce = poisonArmorPierceEffect(tower.level)?.armorPierce ?? 0;
