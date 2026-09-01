@@ -24,6 +24,8 @@ export class Projectile {
     this.sprite
       .setTexture(opts.textureKey ?? 'projectile')
       .setPosition(from.x, from.y)
+      // 풀에서 되살아난 투사체도 레벨과 무관하게 Lv1 크기를 유지한다.
+      .setScale(1)
       .setVisible(true)
       .setActive(true);
     this.face(this.last.x - from.x, this.last.y - from.y);
