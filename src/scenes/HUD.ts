@@ -105,14 +105,14 @@ export class HUD extends Phaser.Scene {
     overlay.add([resume.bg, resume.text, quit.bg, quit.text]);
 
     // 튜토리얼 코치마크 (1-1 첫 진입에만).
-    const coach = this.add.container(GAME_WIDTH / 2, 280).setDepth(1800);
-    coach.add(this.add.rectangle(0, 0, GAME_WIDTH - 60, 96, 0x0f1020, 0.92).setStrokeStyle(2, 0xffcc44, 0.8));
-    const coachText = this.add.text(0, -12, data.tutorialText ?? '', {
-      ...style, fontSize: '21px', color: '#ffe9b0', align: 'center', wordWrap: { width: GAME_WIDTH - 90 },
-    }).setOrigin(0.5);
-    const coachSkip = this.add.text(0, 28, '건너뛰기', {
-      ...style, fontSize: '17px', color: '#8d98bb',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const coach = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 30).setDepth(1800);
+    coach.add(this.add.rectangle(0, 0, GAME_WIDTH, 60, 0x0f1020, 0.95).setStrokeStyle(0));
+    const coachText = this.add.text(-GAME_WIDTH / 2 + 20, 0, data.tutorialText ?? '', {
+      ...style, fontSize: '18px', color: '#ffe9b0', wordWrap: { width: GAME_WIDTH - 120 },
+    }).setOrigin(0, 0.5);
+    const coachSkip = this.add.text(GAME_WIDTH / 2 - 16, 0, '건너뛰기', {
+      ...style, fontSize: '16px', color: '#8d98bb',
+    }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
     attachPressFeedback(this, coachSkip, [coachSkip], audio, data.onSkipTutorial);
     coach.add([coachText, coachSkip]);
     coach.setVisible(data.tutorialText !== null);
