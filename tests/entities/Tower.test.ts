@@ -63,6 +63,18 @@ describe('tower display frames', () => {
     expect(image.setFrame).toHaveBeenLastCalledWith(0);
   });
 
+  it('animates the illustrated anti-air ballista during a shot', () => {
+    const { scene, image } = createScene();
+    const tower = new Tower(scene, 'ballista', { col: 1, row: 1 }, { x: 64, y: 64 });
+
+    tower.playAttack();
+    expect(image.setFrame).toHaveBeenLastCalledWith(2);
+    tower.updateVisual(75);
+    expect(image.setFrame).toHaveBeenLastCalledWith(3);
+    tower.updateVisual(90);
+    expect(image.setFrame).toHaveBeenLastCalledWith(0);
+  });
+
   it('animates illustrated support towers when their pulse is triggered', () => {
     const { scene, image } = createScene();
     const tower = new Tower(scene, 'mine', { col: 1, row: 1 }, { x: 64, y: 64 });
