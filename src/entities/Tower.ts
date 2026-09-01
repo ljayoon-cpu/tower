@@ -21,6 +21,8 @@ const TOWER_ART_ROTATION_OFFSET: Readonly<Record<string, number>> = {
 export class Tower {
   readonly id = nextId++;
   level = 1;
+  /** 분기 타워(paths)의 선택 경로. Lv3 진입 시 확정된다. */
+  path: 'a' | 'b' | null = null;
   /** 표적 우선순위. 플레이어가 선택 패널에서 순환시킨다. */
   priority: TargetPriority = 'first';
   /** 발사 쿨다운(ms). Task 15 에서 사용. */
@@ -74,10 +76,19 @@ export class Tower {
 
   stats(): TowerLevelStats {
     const def = getTower(this.key);
-    // 분기 타워(paths)는 Lv3~5 를 경로에서 고른다. Task 3 에서 Tower.path 로 A/B 선택;
-    // 지금은 A 고정이라 동작은 종전과 동일하다.
-    if (this.level <= 2 || !def.paths) return def.levels[this.level - 1];
-    return def.paths.a.levels[this.level - 3];
+    // 분기 타워(paths)는 Lv3~5 를 선택한 경로에서 고른다.
+    if (this.level <= 2 || !def.paths || !this.path) {
+      // Lv3+ 인데 path 가 비어 있으면 데이터 버그(setLevel 이 항상 채운다).
+      // def.levels 는 길이 2 라 그대로 쓰면 undefined — 방어적으로 A 경로 폴백.
+      if (this.level >= 3 && def.paths && !this.path) return def.paths.a.levels[this.level - 3];
+      return def.levels[this.level - 1];
+    }
+    return def.paths[this.path].levels[this.level - 3];
+  }
+
+  get needsPathChoice(): boolean {
+    const def = getTower(this.key);
+    return !!def.paths && this.level === 2 && !this.path;
   }
 
   get maxLevel(): number {
@@ -88,9 +99,16 @@ export class Tower {
     return { x: this.sprite.x, y: this.sprite.y };
   }
 
-  setLevel(n: number): void {
-    this.level = Math.min(Math.max(n, 1), this.maxLevel);
+  setLevel(n: number, path?: 'a' | 'b'): void {
+    const clamped = Math.min(Math.max(n, 1), this.maxLevel);
+    const def = getTower(this.key);
+    if (clamped >= 3 && def.paths && !this.path) this.path = path ?? 'a';
+    this.level = clamped;
     this.applyLevelVisual();
+    if (this.path === 'b') {
+      const s = this.sprite as Phaser.GameObjects.Image & { setTint?: (c: number) => unknown };
+      s.setTint?.(0xffd9a0);
+    }
   }
 
   /** 사거리 링에 그릴 반경. 지휘탑은 버프 반경(그게 정체성), 나머지는 공격 사거리. */

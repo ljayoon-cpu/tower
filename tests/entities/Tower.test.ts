@@ -3,6 +3,7 @@ vi.mock('phaser', () => ({ default: {} }));
 
 import type Phaser from 'phaser';
 import { Tower } from '../../src/entities/Tower';
+import { getTower } from '../../src/data/towers';
 
 function createScene() {
   const image = {
@@ -33,6 +34,34 @@ function createScene() {
     } as unknown as Phaser.Scene,
   };
 }
+
+function makeTower(key: string): Tower {
+  const { scene } = createScene();
+  return new Tower(scene, key, { col: 0, row: 0 }, { x: 0, y: 0 });
+}
+
+describe('tower upgrade paths', () => {
+  it('branches at Lv3: stats come from the chosen path', () => {
+    const t = makeTower('bolt');
+    expect(t.path).toBeNull();
+    t.setLevel(2);
+    expect(t.needsPathChoice).toBe(true);
+    t.setLevel(3, 'b');
+    expect(t.path).toBe('b');
+    expect(t.level).toBe(3);
+    expect(t.stats()).toBe(getTower('bolt').paths!.b.levels[0]);
+    t.setLevel(4);
+    expect(t.stats()).toBe(getTower('bolt').paths!.b.levels[1]);
+  });
+
+  it('non-branched tower ignores path', () => {
+    const t = makeTower('laser');
+    t.setLevel(3);
+    expect(t.path).toBeNull();
+    expect(t.stats()).toBe(getTower('laser').levels[2]);
+    expect(t.needsPathChoice).toBe(false);
+  });
+});
 
 describe('tower display frames', () => {
   it('shows windup, release, then returns to idle without changing its level', () => {
