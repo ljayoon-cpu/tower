@@ -28,13 +28,13 @@ export interface InspectView {
   sell: { label: string };
 }
 
-// 2열 격자 — BuildMenu 에서 그대로 옮겨온 수치. 세로로 긴 폰에서도 10칸이 한눈에.
+// 2열 격자 — 설치 메뉴에서 쓰던 수치. 세로로 긴 폰에서도 10칸이 한눈에.
 const ROW_H = 62;
 const COL_W = 186;
 const COLS = 2;
 const SLIDE_MS = 90;
 
-// 경로 선택 카드 — 옛 PathChoiceMenu 수치 그대로.
+// 경로 선택 카드 — 경로 선택 화면 수치.
 const CARD_W = 200;
 const CARD_H = 150;
 const GAP = 14;
@@ -131,6 +131,7 @@ export class BottomSheet {
    * 분기 없는 타워면 열지 않고 즉시 'a' 로 자동 확정.
    */
   showPath(towerKey: string): void {
+    if (this._mode === 'path') return; // 경로 선택은 모달 — 해결/취소 전까지 무시.
     const def = getTower(towerKey);
     if (!def.paths) {
       this.opts.onPathPick('a');
@@ -202,7 +203,7 @@ export class BottomSheet {
     this.container.destroy();
   }
 
-  /** 타워 격자를 컨테이너에 구성한다. BuildMenu.openAt 의 행 생성 로직을 옮긴 것. */
+  /** 타워 격자를 컨테이너에 구성한다. 설치 메뉴의 행 생성 로직을 기반으로 함. */
   private buildBuild(): void {
     this.container.removeAll(true);
     this.rows = [];
