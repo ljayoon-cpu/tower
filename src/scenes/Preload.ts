@@ -19,7 +19,7 @@ export class Preload extends Phaser.Scene {
     ] as const) {
       this.load.spritesheet(key, `art/towers/${file}.png`, { frameWidth: 64, frameHeight: 64 });
     }
-    // 지상 보병·분열체·특수 유닛은 128px 4프레임 시트를 쓰고, Enemy가 이동 시간에 맞춰 프레임을 순환한다.
+    // 지상 보병·공중 편대·분열체·특수 유닛은 128px 4프레임 시트를 쓰고, Enemy가 이동 시간에 맞춰 프레임을 순환한다.
     for (const [key, file] of [
       ['enemy_fast', 'fast-hound-walk-v1'],
       ['enemy_normal', 'normal-soldier-walk-v1'],
@@ -33,6 +33,10 @@ export class Preload extends Phaser.Scene {
       ['enemy_crusher', 'crusher-siege-walk-v1'],
       ['enemy_boss', 'siege-commander-walk-v1'],
       ['enemy_splitterling', 'splitterling-orbit-v1'],
+      ['enemy_drone', 'scout-drone-hover-v1'],
+      ['enemy_gunship', 'artillery-gunship-hover-v1'],
+      ['enemy_carrier', 'drop-carrier-hover-v1'],
+      ['enemy_airboss', 'air-flagship-hover-v1'],
     ] as const) {
       this.load.spritesheet(key, `art/enemies/${file}.png`, { frameWidth: 128, frameHeight: 128 });
     }
