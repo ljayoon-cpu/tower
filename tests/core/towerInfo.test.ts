@@ -69,8 +69,8 @@ describe('towerInfo', () => {
   });
 
   it('shows frost freeze at merge levels 3 and 5', () => {
-    expect(towerInfo('frost', 3).note).toBe('감속 42% · 3타 빙결 0.35초');
-    expect(towerInfo('frost', 5).note).toBe('감속 65% · 3타 빙결 0.7초');
+    expect(towerInfo('frost', 3).note).toBe('감속 20% · 3타 빙결 0.35초');
+    expect(towerInfo('frost', 5).note).toBe('감속 30% · 3타 빙결 0.7초');
   });
 
   it('clamps level into range', () => {

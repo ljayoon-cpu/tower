@@ -10,7 +10,7 @@ type FeedbackGame = {
 };
 
 describe('combat feedback', () => {
-  it('adds a restrained camera shake only for heavy hits', () => {
+  it('never shakes the camera — even for heavy hits (멀미 방지)', () => {
     const ring = { setDepth: vi.fn().mockReturnThis() };
     const add = vi.fn();
     const shake = vi.fn();
@@ -27,7 +27,7 @@ describe('combat feedback', () => {
     scene.impactFlash({ x: 10, y: 20 }, 0xffffff, 'light');
 
     expect(add).toHaveBeenCalled();
-    expect(shake).toHaveBeenCalledExactlyOnceWith(90, 0.0025);
+    expect(shake).not.toHaveBeenCalled();
   });
 
   it('starts a 40ms combat pause for a heavy impact', () => {

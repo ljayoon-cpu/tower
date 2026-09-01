@@ -29,12 +29,13 @@ export const TOWERS: Record<string, TowerDef> = {
   frost: {
     // 감속이 정체성이지만 데미지도 화살에 약간 못 미치는 수준으로 받쳐, 혼자서도 초반은 넘긴다.
     key: 'frost', name: '서리탑', attack: 'slow', cost: 60, maxLevel: 5,
+    // 감속률은 완만하게: 10 / 15 / 20 / 25 / 30 %. 65%까지 갔던 예전엔 후반 적이 사실상 멈췄다.
     levels: [
-      { damage: 10, range: 142, fireRate: 1.7, slowMul: 0.75, slowDurationMs: 1200 },
-      { damage: 19, range: 152, fireRate: 1.8, slowMul: 0.68, slowDurationMs: 1350 },
-      { damage: 38, range: 162, fireRate: 1.9, slowMul: 0.58, slowDurationMs: 1500 },
-      { damage: 74, range: 172, fireRate: 2.0, slowMul: 0.47, slowDurationMs: 1700 },
-      { damage: 140, range: 184, fireRate: 2.1, slowMul: 0.35, slowDurationMs: 2000 },
+      { damage: 10, range: 142, fireRate: 1.7, slowMul: 0.90, slowDurationMs: 1200 },
+      { damage: 19, range: 152, fireRate: 1.8, slowMul: 0.85, slowDurationMs: 1350 },
+      { damage: 38, range: 162, fireRate: 1.9, slowMul: 0.80, slowDurationMs: 1500 },
+      { damage: 74, range: 172, fireRate: 2.0, slowMul: 0.75, slowDurationMs: 1700 },
+      { damage: 140, range: 184, fireRate: 2.1, slowMul: 0.70, slowDurationMs: 2000 },
     ],
   },
   bolt: {
@@ -101,12 +102,14 @@ export const TOWERS: Record<string, TowerDef> = {
     // 경제형. 직접 공격은 미약하지만 일정 주기마다 골드를 생성한다. 초반에 깔수록
     // 후반 자금이 커지지만 그만큼 방어를 늦게 세워야 한다.
     key: 'mine', name: '연금탑', attack: 'support', cost: 120, maxLevel: 5,
+    // 골드 생성이 너무 셌다 — 생성 주기를 2배로(초당 골드 절반), 웨이브 보너스도 절반.
+    // 필드당 최대 2기(runRules.towerBuildLimit).
     levels: [
-      { damage: 3,  range: 110, fireRate: 0.9,  goldPerTick: 1, goldIntervalMs: 2000 },
-      { damage: 6,  range: 116, fireRate: 0.95, goldPerTick: 1, goldIntervalMs: 1000 },
-      { damage: 12, range: 124, fireRate: 1.0,  goldPerTick: 2, goldIntervalMs: 1000, mineWaveBonus: 6 },
-      { damage: 23, range: 132, fireRate: 1.05, goldPerTick: 4, goldIntervalMs: 1000, mineWaveBonus: 6 },
-      { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 6, goldIntervalMs: 1000, mineWaveBonus: 14 },
+      { damage: 3,  range: 110, fireRate: 0.9,  goldPerTick: 1, goldIntervalMs: 4000 },
+      { damage: 6,  range: 116, fireRate: 0.95, goldPerTick: 1, goldIntervalMs: 2000 },
+      { damage: 12, range: 124, fireRate: 1.0,  goldPerTick: 2, goldIntervalMs: 2000, mineWaveBonus: 3 },
+      { damage: 23, range: 132, fireRate: 1.05, goldPerTick: 4, goldIntervalMs: 2000, mineWaveBonus: 3 },
+      { damage: 45, range: 142, fireRate: 1.1,  goldPerTick: 6, goldIntervalMs: 2000, mineWaveBonus: 7 },
     ],
   },
   ballista: {

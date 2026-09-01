@@ -10,3 +10,15 @@ export function chooseTowerBan(towerKeys: readonly string[], rng: Pick<Rng, 'int
 export function isTowerBanned(key: string, bannedTowerKey: string | null): boolean {
   return key === bannedTowerKey;
 }
+
+/** 한 판에 설치 가능한 최대 개수. 없으면 무제한. 골드 생성 타워는 경제가 폭주해 2기로 제한. */
+const TOWER_BUILD_LIMIT: Readonly<Record<string, number>> = { mine: 2 };
+
+export function towerBuildLimit(key: string): number {
+  return TOWER_BUILD_LIMIT[key] ?? Infinity;
+}
+
+/** placed = 현재 필드에 있는 같은 종류 타워 수. */
+export function isTowerAtBuildLimit(key: string, placed: number): boolean {
+  return placed >= towerBuildLimit(key);
+}

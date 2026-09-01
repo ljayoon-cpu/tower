@@ -8,6 +8,10 @@ export interface BuildMenuOpts {
   onPick: (key: string) => void;
   canAfford: (key: string) => boolean;
   isBanned: (key: string) => boolean;
+  /** 이 타워를 이미 설치 상한까지 지었는가. */
+  isAtLimit: (key: string) => boolean;
+  /** 상한 도달 시 줄에 표시할 짧은 문구(예: "최대 2개"). */
+  limitLabel: (key: string) => string;
 }
 
 // 2열 격자 — 세로로 긴 폰에서도 10칸이 한눈에 들어오게. 열당 최대 5칸.
@@ -17,7 +21,8 @@ const COLS = 2;
 
 interface Row {
   key: string;
-  banned: boolean;
+  /** 봉인(이번 판) 또는 설치 상한 도달 — 어느 쪽이든 구매 불가. */
+  blocked: boolean;
   selectable: boolean;
   icon: Phaser.GameObjects.Image;
   label: Phaser.GameObjects.Text;
@@ -53,13 +58,17 @@ export class BuildMenu {
       const cx = -w / 2 + COL_W / 2 + col * COL_W;
       const yy = -((perCol - 1) / 2) * ROW_H + rowInCol * ROW_H;
       const banned = this.opts.isBanned(key);
+      const atLimit = !banned && this.opts.isAtLimit(key);
+      const blocked = banned || atLimit;
+      const subLabel = banned ? '이번 판 봉인' : atLimit ? this.opts.limitLabel(key) : `${def.cost}G`;
+      const lockText = banned ? '봉인' : atLimit ? '가득' : '';
 
       const icon = this.scene.add.image(cx - COL_W / 2 + 26, yy, `tower_${key}`).setScale(0.62);
-      const label = this.scene.add.text(cx - COL_W / 2 + 50, yy - 15, banned ? `${def.name}\n이번 판 봉인` : `${def.name}\n${def.cost}G`, {
+      const label = this.scene.add.text(cx - COL_W / 2 + 50, yy - 15, `${def.name}\n${subLabel}`, {
         fontFamily: 'monospace', fontSize: '17px', color: '#f2f2f7',
       });
-      const lock = banned
-        ? this.scene.add.text(cx + COL_W / 2 - 16, yy, '봉인', { fontFamily: 'monospace', fontSize: '15px', color: '#ff7799' }).setOrigin(1, 0.5)
+      const lock = lockText
+        ? this.scene.add.text(cx + COL_W / 2 - 16, yy, lockText, { fontFamily: 'monospace', fontSize: '15px', color: '#ff7799' }).setOrigin(1, 0.5)
         : undefined;
       const hit = this.scene.add.rectangle(cx, yy, COL_W - 8, ROW_H - 6, 0xffffff, 0.001);
       attachPressFeedback(this.scene, hit, [icon, label], audioFor(this.scene), () => {
@@ -69,7 +78,7 @@ export class BuildMenu {
       });
 
       this.container.add(lock ? [icon, label, lock, hit] : [icon, label, hit]);
-      this.rows.push({ key, banned, selectable: false, icon, label, hit });
+      this.rows.push({ key, blocked, selectable: false, icon, label, hit });
     });
 
     const px = Phaser.Math.Clamp(x, w / 2 + 8, GAME_WIDTH - w / 2 - 8);
@@ -84,9 +93,9 @@ export class BuildMenu {
     if (!this.visible) return;
     for (const row of this.rows) {
       const afford = this.opts.canAfford(row.key);
-      const selectable = afford && !row.banned;
-      row.icon.setAlpha(selectable ? 1 : row.banned ? 0.2 : 0.35);
-      if (!row.banned) row.label.setColor(afford ? '#f2f2f7' : '#777777');
+      const selectable = afford && !row.blocked;
+      row.icon.setAlpha(selectable ? 1 : row.blocked ? 0.2 : 0.35);
+      if (!row.blocked) row.label.setColor(afford ? '#f2f2f7' : '#777777');
       if (selectable === row.selectable) continue; // 상호작용 토글만 변화 시에.
       row.selectable = selectable;
       if (selectable) row.hit.setInteractive({ useHandCursor: true });

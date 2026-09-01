@@ -26,7 +26,7 @@ import { PathManager } from '../systems/PathManager';
 import { WaveManager } from '../systems/WaveManager';
 import { EconomyManager } from '../systems/EconomyManager';
 import { Rng } from '../core/rng';
-import { chooseTowerBan, isTowerBanned } from '../core/runRules';
+import { chooseTowerBan, isTowerBanned, isTowerAtBuildLimit, towerBuildLimit } from '../core/runRules';
 
 import { Enemy } from '../entities/Enemy';
 import type { EnemyModifiers } from '../systems/EnemyState';
@@ -342,6 +342,8 @@ export class Game extends Phaser.Scene {
       },
       canAfford: (key) => this.eco.canAfford(getTower(key).cost),
       isBanned: (key) => isTowerBanned(key, this.bannedTowerKey),
+      isAtLimit: (key) => isTowerAtBuildLimit(key, this.countTowers(key)),
+      limitLabel: (key) => `최대 ${towerBuildLimit(key)}개`,
     });
 
     // 플레이 영역 전체를 덮는 투명 입력 캐처. depth 를 최하위로 두어
@@ -368,6 +370,8 @@ export class Game extends Phaser.Scene {
   }
 
   private openBuildMenu(tile: TileCoord): void {
+    // 설치 메뉴를 열 땐 타워 정보창을 닫는다 — 둘 중 하나만 보이게.
+    this.clearTowerRanges();
     this.pendingTile = tile;
     const c = this.grid.tileToPixelCenter(tile);
     // 구매 전 사거리 미리보기: 첫 타워 옵션의 Lv1 사거리
@@ -672,9 +676,14 @@ export class Game extends Phaser.Scene {
     });
   }
 
+  private countTowers(key: string): number {
+    return this.towers.reduce((n, t) => n + (t.key === key ? 1 : 0), 0);
+  }
+
   private placeTower(key: string, tile: TileCoord): void {
     if (!this.running || this.paused) return;
     if (isTowerBanned(key, this.bannedTowerKey)) return;
+    if (isTowerAtBuildLimit(key, this.countTowers(key))) return;
     const def = getTower(key);
     if (!this.grid.canPlace(tile)) return;
     if (!this.eco.spend(def.cost)) return;
@@ -686,9 +695,11 @@ export class Game extends Phaser.Scene {
     this.advanceTutorial('towerPlaced');
     if (this.towers.filter((t) => t.key === key).length >= 2) this.advanceTutorial('sameTypePlaced');
     // 타워 탭 → 사거리 링 토글(한 번에 하나만 표시). 드래그 직후 탭은 무시.
+    // 타워를 고르면 설치 메뉴는 닫는다 — 정보창과 설치창이 동시에 뜨지 않게.
     tower.sprite.on('pointerup', () => {
       if (!this.running || this.paused) return;
       if (this.time.now < this.suppressTapUntil) return;
+      this.closeBuildMenu();
       this.clearTowerRanges(tower.rangeVisible ? undefined : tower);
     });
     // 롱프레스(~500ms) → 판매 확인 팝업.
@@ -1062,7 +1073,7 @@ export class Game extends Phaser.Scene {
     }
   }
 
-  /** 공격마다 다른 짧은 명중 효과. 강한 한 방만 아주 약하게 화면을 흔든다. */
+  /** 공격마다 다른 짧은 명중 효과. 화면 흔들림은 쓰지 않는다(멀미 유발). */
   private impactFlash(
     pos: Vec2, color: number, force: 'light' | 'heavy' | 'frost' | 'stagger' = 'light',
   ): void {
@@ -1084,7 +1095,6 @@ export class Game extends Phaser.Scene {
           duration: 220, onComplete: () => shard.destroy() });
       }
     }
-    if (heavy) this.cameras.main.shake(90, 0.0025);
   }
 
   /** 발사 직후 포탑 끝에서 짧게 빛나, 공격 시작점도 눈에 들어오게 한다. */
