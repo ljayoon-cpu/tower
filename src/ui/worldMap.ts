@@ -52,12 +52,13 @@ export function worldLabel(world: string): string {
   return world === '2' ? '붉은 용광로' : world === '3' ? '부유 병기창' : '국경 성벽';
 }
 
-export type BattlefieldLandmarkKind = 'watchfire' | 'ruins' | 'crystal' | 'vent';
+export type BattlefieldLandmarkKind = 'watchfire' | 'ruins' | 'crystal' | 'vent' | 'beacon' | 'airdock';
 
 /** 월드와 스테이지 번호만으로 정해지는 장소 표식. 전투 규칙에는 관여하지 않는다. */
 export function battlefieldLandmarkKind(world: string, stageId: string): BattlefieldLandmarkKind {
   const number = Number(stageId.split('-')[1]) || 1;
   if (world === '2') return number % 2 === 1 ? 'crystal' : 'vent';
+  if (world === '3') return number % 2 === 1 ? 'airdock' : 'beacon';
   return number % 2 === 1 ? 'watchfire' : 'ruins';
 }
 
@@ -91,7 +92,7 @@ export class WorldMapPainter {
     world: string,
     private readonly grid: TileType[][],
   ) {
-    this.resolvedWorld = world === '2' ? '2' : '1';
+    this.resolvedWorld = world === '2' || world === '3' ? world : '1';
     this.theme = worldMapTheme(world);
     this.createTextures();
   }
@@ -117,7 +118,7 @@ export class WorldMapPainter {
           g.fillCircle(x - 14, y + 6, 3);
           g.fillStyle(0x8c7652, 0.72);
           g.fillCircle(x + 13, y + 12, 5);
-        } else {
+        } else if (this.resolvedWorld === '2') {
           g.fillStyle(0x16131b, 0.88);
           g.fillCircle(x - 9, y + 11, 13);
           g.lineStyle(2, this.theme.accent, 0.52);
@@ -125,6 +126,15 @@ export class WorldMapPainter {
           g.lineBetween(x + 15, y + 12, x + 22, y + 2);
           g.fillStyle(0x9a61bc, 0.42);
           g.fillTriangle(x + 6, y + 12, x + 14, y - 16, x + 22, y + 12);
+        } else {
+          g.fillStyle(0x101b2a, 0.9);
+          g.fillRect(x - 17, y + 9, 34, 8);
+          g.fillStyle(0xa7d5ed, 0.12);
+          g.fillCircle(x - 12, y + 7, 13); g.fillCircle(x + 12, y + 5, 15);
+          g.lineStyle(2, this.theme.accent, 0.58);
+          g.lineBetween(x - 16, y + 8, x + 16, y + 8);
+          g.fillStyle(0x3c5068, 0.76);
+          g.fillCircle(x, y + 13, 3);
         }
         count++;
       }
@@ -137,13 +147,23 @@ export class WorldMapPainter {
       g.fillStyle(0x9b7e52, 0.82);
       g.fillRect(GAME_WIDTH / 2 - 4, GAME_HEIGHT - 34, 8, 34);
       g.fillCircle(GAME_WIDTH / 2, GAME_HEIGHT - 36, 15);
-    } else {
+    } else if (this.resolvedWorld === '2') {
       g.fillStyle(0x27171b, 0.92);
       g.fillRect(GAME_WIDTH / 2 - 104, 0, 208, 22);
       g.lineStyle(3, this.theme.accent, 0.7);
       g.lineBetween(GAME_WIDTH / 2 - 78, 11, GAME_WIDTH / 2 + 78, 11);
       g.fillStyle(0xdc5a37, 0.2);
       g.fillRect(0, GAME_HEIGHT - 30, GAME_WIDTH, 30);
+    } else {
+      g.fillStyle(0x111d2b, 0.94);
+      g.fillRect(GAME_WIDTH / 2 - 112, 0, 224, 24);
+      g.lineStyle(3, this.theme.accent, 0.68);
+      g.lineBetween(GAME_WIDTH / 2 - 90, 12, GAME_WIDTH / 2 + 90, 12);
+      g.fillStyle(0x0b1420, 0.94);
+      g.fillEllipse(GAME_WIDTH / 2, GAME_HEIGHT - 43, 210, 42);
+      g.fillRect(GAME_WIDTH / 2 - 50, GAME_HEIGHT - 34, 100, 17);
+      g.lineStyle(2, this.theme.accent, 0.42);
+      g.lineBetween(GAME_WIDTH / 2 - 76, GAME_HEIGHT - 42, GAME_WIDTH / 2 + 76, GAME_HEIGHT - 42);
     }
   }
 
@@ -177,6 +197,19 @@ export class WorldMapPainter {
       g.fillCircle(x - 41, y - 3, 4); g.fillCircle(x + 41, y - 3, 4);
       return;
     }
+    if (this.resolvedWorld === '3') {
+      g.fillStyle(0x101b29, 0.96);
+      g.fillCircle(x, y, 29);
+      g.lineStyle(4, this.theme.accent, 0.84);
+      g.strokeCircle(x, y, 25);
+      g.lineStyle(2, 0xd6f2ff, 0.74);
+      g.lineBetween(x - 35, y + 4, x + 35, y + 4);
+      g.lineBetween(x - 18, y - 31, x - 18, y + 19);
+      g.lineBetween(x + 18, y - 31, x + 18, y + 19);
+      g.fillStyle(0xe4ae5d, 0.86);
+      g.fillCircle(x, y, 8);
+      return;
+    }
     g.fillStyle(0x19151c, 0.96);
     g.fillCircle(x, y, 28);
     g.lineStyle(5, this.theme.accent, 0.8);
@@ -199,6 +232,16 @@ export class WorldMapPainter {
       g.strokeCircle(x, y, boss ? 25 : 20);
       return;
     }
+    if (this.resolvedWorld === '3') {
+      g.fillStyle(0x101d2d, 0.95);
+      g.fillCircle(x, y, boss ? 25 : 21);
+      g.lineStyle(2, this.theme.accent, 0.84);
+      g.strokeCircle(x, y, boss ? 25 : 21);
+      g.fillStyle(0xbfe9ff, 0.9);
+      g.fillTriangle(x, y - 14, x - 11, y, x, y + 14);
+      g.fillTriangle(x, y - 14, x + 11, y, x, y + 14);
+      return;
+    }
     g.fillStyle(0x2c1920, 0.94);
     g.fillCircle(x, y, boss ? 24 : 20);
     g.fillStyle(0xf18245, 0.92);
@@ -218,10 +261,20 @@ export class WorldMapPainter {
     } else if (kind === 'crystal') {
       g.fillStyle(0x8e63c4, 0.6); g.fillTriangle(x - 13, y + 13, x - 5, y - 18, x + 2, y + 13);
       g.fillStyle(0xd18df0, 0.62); g.fillTriangle(x - 1, y + 14, x + 8, y - 22, x + 16, y + 14);
-    } else {
+    } else if (kind === 'vent') {
       g.fillStyle(0x2a242a, 0.82); g.fillRect(x - 13, y - 8, 26, 19);
       g.lineStyle(3, 0xcd6b49, 0.76); g.lineBetween(x - 8, y - 8, x - 8, y - 22); g.lineBetween(x + 8, y - 8, x + 8, y - 22);
       g.fillStyle(0xd9d5dc, 0.23); g.fillCircle(x - 8, y - 27, 8); g.fillCircle(x + 8, y - 29, 7);
+    } else if (kind === 'beacon') {
+      g.fillStyle(0x152536, 0.9); g.fillRect(x - 5, y - 22, 10, 34);
+      g.fillStyle(this.theme.accent, 0.88); g.fillCircle(x, y - 24, 6);
+      g.lineStyle(2, 0xd6f4ff, 0.54); g.lineBetween(x - 14, y - 10, x + 14, y - 10);
+      g.fillStyle(this.theme.accent, 0.12); g.fillCircle(x, y - 24, 15);
+    } else {
+      g.fillStyle(0x111d2a, 0.92); g.fillRect(x - 18, y - 4, 36, 16);
+      g.lineStyle(2, this.theme.accent, 0.7); g.lineBetween(x - 22, y - 5, x + 22, y - 5);
+      g.lineBetween(x - 13, y - 18, x - 13, y + 11); g.lineBetween(x + 13, y - 18, x + 13, y + 11);
+      g.fillStyle(0x90c8e9, 0.44); g.fillCircle(x - 24, y + 5, 5); g.fillCircle(x + 24, y + 5, 5);
     }
   }
 
@@ -229,14 +282,20 @@ export class WorldMapPainter {
     for (const goal of goals) {
       const x = clamp(goal.x, 30, GAME_WIDTH - 30);
       const y = clamp(goal.y, 30, GAME_HEIGHT - 30);
-      g.lineStyle(2, this.resolvedWorld === '1' ? 0xd75e64 : 0xffa15a, 0.8);
+      const markerColor = this.resolvedWorld === '1' ? 0xd75e64 : this.resolvedWorld === '2' ? 0xffa15a : 0x9fd8ff;
+      g.lineStyle(2, markerColor, 0.8);
       g.strokeCircle(x, y, 31);
       if (this.resolvedWorld === '1') {
         g.fillStyle(0x9e3945, 0.8);
         g.fillTriangle(x - 32, y - 34, x - 32, y - 13, x - 17, y - 24);
-      } else {
+      } else if (this.resolvedWorld === '2') {
         g.fillStyle(0xffa15a, 0.68);
         g.fillCircle(x + 31, y - 19, 5); g.fillCircle(x + 39, y - 27, 3);
+      } else {
+        g.fillStyle(0x9fd8ff, 0.72);
+        g.fillTriangle(x + 20, y - 34, x + 40, y - 24, x + 20, y - 14);
+        g.lineStyle(2, 0xd9f6ff, 0.6);
+        g.lineBetween(x + 17, y - 24, x + 40, y - 24);
       }
     }
   }
@@ -261,8 +320,9 @@ export class WorldMapPainter {
     g.lineStyle(tile === 'PATH' ? 3 : 2, edge, tile === 'PATH' ? 0.82 : 0.6);
     g.strokeRect(1, 1, TILE - 2, TILE - 2);
 
-    // 월드 2는 강철 격자, 그 외(국경·구름 위)는 옅은 선 장식. 색은 theme 이 정한다.
+    // 월드 1은 국경 평원, 월드 2는 용광로, 월드 3은 강철 비행 갑판으로 구분한다.
     if (world === '2') this.drawForgeTile(g, tile, edge);
+    else if (world === '3') this.drawArmoryTile(g, tile, edge);
     else this.drawFrontierTile(g, tile, edge);
 
     g.generateTexture(key, TILE, TILE);
@@ -299,5 +359,25 @@ export class WorldMapPainter {
     g.lineBetween(44, 7, 53, 19); g.lineBetween(53, 19, 49, 29);
     g.fillStyle(0xa96ac7, 0.28);
     g.fillTriangle(45, 47, 51, 31, 57, 47);
+  }
+
+  private drawArmoryTile(g: Phaser.GameObjects.Graphics, tile: 'PATH' | 'BUILDABLE', edge: number): void {
+    if (tile === 'PATH') {
+      g.fillStyle(0x36485a, 0.74);
+      g.fillRect(5, 8, 54, 13); g.fillRect(5, 30, 54, 13); g.fillRect(5, 52, 54, 7);
+      g.fillStyle(0x142130, 0.92);
+      for (const x of [12, 32, 52]) { g.fillCircle(x, 14, 2); g.fillCircle(x, 36, 2); }
+      g.lineStyle(2, 0x9fd8ff, 0.52);
+      g.lineBetween(5, 25, 59, 25); g.lineBetween(5, 47, 59, 47);
+      return;
+    }
+    g.fillStyle(0x1b2a3b, 0.58);
+    g.fillRect(9, 12, 46, 40);
+    g.lineStyle(2, edge, 0.78);
+    g.lineBetween(11, 18, 53, 18); g.lineBetween(11, 46, 53, 46);
+    g.lineStyle(1, 0x9fd8ff, 0.36);
+    g.lineBetween(18, 9, 18, 55); g.lineBetween(46, 9, 46, 55);
+    g.fillStyle(0xbfe9ff, 0.34);
+    g.fillCircle(18, 18, 2); g.fillCircle(46, 46, 2);
   }
 }
