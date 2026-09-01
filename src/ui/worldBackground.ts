@@ -30,6 +30,7 @@ export class WorldBackground {
       .setDepth(-490);
 
     if (world === '2') this.addCavern(theme);
+    else if (world === '3') this.addArmory(theme);
     else this.addSkyline(theme);
     this.layers.push(this.addDriftLayer(theme, 0), this.addDriftLayer(theme, -GAME_HEIGHT));
   }
@@ -56,6 +57,17 @@ export class WorldBackground {
     const rightRock = this.scene.add.rectangle(GAME_WIDTH - 54, GAME_HEIGHT / 2, 108, GAME_HEIGHT, theme.silhouette, 0.92).setDepth(-469);
     const lavaGlow = this.scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 74, GAME_WIDTH, 148, theme.accent, 0.1).setDepth(-468);
     void ceiling; void leftRock; void rightRock; void lavaGlow;
+  }
+
+  private addArmory(theme: WorldBackgroundTheme): void {
+    const cloudOne = this.scene.add.ellipse(92, 252, 236, 68, 0xbfe9ff, 0.08).setDepth(-470);
+    const cloudTwo = this.scene.add.ellipse(GAME_WIDTH - 86, 546, 290, 82, 0xbfe9ff, 0.1).setDepth(-469);
+    const airship = this.scene.add.ellipse(GAME_WIDTH - 112, 336, 154, 46, theme.silhouette, 0.94).setDepth(-468);
+    const gondola = this.scene.add.rectangle(GAME_WIDTH - 112, 365, 58, 15, theme.silhouette, 0.98).setDepth(-467);
+    const fin = this.scene.add.triangle(GAME_WIDTH - 38, 337, 0, 0, 26, 14, 0, 27, theme.silhouette, 0.96).setDepth(-467);
+    const deck = this.scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 74, GAME_WIDTH, 148, theme.silhouette, 0.96).setDepth(-466);
+    const deckGlow = this.scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 119, GAME_WIDTH, 3, theme.accent, 0.38).setDepth(-465);
+    void cloudOne; void cloudTwo; void airship; void gondola; void fin; void deck; void deckGlow;
   }
 
   private addDriftLayer(theme: WorldBackgroundTheme, y: number): Phaser.GameObjects.Container {
