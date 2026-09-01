@@ -9,7 +9,7 @@ import {
 const LIST_TOP = 196;
 const LIST_BOTTOM = GAME_HEIGHT - 96;
 const CARD_GAP = 12;
-const TOWER_CARD_H = 196;
+const TOWER_CARD_H = 232;
 const ENEMY_CARD_H = 150;
 const MONO = 'monospace';
 
@@ -98,13 +98,24 @@ export class Codex extends Phaser.Scene {
     const role = this.add.text(left, top + 92, d.role, {
       fontFamily: MONO, fontSize: '16px', color: '#cdd6f4', wordWrap: { width: GAME_WIDTH - 96 },
     });
-    const strong = this.add.text(left, top + 122, `◎ ${d.strong}`, {
+    const pathObjs: Phaser.GameObjects.GameObject[] = [];
+    if (d.paths) {
+      pathObjs.push(this.add.text(left, top + 116,
+        `A ${d.paths.a.name} · ${d.paths.a.desc}  (Lv5 DPS ${d.paths.a.dps})`, {
+          fontFamily: MONO, fontSize: '14px', color: '#9fb0d0', wordWrap: { width: GAME_WIDTH - 96 },
+        }));
+      pathObjs.push(this.add.text(left, top + 134,
+        `B ${d.paths.b.name} · ${d.paths.b.desc}  (Lv5 DPS ${d.paths.b.dps})`, {
+          fontFamily: MONO, fontSize: '14px', color: '#9fb0d0', wordWrap: { width: GAME_WIDTH - 96 },
+        }));
+    }
+    const strong = this.add.text(left, top + 158, `◎ ${d.strong}`, {
       fontFamily: MONO, fontSize: '15px', color: '#7dd87d', wordWrap: { width: GAME_WIDTH - 96 },
     });
-    const weak = this.add.text(left, top + 152, `▽ ${d.weak}`, {
+    const weak = this.add.text(left, top + 188, `▽ ${d.weak}`, {
       fontFamily: MONO, fontSize: '15px', color: '#ff8f8f', wordWrap: { width: GAME_WIDTH - 96 },
     });
-    return [box, icon, title, dps, other, role, strong, weak];
+    return [box, icon, title, dps, other, role, ...pathObjs, strong, weak];
   }
 
   private enemyCardObjects(key: string, y: number): Phaser.GameObjects.GameObject[] {

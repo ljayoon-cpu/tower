@@ -17,6 +17,15 @@ describe('tower paths', () => {
     }
   });
 
+  it('branched towers give A and B distinct, non-empty names', () => {
+    for (const key of BRANCHED) {
+      const paths = TOWERS[key].paths!;
+      expect(paths.a.name.length).toBeGreaterThan(0);
+      expect(paths.b.name.length).toBeGreaterThan(0);
+      expect(paths.a.name).not.toBe(paths.b.name);
+    }
+  });
+
   it('non-branched towers keep the flat 5-level shape', () => {
     for (const key of TOWER_KEYS) {
       if (BRANCHED.includes(key)) continue;

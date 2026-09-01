@@ -49,15 +49,28 @@ export const ENEMY_CODEX: EnemyCodexEntry[] = [
   { key: 'airboss',     trait: '월드 3 피날레. 급강하·편대 전개. (공중)',        counter: '창공탑 집중 + 마광탑. 대공 화력이 필수.' },
 ];
 
+/** 분기 타워의 한 경로 요약(Lv5 기준). */
+export interface PathSummary {
+  name: string;
+  desc: string;
+  dps: number;
+  range: number;
+}
+
 /** 도감 카드에 표시할 타워 요약 — Lv1~Lv5 진행을 "/" 로 이어 보여준다. */
 export function towerCard(key: string): {
   name: string; cost: number;
   dps: number[]; range: number[]; fireRate: number[];
   note: string; role: string; strong: string; weak: string;
+  paths?: { a: PathSummary; b: PathSummary };
 } {
   const def = getTower(key);
   const levels = Array.from({ length: def.maxLevel }, (_, i) => towerInfo(key, i + 1));
   const c = TOWER_CODEX.find((e) => e.key === key);
+  const pathSummary = (p: 'a' | 'b'): PathSummary => {
+    const info = towerInfo(key, 5, p);
+    return { name: def.paths![p].name, desc: def.paths![p].desc, dps: info.dps, range: info.range };
+  };
   return {
     name: def.name, cost: def.cost,
     dps: levels.map((l) => l.dps),
@@ -65,6 +78,7 @@ export function towerCard(key: string): {
     fireRate: levels.map((l) => Number(l.fireRate.toFixed(2))),
     note: towerInfo(key, def.maxLevel).note,
     role: c?.role ?? '', strong: c?.strong ?? '', weak: c?.weak ?? '',
+    ...(def.paths ? { paths: { a: pathSummary('a'), b: pathSummary('b') } } : {}),
   };
 }
 

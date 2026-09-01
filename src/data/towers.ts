@@ -5,8 +5,8 @@ export const TOWERS: Record<string, TowerDef> = {
   // 오른다. 즉 자리를 합쳐 레벨을 올리면 골드당 화력이 커진다 — 넓게 깔기와
   // 높게 쌓기를 저울질하게 만드는 핵심 수치.
   // arrow/cannon/frost/bolt/sniper/poison 은 Lv3 에서 분기한다 (Task: tower-upgrade-branching).
-  // levels 는 공통 Lv1~2 뿐, Lv3~5 는 paths.a / paths.b 에서 고른다. 지금은 경로 B 가
-  // 경로 A 의 복제(임시 스캐폴딩) — 실제 B 수치는 Phase 4 에서 채운다.
+  // levels 는 공통 Lv1~2 뿐, Lv3~5 는 paths.a / paths.b 에서 고른다. 경로 A/B 는 서로 다른
+  // 방향(A=기존 강화 계승, B=신규 메커니즘) — 스펙 §5 수치.
   // 기존 머지 3·5합 능력(빙결·경직·처형·독관통)은 여기서 TowerLevelStats 필드로 이관됐다
   // (mergeEffects.ts 삭제). 경로 기본값은 'a' 라 동작은 종전과 동일하다.
   arrow: {
@@ -19,17 +19,17 @@ export const TOWERS: Record<string, TowerDef> = {
       a: {
         key: 'a', name: '연발형', desc: '멀티샷 — 뭉친 스웜을 여러 발로.',
         levels: [
-          { damage: 28,  range: 174, fireRate: 2.4, projectileCount: 2, projectileDamageMultiplier: 0.6 },
-          { damage: 56,  range: 188, fireRate: 2.7, projectileCount: 2, projectileDamageMultiplier: 0.6 },
-          { damage: 113, range: 205, fireRate: 3.0, projectileCount: 3, projectileDamageMultiplier: 0.45 },
+          { damage: 28,  range: 174, fireRate: 2.4, projectileCount: 3, projectileDamageMultiplier: 0.6 },
+          { damage: 56,  range: 188, fireRate: 2.7, projectileCount: 3, projectileDamageMultiplier: 0.6 },
+          { damage: 113, range: 205, fireRate: 3.0, projectileCount: 4, projectileDamageMultiplier: 0.45 },
         ],
       },
       b: {
-        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        key: 'b', name: '관통형', desc: '관통 — 방어구를 뚫고 직선상 여러 적을.',
         levels: [
-          { damage: 28,  range: 174, fireRate: 2.4, projectileCount: 2, projectileDamageMultiplier: 0.6 },
-          { damage: 56,  range: 188, fireRate: 2.7, projectileCount: 2, projectileDamageMultiplier: 0.6 },
-          { damage: 113, range: 205, fireRate: 3.0, projectileCount: 3, projectileDamageMultiplier: 0.45 },
+          { damage: 50,  range: 218, fireRate: 2.2, armorPierce: 4 },
+          { damage: 100, range: 235, fireRate: 2.3, armorPierce: 7 },
+          { damage: 200, range: 256, fireRate: 2.4, armorPierce: 12, executeHealthRatio: 0.25, executeDamageMultiplier: 1.5 },
         ],
       },
     },
@@ -46,17 +46,17 @@ export const TOWERS: Record<string, TowerDef> = {
       a: {
         key: 'a', name: '제압형', desc: '방어 파괴 — 대장갑·거점을 무너뜨린다.',
         levels: [
-          { damage: 86,  range: 146, fireRate: 0.66, splashRadius: 76, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
-          { damage: 170, range: 154, fireRate: 0.70, splashRadius: 88, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
-          { damage: 340, range: 164, fireRate: 0.76, splashRadius: 102, armorBreakPercent: 0.2, armorBreakDurationMs: 2000 },
+          { damage: 86,  range: 146, fireRate: 0.66, splashRadius: 91, armorBreakPercent: 0.2, armorBreakDurationMs: 1500 },
+          { damage: 170, range: 154, fireRate: 0.70, splashRadius: 106, armorBreakPercent: 0.2, armorBreakDurationMs: 1500 },
+          { damage: 340, range: 164, fireRate: 0.76, splashRadius: 122, armorBreakPercent: 0.35, armorBreakDurationMs: 2000 },
         ],
       },
       b: {
-        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        key: 'b', name: '융단형', desc: '융단 폭격 — 착탄 후 광역 화상.',
         levels: [
-          { damage: 86,  range: 146, fireRate: 0.66, splashRadius: 76, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
-          { damage: 170, range: 154, fireRate: 0.70, splashRadius: 88, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
-          { damage: 340, range: 164, fireRate: 0.76, splashRadius: 102, armorBreakPercent: 0.2, armorBreakDurationMs: 2000 },
+          { damage: 47,  range: 146, fireRate: 1.3, splashRadius: 84, burnDps: 10, burnDurationMs: 1400, burnRadius: 84 },
+          { damage: 92,  range: 154, fireRate: 1.4, splashRadius: 96, burnDps: 18, burnDurationMs: 1400, burnRadius: 96 },
+          { damage: 180, range: 164, fireRate: 1.5, splashRadius: 112, burnDps: 34, burnDurationMs: 1400, burnRadius: 112 },
         ],
       },
     },
@@ -73,17 +73,17 @@ export const TOWERS: Record<string, TowerDef> = {
       a: {
         key: 'a', name: '빙결형', desc: '빙결 CC — 적중을 쌓아 얼린다.',
         levels: [
-          { damage: 38,  range: 162, fireRate: 1.9, slowMul: 0.80, slowDurationMs: 1500, freezeHits: 3, freezeDurationMs: 350, freezeCooldownMs: 4000 },
-          { damage: 74,  range: 172, fireRate: 2.0, slowMul: 0.75, slowDurationMs: 1700, freezeHits: 3, freezeDurationMs: 350, freezeCooldownMs: 4000 },
-          { damage: 140, range: 184, fireRate: 2.1, slowMul: 0.70, slowDurationMs: 2000, freezeHits: 3, freezeDurationMs: 700, freezeCooldownMs: 3000 },
+          { damage: 38,  range: 162, fireRate: 1.9, slowMul: 0.80, slowDurationMs: 1500, freezeHits: 2, freezeDurationMs: 700, freezeCooldownMs: 4000 },
+          { damage: 74,  range: 172, fireRate: 2.0, slowMul: 0.75, slowDurationMs: 1700, freezeHits: 2, freezeDurationMs: 900, freezeCooldownMs: 4000 },
+          { damage: 140, range: 184, fireRate: 2.1, slowMul: 0.70, slowDurationMs: 2000, freezeHits: 2, freezeDurationMs: 1100, freezeCooldownMs: 3000 },
         ],
       },
       b: {
-        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        key: 'b', name: '냉기장형', desc: '냉기장 — 주변 전체 지속 감속.',
         levels: [
-          { damage: 38,  range: 162, fireRate: 1.9, slowMul: 0.80, slowDurationMs: 1500, freezeHits: 3, freezeDurationMs: 350, freezeCooldownMs: 4000 },
-          { damage: 74,  range: 172, fireRate: 2.0, slowMul: 0.75, slowDurationMs: 1700, freezeHits: 3, freezeDurationMs: 350, freezeCooldownMs: 4000 },
-          { damage: 140, range: 184, fireRate: 2.1, slowMul: 0.70, slowDurationMs: 2000, freezeHits: 3, freezeDurationMs: 700, freezeCooldownMs: 3000 },
+          { damage: 6,  range: 162, fireRate: 1.0, slowMul: 0.55, slowDurationMs: 400, slowAura: true, slowAuraRadius: 150 },
+          { damage: 12, range: 172, fireRate: 1.0, slowMul: 0.5,  slowDurationMs: 400, slowAura: true, slowAuraRadius: 165 },
+          { damage: 24, range: 184, fireRate: 1.0, slowMul: 0.42, slowDurationMs: 400, slowAura: true, slowAuraRadius: 185 },
         ],
       },
     },
@@ -99,17 +99,17 @@ export const TOWERS: Record<string, TowerDef> = {
       a: {
         key: 'a', name: '과부하형', desc: '경직 — 연쇄가 적을 묶는다.',
         levels: [
-          { damage: 23, range: 170, fireRate: 2.6, chainTargets: 3, chainFalloff: 0.65, chainRange: 106, staggerDurationMs: 120, staggerCooldownMs: 1800 },
-          { damage: 44, range: 182, fireRate: 2.8, chainTargets: 3, chainFalloff: 0.70, chainRange: 116, staggerDurationMs: 120, staggerCooldownMs: 1800 },
-          { damage: 84, range: 196, fireRate: 3.0, chainTargets: 4, chainFalloff: 0.78, chainRange: 128, staggerDurationMs: 250, staggerCooldownMs: 1800 },
+          { damage: 23, range: 170, fireRate: 2.6, chainTargets: 4, chainFalloff: 0.65, chainRange: 106, staggerDurationMs: 250, staggerCooldownMs: 1800 },
+          { damage: 44, range: 182, fireRate: 2.8, chainTargets: 4, chainFalloff: 0.70, chainRange: 116, staggerDurationMs: 300, staggerCooldownMs: 1800 },
+          { damage: 84, range: 196, fireRate: 3.0, chainTargets: 5, chainFalloff: 0.78, chainRange: 128, staggerDurationMs: 400, staggerCooldownMs: 1800 },
         ],
       },
       b: {
-        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        key: 'b', name: '직격형', desc: '직격 — 단일 대상에 방어막 무시 강타.',
         levels: [
-          { damage: 23, range: 170, fireRate: 2.6, chainTargets: 3, chainFalloff: 0.65, chainRange: 106, staggerDurationMs: 120, staggerCooldownMs: 1800 },
-          { damage: 44, range: 182, fireRate: 2.8, chainTargets: 3, chainFalloff: 0.70, chainRange: 116, staggerDurationMs: 120, staggerCooldownMs: 1800 },
-          { damage: 84, range: 196, fireRate: 3.0, chainTargets: 4, chainFalloff: 0.78, chainRange: 128, staggerDurationMs: 250, staggerCooldownMs: 1800 },
+          { damage: 55,  range: 196, fireRate: 2.6, chainTargets: 0, shieldPierce: true },
+          { damage: 106, range: 209, fireRate: 2.8, chainTargets: 0, shieldPierce: true },
+          { damage: 202, range: 225, fireRate: 3.0, chainTargets: 0, shieldPierce: true },
         ],
       },
     },
@@ -126,17 +126,17 @@ export const TOWERS: Record<string, TowerDef> = {
       a: {
         key: 'a', name: '처형형', desc: '처형 — 체력 낮은 적을 마무리한다.',
         levels: [
-          { damage: 120, range: 252, fireRate: 0.96, armorPierce: 7,  executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 },
-          { damage: 240, range: 268, fireRate: 1.05, armorPierce: 10, executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 },
-          { damage: 480, range: 284, fireRate: 1.15, armorPierce: 14, executeHealthRatio: 0.4, executeDamageMultiplier: 2.2 },
+          { damage: 120, range: 252, fireRate: 0.96, armorPierce: 7,  executeHealthRatio: 0.35, executeDamageMultiplier: 1.8 },
+          { damage: 240, range: 268, fireRate: 1.05, armorPierce: 10, executeHealthRatio: 0.4,  executeDamageMultiplier: 2.2 },
+          { damage: 480, range: 284, fireRate: 1.15, armorPierce: 14, executeHealthRatio: 0.5,  executeDamageMultiplier: 3.0 },
         ],
       },
       b: {
-        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        key: 'b', name: '관통형(레일건)', desc: '레일건 — 직선상 모든 적 관통.',
         levels: [
-          { damage: 120, range: 252, fireRate: 0.96, armorPierce: 7,  executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 },
-          { damage: 240, range: 268, fireRate: 1.05, armorPierce: 10, executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 },
-          { damage: 480, range: 284, fireRate: 1.15, armorPierce: 14, executeHealthRatio: 0.4, executeDamageMultiplier: 2.2 },
+          { damage: 156, range: 302, fireRate: 0.77, armorPierce: 7,  pierceAll: true },
+          { damage: 312, range: 321, fireRate: 0.84, armorPierce: 10, pierceAll: true },
+          { damage: 624, range: 340, fireRate: 0.92, armorPierce: 14, pierceAll: true },
         ],
       },
     },
@@ -154,17 +154,17 @@ export const TOWERS: Record<string, TowerDef> = {
       a: {
         key: 'a', name: '부식형', desc: '방어 무시 — 독이 장갑을 녹인다.',
         levels: [
-          { damage: 7,  range: 168, fireRate: 1.5, poisonDps: 27, poisonDurationMs: 1800, poisonRadius: 68, poisonArmorPierce: 8 },
-          { damage: 13, range: 180, fireRate: 1.6, poisonDps: 48, poisonDurationMs: 2000, poisonRadius: 78, poisonArmorPierce: 8 },
-          { damage: 24, range: 192, fireRate: 1.7, poisonDps: 86, poisonDurationMs: 2200, poisonRadius: 90, poisonArmorPierce: 15 },
+          { damage: 7,  range: 168, fireRate: 1.5, poisonDps: 35,  poisonDurationMs: 1800, poisonRadius: 68, poisonArmorPierce: 10 },
+          { damage: 13, range: 180, fireRate: 1.6, poisonDps: 62,  poisonDurationMs: 2000, poisonRadius: 78, poisonArmorPierce: 12 },
+          { damage: 24, range: 192, fireRate: 1.7, poisonDps: 112, poisonDurationMs: 2200, poisonRadius: 90, poisonArmorPierce: 18 },
         ],
       },
       b: {
-        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        key: 'b', name: '역병확산형', desc: '역병 확산 — 중독이 주변으로 전염.',
         levels: [
-          { damage: 7,  range: 168, fireRate: 1.5, poisonDps: 27, poisonDurationMs: 1800, poisonRadius: 68, poisonArmorPierce: 8 },
-          { damage: 13, range: 180, fireRate: 1.6, poisonDps: 48, poisonDurationMs: 2000, poisonRadius: 78, poisonArmorPierce: 8 },
-          { damage: 24, range: 192, fireRate: 1.7, poisonDps: 86, poisonDurationMs: 2200, poisonRadius: 90, poisonArmorPierce: 15 },
+          { damage: 7,  range: 168, fireRate: 1.5, poisonDps: 20, poisonDurationMs: 1800, poisonRadius: 68, poisonSpreadRadius: 60, poisonSpreadRatio: 0.55 },
+          { damage: 13, range: 180, fireRate: 1.6, poisonDps: 36, poisonDurationMs: 2000, poisonRadius: 78, poisonSpreadRadius: 72, poisonSpreadRatio: 0.55 },
+          { damage: 24, range: 192, fireRate: 1.7, poisonDps: 64, poisonDurationMs: 2200, poisonRadius: 90, poisonSpreadRadius: 88, poisonSpreadRatio: 0.55 },
         ],
       },
     },
