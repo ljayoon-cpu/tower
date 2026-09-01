@@ -21,6 +21,16 @@ describe('canMerge', () => {
   });
 });
 
+describe('canMerge with path', () => {
+  const at = (level: number, path: 'a' | 'b' | null = null, id = 1) => ({ id, key: 'bolt', level, path });
+  it('Lv2 이하는 경로 무관, Lv3+ 는 같은 경로만', () => {
+    expect(canMerge(at(2, null, 1), at(2, null, 2), 5)).toBe(true);
+    expect(canMerge(at(3, 'a', 1), at(3, 'a', 2), 5)).toBe(true);
+    expect(canMerge(at(3, 'a', 1), at(3, 'b', 2), 5)).toBe(false);
+    expect(canMerge(at(5, 'a', 1), at(5, 'a', 2), 5)).toBe(false); // 캡
+  });
+});
+
 describe('mergeResultLevel', () => {
   it('adds one level', () => {
     expect(mergeResultLevel(2)).toBe(3);
