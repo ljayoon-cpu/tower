@@ -63,14 +63,22 @@ describe('tower display frames', () => {
     expect(image.setFrame).toHaveBeenLastCalledWith(0);
   });
 
-  it('animates illustrated support towers when their pulse is triggered', () => {
+  it('keeps support towers still and changes only their glow on real time', () => {
     const { scene, image } = createScene();
     const tower = new Tower(scene, 'mine', { col: 1, row: 1 }, { x: 64, y: 64 });
 
     tower.playAttack();
-    tower.updateVisual(75);
+    tower.updateVisual(140);
+    expect(image.setFrame).not.toHaveBeenCalled();
 
-    expect(image.setFrame).toHaveBeenLastCalledWith(3);
+    tower.updateSupportGlow(560);
+    expect(image.setFrame).toHaveBeenLastCalledWith(1);
+    tower.updateSupportGlow(560);
+    expect(image.setFrame).toHaveBeenLastCalledWith(2);
+    tower.updateSupportGlow(560);
+    expect(image.setFrame).toHaveBeenLastCalledWith(1);
+    tower.updateSupportGlow(560);
+    expect(image.setFrame).toHaveBeenLastCalledWith(0);
   });
 
 });

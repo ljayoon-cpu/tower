@@ -6,7 +6,10 @@ import { TARGET_PRIORITIES } from '../systems/TargetingSystem';
 import type { TargetPriority } from '../systems/TargetingSystem';
 
 let nextId = 1;
-const ANIMATED_TOWER_KEYS = new Set(['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'poison', 'laser', 'command', 'mine']);
+const ATTACK_ANIMATED_TOWER_KEYS = new Set(['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'poison', 'laser']);
+const SUPPORT_GLOW_TOWER_KEYS = new Set(['command', 'mine']);
+const SUPPORT_GLOW_FRAMES = [0, 1, 2, 1] as const;
+const SUPPORT_GLOW_FRAME_MS = 560;
 const TOWER_ART_ROTATION_OFFSET: Readonly<Record<string, number>> = {
   arrow: 0,
   laser: 0,
@@ -27,6 +30,8 @@ export class Tower {
   cooldownMs = 0;
   /** 전투와 무관한 공격 포즈 타이머. 4프레임 타워 시트에서만 의미가 있다. */
   private attackVisualMs = 0;
+  /** 지원탑의 제자리 광량 변화. 게임 배속이 아닌 실제 시간으로만 갱신한다. */
+  private supportGlowMs = 0;
   /** beam(레이저탑): 현재 조준 중인 대상 id, 그 대상에 빔이 머문 시간(ms), 스파크 연출 타이머. */
   beamTargetId: number | null = null;
   beamLockMs = 0;
@@ -121,16 +126,24 @@ export class Tower {
 
   /** 발사 직후 공격 프레임을 보여준다. 전투 수치·쿨다운에는 관여하지 않는다. */
   playAttack(): void {
-    if (!ANIMATED_TOWER_KEYS.has(this.key)) return;
+    if (!ATTACK_ANIMATED_TOWER_KEYS.has(this.key)) return;
     this.attackVisualMs = 140;
     this.sprite.setFrame(2);
   }
 
   /** 공격 프레임을 windup → release → idle 순서로 진행한다. */
   updateVisual(dtMs: number): void {
-    if (!ANIMATED_TOWER_KEYS.has(this.key) || this.attackVisualMs <= 0) return;
+    if (!ATTACK_ANIMATED_TOWER_KEYS.has(this.key) || this.attackVisualMs <= 0) return;
     this.attackVisualMs = Math.max(0, this.attackVisualMs - dtMs);
     this.sprite.setFrame(this.attackVisualMs > 70 ? 2 : this.attackVisualMs > 0 ? 3 : 0);
+  }
+
+  /** 지휘탑·금광탑은 이동이나 발사 자세 없이 광량만 천천히 바꾼다. */
+  updateSupportGlow(realDtMs: number): void {
+    if (!SUPPORT_GLOW_TOWER_KEYS.has(this.key)) return;
+    this.supportGlowMs += Math.max(0, realDtMs);
+    const frameIndex = Math.floor(this.supportGlowMs / SUPPORT_GLOW_FRAME_MS) % SUPPORT_GLOW_FRAMES.length;
+    this.sprite.setFrame(SUPPORT_GLOW_FRAMES[frameIndex]);
   }
 
   cyclePriority(): TargetPriority {
