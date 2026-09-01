@@ -809,14 +809,6 @@ export class Game extends Phaser.Scene {
   /** 지원 타워(지휘탑·금광탑): 직접 공격 없음. 금광탑은 초당 골드를 생성한다.
    *  골드는 매 틱 들어오지만, 뜨는 숫자·효과음은 ~3초마다 한 번만(스팸 방지). */
   private updateSupportTower(tower: Tower, s: TowerLevelStats, dtMs: number): void {
-    // 지휘탑은 항상 버프를 유지한다. 짧은 깃발 펄스로 그 상태를 읽을 수 있게 한다.
-    if (tower.key === 'command') {
-      tower.cooldownMs = Math.max(0, tower.cooldownMs - dtMs);
-      if (tower.cooldownMs === 0) {
-        tower.cooldownMs = 1600;
-        tower.playAttack();
-      }
-    }
     if (s.goldIntervalMs == null || s.goldPerTick == null) return;
     tower.goldTimerMs += dtMs;
     let pending = 0;
@@ -830,7 +822,6 @@ export class Game extends Phaser.Scene {
     if (tower.goldDisplayAcc >= s.goldPerTick * 3) {
       this.floatingGold(tower.homePos, Math.round(tower.goldDisplayAcc));
       this.audio.play('mine');
-      tower.playAttack();
       tower.goldDisplayAcc = 0;
     }
   }
@@ -863,7 +854,6 @@ export class Game extends Phaser.Scene {
     }
 
     tower.beamLockMs += dtMs;
-    tower.faceToward(enemy.renderPos);
     const dmgPerHit = beamDamage(s.damage, (tower.beamLockMs / 1000) * 2.6, s.beamRampPct ?? 0, s.beamRampMax ?? 1);
     const mult = s.damage > 0 ? dmgPerHit / s.damage : 1;
 
@@ -881,7 +871,6 @@ export class Game extends Phaser.Scene {
     tower.beamFxMs += dtMs;
     if (tower.beamFxMs >= 230) {
       tower.beamFxMs = 0;
-      tower.playAttack();
       this.impactFlash(enemy.renderPos, COLORS.laser, mult > 2 ? 'heavy' : 'light');
       this.audio.play('laser');
     }
@@ -910,9 +899,9 @@ export class Game extends Phaser.Scene {
     return dealt;
   }
 
-  private updateTowers(dtMs: number) {
+  private updateTowers(dtMs: number, realDtMs: number) {
     for (const tower of this.towers) {
-      tower.updateVisual(dtMs);
+      tower.updateSupportGlow(realDtMs);
       const def = getTower(tower.key);
       if (def.attack === 'support') {
         this.updateSupportTower(tower, tower.stats(), dtMs);
@@ -933,8 +922,6 @@ export class Game extends Phaser.Scene {
 
       const enemy = this.enemies.find((e) => e.id === target.id);
       if (!enemy) continue;
-      tower.faceToward(enemy.renderPos);
-      tower.playAttack();
       if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
         this.audio.play(tower.key);
       } else if (tower.key === 'ballista') {
@@ -1216,7 +1203,7 @@ export class Game extends Phaser.Scene {
       this.bus.emit('wave:countdown', { seconds: secs });
     }
 
-    this.updateTowers(dtMs);
+    this.updateTowers(dtMs, dtMsRaw);
     // 골드가 들어오는 즉시 건설창·강화버튼의 구매 가능 표시를 갱신한다.
     if (this.buildMenu.isOpen) this.buildMenu.refresh();
     if (this.selectedTower) this.refreshUpgradeButton();

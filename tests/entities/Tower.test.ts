@@ -34,43 +34,33 @@ function createScene() {
   };
 }
 
-describe('tower display frames', () => {
-  it('shows windup, release, then returns to idle without changing its level', () => {
+describe('tower display', () => {
+  it('keeps every attacking tower at a fixed pose', () => {
     const { scene, image } = createScene();
     const tower = new Tower(scene, 'arrow', { col: 1, row: 1 }, { x: 64, y: 64 });
     tower.setLevel(3);
 
-    tower.playAttack();
-    expect(image.setFrame).toHaveBeenLastCalledWith(2);
-
-    tower.updateVisual(75);
-    expect(image.setFrame).toHaveBeenLastCalledWith(3);
-
-    tower.updateVisual(90);
-    expect(image.setFrame).toHaveBeenLastCalledWith(0);
+    expect('playAttack' in tower).toBe(false);
+    expect('updateVisual' in tower).toBe(false);
+    expect('faceToward' in tower).toBe(false);
+    expect(image.setFrame).not.toHaveBeenCalled();
+    expect(image.setRotation).not.toHaveBeenCalled();
     expect(tower.level).toBe(3);
   });
 
-  it('animates the newly illustrated bolt tower with the same attack timing', () => {
-    const { scene, image } = createScene();
-    const tower = new Tower(scene, 'bolt', { col: 1, row: 1 }, { x: 64, y: 64 });
-
-    tower.playAttack();
-    expect(image.setFrame).toHaveBeenLastCalledWith(2);
-    tower.updateVisual(75);
-    expect(image.setFrame).toHaveBeenLastCalledWith(3);
-    tower.updateVisual(90);
-    expect(image.setFrame).toHaveBeenLastCalledWith(0);
-  });
-
-  it('animates illustrated support towers when their pulse is triggered', () => {
+  it('keeps support towers still and changes only their glow on real time', () => {
     const { scene, image } = createScene();
     const tower = new Tower(scene, 'mine', { col: 1, row: 1 }, { x: 64, y: 64 });
 
-    tower.playAttack();
-    tower.updateVisual(75);
-
-    expect(image.setFrame).toHaveBeenLastCalledWith(3);
+    expect('playAttack' in tower).toBe(false);
+    expect('updateVisual' in tower).toBe(false);
+    tower.updateSupportGlow(560);
+    expect(image.setFrame).toHaveBeenLastCalledWith(1);
+    tower.updateSupportGlow(560);
+    expect(image.setFrame).toHaveBeenLastCalledWith(2);
+    tower.updateSupportGlow(560);
+    expect(image.setFrame).toHaveBeenLastCalledWith(1);
+    tower.updateSupportGlow(560);
+    expect(image.setFrame).toHaveBeenLastCalledWith(0);
   });
-
 });
