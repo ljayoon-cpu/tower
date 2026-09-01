@@ -33,6 +33,7 @@ import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius, towerLayers, eligibleTargets } from '../systems/TargetingSystem';
 import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier } from '../systems/combat';
 import { BuildMenu } from '../ui/BuildMenu';
+import { PathChoiceMenu } from '../ui/PathChoiceMenu';
 import { audioFor } from '../ui/audio';
 import { WorldBackground } from '../ui/worldBackground';
 import { WorldMapPainter, worldTileTextureKey } from '../ui/worldMap';
@@ -86,6 +87,7 @@ export class Game extends Phaser.Scene {
   private projectiles: Projectile[] = [];
   private projectilePool!: Pool<Projectile>;
   private buildMenu!: BuildMenu;
+  private pathMenu!: PathChoiceMenu;
   private background?: WorldBackground;
   private pendingTile: TileCoord | null = null;
   private buildPreview: Phaser.GameObjects.Arc | null = null;
@@ -183,6 +185,7 @@ export class Game extends Phaser.Scene {
       this.input.off('drag');
       this.input.off('dragend');
       this.input.off('pointerup');
+      this.pathMenu?.destroy();
       this.bus.clear();
       this.scene.stop('hud');
     });
@@ -190,6 +193,7 @@ export class Game extends Phaser.Scene {
     this.drawMap();
     this.setupBuildInput();
     this.setupDragInput();
+    this.pathMenu = new PathChoiceMenu(this);
 
     this.selectedTower = undefined;
     this.inspectText = this.add
@@ -408,7 +412,8 @@ export class Game extends Phaser.Scene {
       return;
     }
     this.selectedTower = tower;
-    const info = towerInfo(tower.key, tower.level);
+    const info = towerInfo(tower.key, tower.level, tower.path);
+    const pathName = tower.path ? ` · ${getTower(tower.key).paths![tower.path].name}` : '';
     const buffRadius = tower.stats().buffRadius;
     const dpsLine = buffRadius != null
       ? `버프 범위 ${Math.round((buffRadius * 2) / TILE)}칸`
@@ -419,7 +424,7 @@ export class Game extends Phaser.Scene {
     const statLine = `사거리 ${buffRadius ?? info.range}   연사 ${rate}/초`;
     const noteLine = info.note ? `\n${info.note}` : '';
     this.inspectText
-      .setText(`${info.name} Lv${info.level}   ${dpsLine}\n${statLine}${noteLine}`)
+      .setText(`${info.name}${pathName} Lv${info.level}   ${dpsLine}\n${statLine}${noteLine}`)
       .setVisible(true);
 
     this.refreshUpgradeButton();
@@ -463,12 +468,19 @@ export class Game extends Phaser.Scene {
     if (!this.running || this.paused || !tower || !this.towers.includes(tower)) return;
     if (tower.level >= tower.maxLevel) return;
     const cost = upgradeCost(getTower(tower.key), tower.level);
-    if (!this.eco.spend(cost)) { this.audio.play('click'); return; }
-    tower.setLevel(tower.level + 1);
-    this.mergePop(tower);
-    this.audio.play('merge');
-    if (tower.rangeVisible) tower.showRange(true);
-    this.showInspect(tower);
+    if (this.eco.gold < cost) { this.audio.play('click'); return; }
+    const finish = (path?: 'a' | 'b') => {
+      // 골드는 경로 선택을 마친 뒤에만 차감한다(선택 취소 시 손해 없음).
+      if (!this.eco.spend(cost)) { this.audio.play('click'); return; }
+      tower.setLevel(tower.level + 1, path);
+      this.mergePop(tower);
+      this.audio.play('merge');
+      if (tower.rangeVisible) tower.showRange(true);
+      this.showInspect(tower);
+    };
+    if (tower.needsPathChoice) {
+      this.pathMenu.open(tower.key, tower.homePos, finish);
+    } else finish();
   }
 
   private setupDragInput(): void {
@@ -510,27 +522,33 @@ export class Game extends Phaser.Scene {
           occId != null ? this.towers.find((x) => x.id === occId) : undefined;
 
         if (targetTower && targetTower.id !== dragged.id) {
-          const a: MergeCandidate = { id: dragged.id, key: dragged.key, level: dragged.level };
-          const b: MergeCandidate = { id: targetTower.id, key: targetTower.key, level: targetTower.level };
+          const a: MergeCandidate = { id: dragged.id, key: dragged.key, level: dragged.level, path: dragged.path };
+          const b: MergeCandidate = { id: targetTower.id, key: targetTower.key, level: targetTower.level, path: targetTower.path };
           if (canMerge(a, b, dragged.maxLevel)) {
-            const sourceVisual = {
-              origin: { ...dragged.homePos },
-              texture: `tower_${dragged.key}`,
-              scale: dragged.sprite.scale,
-              rotation: dragged.sprite.rotation,
+            const doMerge = (path?: 'a' | 'b') => {
+              const sourceVisual = {
+                origin: { ...dragged.homePos },
+                texture: `tower_${dragged.key}`,
+                scale: dragged.sprite.scale,
+                rotation: dragged.sprite.rotation,
+              };
+              targetTower.setLevel(mergeResultLevel(targetTower.level), path);
+              this.grid.release(dragged.tile);
+              this.removeTower(dragged);
+              this.snapHome(targetTower);
+              this.mergeFeedback(
+                sourceVisual.origin,
+                sourceVisual.texture,
+                sourceVisual.scale,
+                sourceVisual.rotation,
+                targetTower,
+              );
+              this.advanceTutorial('merged');
             };
-            targetTower.setLevel(mergeResultLevel(targetTower.level));
-            this.grid.release(dragged.tile);
-            this.removeTower(dragged);
-            this.snapHome(targetTower);
-            this.mergeFeedback(
-              sourceVisual.origin,
-              sourceVisual.texture,
-              sourceVisual.scale,
-              sourceVisual.rotation,
-              targetTower,
-            );
-            this.advanceTutorial('merged');
+            if (targetTower.needsPathChoice) {
+              this.snapHome(dragged); // 경로 선택 중 드래그한 타워는 원위치로
+              this.pathMenu.open(targetTower.key, targetTower.homePos, doMerge);
+            } else doMerge();
             return;
           }
         }
@@ -574,8 +592,8 @@ export class Game extends Phaser.Scene {
 
   private showMergeHints(dragged: Tower): void {
     for (const t of this.towers) {
-      const a: MergeCandidate = { id: dragged.id, key: dragged.key, level: dragged.level };
-      const b: MergeCandidate = { id: t.id, key: t.key, level: t.level };
+      const a: MergeCandidate = { id: dragged.id, key: dragged.key, level: dragged.level, path: dragged.path };
+      const b: MergeCandidate = { id: t.id, key: t.key, level: t.level, path: t.path };
       t.showMergeHint(canMerge(a, b, dragged.maxLevel));
     }
   }
@@ -596,6 +614,7 @@ export class Game extends Phaser.Scene {
   }
 
   private removeTower(t: Tower): void {
+    this.pathMenu?.close();
     this.towers = this.towers.filter((x) => x.id !== t.id);
     t.destroy();
     if (this.selectedTower === t) this.selectedTower = undefined;
@@ -748,6 +767,7 @@ export class Game extends Phaser.Scene {
     this.audio.stop();
     this.input.enabled = false;
     this.sellTimer?.remove();
+    this.pathMenu?.close();
 
     if (this.stage.endless) {
       // 무한 모드: 승패 대신 도달 웨이브를 기록한다. waveIndex 0-based → +1.

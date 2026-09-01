@@ -75,7 +75,7 @@ export interface StrategyContext {
   game: GameBoundary;
   wave: number;
   buy(key: string, col: number, row: number): Tower | undefined;
-  merge(from: Tower, to: Tower): void;
+  merge(from: Tower, to: Tower, path?: 'a' | 'b'): void;
 }
 export type Strategy = (context: StrategyContext) => void;
 
@@ -129,10 +129,10 @@ export function simulate(stage: StageDef, strategy: Strategy, seed = 1, speed = 
         actions.push(`buy ${key} (${col},${row}) ${getTower(key).cost}G`);
         return game.towers[game.towers.length - 1];
       },
-      merge(from, to) {
+      merge(from, to, path: 'a' | 'b' = 'a') {
         if (!game.towers.includes(from) || !game.towers.includes(to) || !canMerge(from, to, from.maxLevel)) throw Error('illegal merge');
-        actions.push(`merge ${from.key} L${from.level} (${from.tile.col},${from.tile.row}) -> (${to.tile.col},${to.tile.row})`);
-        to.setLevel(to.level + 1);
+        actions.push(`merge ${from.key} L${from.level} (${from.tile.col},${from.tile.row}) -> (${to.tile.col},${to.tile.row})${to.level + 1 === 3 ? ` ->${path}` : ''}`);
+        to.setLevel(to.level + 1, path);
         game.grid.release(from.tile); game.removeTower(from);
       },
     });

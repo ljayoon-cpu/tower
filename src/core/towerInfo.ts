@@ -2,11 +2,11 @@ import { getTower } from '../data/towers';
 import type { TowerDef, TowerLevelStats } from './types';
 
 /**
- * 그 레벨의 실효 수치. 분기 타워(paths 존재)는 Lv3~5 를 경로 A 에서 고른다
- * (Task 6 에서 path 인자 추가 예정; 지금은 A 고정 — 동작 보존).
+ * 그 레벨의 실효 수치. 분기 타워(paths 존재)는 Lv3~5 를 선택 경로에서 고른다.
+ * path 가 null/undefined 면 경로 A 로 폴백(동작 보존 — 밸런스 시뮬은 A 고정).
  */
-function statsAt(def: TowerDef, lv: number): TowerLevelStats {
-  return def.paths && lv >= 3 ? def.paths.a.levels[lv - 3] : def.levels[lv - 1];
+function statsAt(def: TowerDef, lv: number, path?: 'a' | 'b' | null): TowerLevelStats {
+  return def.paths && lv >= 3 ? def.paths[path ?? 'a'].levels[lv - 3] : def.levels[lv - 1];
 }
 
 export interface TowerInfo {
@@ -103,11 +103,11 @@ function baseNoteOf(key: string, stats: TowerLevelStats, attack: string): string
   return '';
 }
 
-export function towerInfo(key: string, level: number): TowerInfo {
+export function towerInfo(key: string, level: number, path?: 'a' | 'b' | null): TowerInfo {
   const def = getTower(key);
   const lv = Math.min(Math.max(Math.floor(level), 1), def.maxLevel);
-  const stats = statsAt(def, lv);
-  const next = lv < def.maxLevel ? dpsOf(statsAt(def, lv + 1), def.attack) : null;
+  const stats = statsAt(def, lv, path);
+  const next = lv < def.maxLevel ? dpsOf(statsAt(def, lv + 1, path), def.attack) : null;
   return {
     key: def.key,
     name: def.name,
