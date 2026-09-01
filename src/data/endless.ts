@@ -166,7 +166,8 @@ export function endlessWave(n: number): Wave {
     });
   }
 
-  return { groups, clearBonus: 18 + n * 3 };
+  // 연금탑 없이 "다양하게 한 기씩 + 주력 업글" 로도 화력이 따라가도록 클리어 보상을 넉넉히.
+  return { groups, clearBonus: 24 + n * 4 };
 }
 
 export function endlessWaves(count = 200): Wave[] {
