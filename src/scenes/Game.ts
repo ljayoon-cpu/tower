@@ -159,6 +159,7 @@ export class Game extends Phaser.Scene {
     this.projectilePool = new Pool(() => new Projectile(this));
     this.pendingTile = null;
     this.buildPreview = null;
+    this.pendingPathAction = undefined;
     this.speedMul = 1;
     this.running = true;
     this.paused = false;
@@ -318,7 +319,7 @@ export class Game extends Phaser.Scene {
       onPathPick: (p) => this.resolvePendingPath(p),
       onDismiss: () => this.onSheetDismiss(),
     });
-    this.sheet.setBottomInset(this.tutorial ? 56 : 0);
+    this.sheet.setBottomInset(this.tutorial ? 60 : 0); // HUD 코치 바 높이 = 60px
 
     // 플레이 영역 전체를 덮는 투명 입력 캐처. depth 를 최하위로 두어
     // 타워/시트/HUD(별도 씬) 오브젝트 클릭은 topOnly 규칙에 의해
@@ -354,8 +355,7 @@ export class Game extends Phaser.Scene {
       .circle(c.x, c.y, previewRange, 0xffffff, 0.04)
       .setStrokeStyle(1, 0x66ccff, 0.3)
       .setDepth(400);
-    this.sheet.showBuild();
-    this.sheet.refreshBuild();
+    this.sheet.showBuild(); // showBuild 가 내부에서 refreshBuild 까지 수행한다.
   }
 
   private closeBuildMenu(): void {
@@ -492,7 +492,7 @@ export class Game extends Phaser.Scene {
           if (canMerge(a, b, dragged.maxLevel)) {
             const doMerge = (path?: 'a' | 'b') => {
               // 경로 선택 메뉴가 열린 사이 일시정지/판매됐을 수 있다(dragged 는 이 클로저 안에서 제거됨).
-              if (!this.running || this.paused || !this.towers.includes(targetTower)) return;
+              if (!this.running || this.paused || !this.towers.includes(targetTower) || !this.towers.includes(dragged)) return;
               const sourceVisual = {
                 origin: { ...dragged.homePos },
                 texture: `tower_${dragged.key}`,
@@ -582,7 +582,8 @@ export class Game extends Phaser.Scene {
   }
 
   private removeTower(t: Tower): void {
-    this.sheet?.hide();
+    if (this.sheet?.mode === 'build') this.closeBuildMenu();
+    else this.sheet?.hide();
     this.towers = this.towers.filter((x) => x.id !== t.id);
     t.destroy();
     if (this.selectedTower === t) this.selectedTower = undefined;
@@ -733,6 +734,7 @@ export class Game extends Phaser.Scene {
     this.input.enabled = false;
     this.sellTimer?.remove();
     this.sheet?.hide();
+    this.pendingPathAction = undefined;
 
     if (this.stage.endless) {
       // 무한 모드: 승패 대신 도달 웨이브를 기록한다. waveIndex 0-based → +1.

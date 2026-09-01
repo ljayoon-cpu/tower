@@ -39,20 +39,6 @@ const CARD_W = 200;
 const CARD_H = 150;
 const GAP = 14;
 
-/**
- * 경로 엠블럼이 있는 분기 타워 키. 텍스처는 Preload 가 `path_<towerKey>_<a|b>` 키로
- * `public/art/paths/<tower>-<variant>-emblem-v1.png` 를 로드한다. buildPath 는 이 집합
- * 소속 여부만 보고, 실제 그리기 전 `textures.exists` 로 한 번 더 가드한다(헤드리스 안전).
- */
-export const PATH_EMBLEM: ReadonlySet<string> = new Set([
-  'arrow',
-  'cannon',
-  'frost',
-  'bolt',
-  'sniper',
-  'poison',
-]);
-
 interface Row {
   key: string;
   /** 봉인(이번 판) 또는 설치 상한 도달 — 어느 쪽이든 구매 불가. */
@@ -77,6 +63,18 @@ export class BottomSheet {
    *  onComplete 가 그 사이에 다시 열린 시트를 지워버리는 레이스를 막는다. */
   private slideTween?: Phaser.Tweens.Tween;
 
+  /** inspect 모드의 가변 GameObject 참조 — refreshInspect 가 removeAll 없이 제자리 갱신한다.
+   *  hit 사각형 + attachPressFeedback 은 buildInspect 에서만 생성되므로(모양이 바뀔 때만),
+   *  pointerdown 으로 래치된 press 상태가 탭 도중에 파괴되지 않는다. */
+  private inspectTitle?: Phaser.GameObjects.Text;
+  private inspectLineTexts: Phaser.GameObjects.Text[] = [];
+  private inspectUpBg?: Phaser.GameObjects.Rectangle;
+  private inspectUpLabel?: Phaser.GameObjects.Text;
+  private inspectSellLabel?: Phaser.GameObjects.Text;
+  /** 마지막으로 구성된 inspect 레이아웃의 "모양". 이게 바뀌면(레벨업으로 노트 수 변화 / 만렙 도달)
+   *  전체 재구성, 같으면 텍스트/스타일만 제자리 갱신. */
+  private inspectShape?: { lines: number; hasUpgrade: boolean };
+
   // audioFor() 는 scene.sound / scene.cache 를 만진다. 실제 press 시점까지 미뤄서
   // 오디오 매니저 없는 헤드리스 씬(단위 테스트)에서도 시트를 구성할 수 있게 한다.
   private readonly audio: Pick<SoundEffects, 'play'> = {
@@ -90,7 +88,7 @@ export class BottomSheet {
       .setVisible(false);
   }
 
-  /** 코치 바 높이만큼 바닥을 올린다 (0 또는 56). 열려 있으면 즉시 y 를 갱신. */
+  /** 코치 바 높이만큼 바닥을 올린다 (0 또는 60). 열려 있으면 즉시 y 를 갱신. */
   setBottomInset(px: number): void {
     this.bottomInset = px;
     if (this._mode !== null) this.slideIn();
@@ -101,6 +99,7 @@ export class BottomSheet {
     this.buildBuild();
     this._mode = 'build';
     this.slideIn();
+    this.refreshBuild(); // 외부 refreshBuild 없이도 행이 즉시 상호작용 가능하도록.
   }
 
   /** 열려 있는 동안 매 프레임 호출 — 골드 상황에 맞춰 각 줄의 구매 가능 여부를 갱신한다. */
@@ -142,10 +141,28 @@ export class BottomSheet {
     this.slideIn();
   }
 
-  /** 열려 있는 동안 매 프레임 호출 — DPS·강화비 등 변하는 값을 반영해 통째로 다시 그린다. */
+  /** 열려 있는 동안 매 프레임 호출 — 변하는 값(DPS·강화비 등)을 제자리 갱신한다.
+   *  모양(줄 수 / 강화 버튼 유무)이 바뀔 때만 buildInspect 로 전체 재구성. */
   refreshInspect(view: InspectView): void {
     if (this._mode !== 'inspect') return;
-    this.buildInspect(view);
+    const shape = { lines: view.lines.length, hasUpgrade: view.upgrade != null };
+    if (
+      !this.inspectShape ||
+      this.inspectShape.lines !== shape.lines ||
+      this.inspectShape.hasUpgrade !== shape.hasUpgrade
+    ) {
+      this.buildInspect(view); // 모양 변경 → 전체 재구성 (드묾: 노트 수 변화 / 만렙 도달)
+      return;
+    }
+    // 같은 모양 → removeAll 없이, 새 hit 사각형 없이 텍스트/스타일만 갱신.
+    this.inspectTitle?.setText(view.title);
+    view.lines.forEach((ln, i) => this.inspectLineTexts[i]?.setText(ln));
+    if (view.upgrade) {
+      this.inspectUpLabel?.setText(view.upgrade.label);
+      this.inspectUpBg?.setFillStyle(view.upgrade.afford ? 0x2a5d3a : 0x4a3030);
+      this.inspectUpLabel?.setColor(view.upgrade.afford ? '#f2f2f7' : '#a88');
+    }
+    this.inspectSellLabel?.setText(view.sell.label);
   }
 
   hide(): void {
@@ -264,10 +281,13 @@ export class BottomSheet {
     this.currentHeight = h;
   }
 
-  /** 정보 시트 본문을 컨테이너에 구성한다. 매 프레임 통째로 다시 부르므로 가볍게 유지. */
+  /** 정보 시트 본문을 컨테이너에 구성한다. 모양이 바뀔 때만 호출 — 그 외엔 refreshInspect 가 제자리 갱신. */
   private buildInspect(view: InspectView): void {
     this.container.removeAll(true);
     this.rows = [];
+    this.inspectLineTexts = [];
+    this.inspectUpBg = undefined;
+    this.inspectUpLabel = undefined;
 
     const w = GAME_WIDTH - 24;
     const h = 60 + view.lines.length * 34 + 64;
@@ -281,6 +301,7 @@ export class BottomSheet {
       color: '#ffffff',
     });
     this.container.add(title);
+    this.inspectTitle = title;
 
     view.lines.forEach((ln, i) => {
       const line = this.scene.add.text(-w / 2 + 20, -h + 54 + i * 34, ln, {
@@ -289,6 +310,7 @@ export class BottomSheet {
         color: '#cdd6f4',
       });
       this.container.add(line);
+      this.inspectLineTexts.push(line);
     });
 
     const btnW = view.upgrade ? w / 2 - 24 : w - 32;
@@ -304,7 +326,7 @@ export class BottomSheet {
         .text(upX, btnY, view.upgrade.label, {
           fontFamily: 'monospace',
           fontSize: '16px',
-          color: '#f2f2f7',
+          color: view.upgrade.afford ? '#f2f2f7' : '#a88',
         })
         .setOrigin(0.5);
       const upHit = this.scene.add
@@ -314,6 +336,8 @@ export class BottomSheet {
         this.opts.onUpgrade(),
       );
       this.container.add([upBtn, upLabel, upHit]);
+      this.inspectUpBg = upBtn;
+      this.inspectUpLabel = upLabel;
     }
 
     const sellX = view.upgrade ? w / 4 : 0;
@@ -334,7 +358,9 @@ export class BottomSheet {
       this.opts.onSell(),
     );
     this.container.add([sellBtn, sellLabel, sellHit]);
+    this.inspectSellLabel = sellLabel;
 
+    this.inspectShape = { lines: view.lines.length, hasUpgrade: view.upgrade != null };
     this.currentHeight = h;
   }
 
@@ -409,7 +435,7 @@ export class BottomSheet {
       this.container.add([card, name, desc]);
 
       const emblemKey = `path_${def.key}_${p}`;
-      if (PATH_EMBLEM.has(def.key) && this.scene.textures?.exists?.(emblemKey)) {
+      if (this.scene.textures?.exists?.(emblemKey)) {
         const emblem = this.scene.add
           .image(cx, cy - CARD_H / 2 + 46, emblemKey)
           .setScale(0.5);

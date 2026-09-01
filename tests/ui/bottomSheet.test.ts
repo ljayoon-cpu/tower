@@ -5,9 +5,9 @@ import { BottomSheet } from '../../src/ui/BottomSheet';
 function fakeScene(): Phaser.Scene {
   const factory = () => {
     const o: Record<string, unknown> = {};
-    for (const m of ['setDepth', 'setOrigin', 'setVisible', 'setStrokeStyle', 'setInteractive',
-      'disableInteractive', 'setScale', 'setPosition', 'setStyle', 'setText', 'setAlpha', 'setColor',
-      'removeAll', 'add', 'destroy', 'on', 'emit']) o[m] = () => o;
+    for (const m of ['setDepth', 'setOrigin', 'setVisible', 'setStrokeStyle', 'setFillStyle',
+      'setInteractive', 'disableInteractive', 'setScale', 'setPosition', 'setStyle', 'setText',
+      'setAlpha', 'setColor', 'removeAll', 'add', 'destroy', 'on', 'emit']) o[m] = () => o;
     o.list = [];
     o.width = 0;
     return o;
@@ -119,6 +119,65 @@ describe('BottomSheet inspect mode', () => {
     const s = new BottomSheet(scene, opts());
     s.showInspect(view());
     expect(interactiveCalls).toBeGreaterThanOrEqual(2); // upgrade hit + sell hit
+  });
+
+  it('showBuild self-refreshes — affordable rows are interactive without an external refreshBuild (fix 3)', () => {
+    let interactiveCalls = 0;
+    const scene = fakeScene();
+    const add = scene.add as unknown as { rectangle: () => Record<string, unknown> };
+    const realRect = add.rectangle;
+    add.rectangle = () => {
+      const o = realRect();
+      o.setInteractive = () => {
+        interactiveCalls += 1;
+        return o;
+      };
+      return o;
+    };
+    const s = new BottomSheet(scene, opts()); // canAfford: () => true
+    s.showBuild(); // no explicit refreshBuild() afterwards
+    expect(interactiveCalls).toBeGreaterThanOrEqual(1); // rows toggled selectable → setInteractive
+  });
+
+  it('refreshInspect (same shape) keeps the upgrade hit alive so a real tap still fires onUpgrade (fix 1)', () => {
+    const { scene } = deferredTweenScene();
+    const base = scene as unknown as Record<string, unknown>;
+    base.sound = { locked: true, getAllPlaying: () => [], play: () => false, removeAll: () => {} };
+    base.cache = { audio: { exists: () => false } };
+
+    const rects: Array<Record<string, Array<() => void>>> = [];
+    const add = scene.add as unknown as { rectangle: () => Record<string, unknown> };
+    const realRect = add.rectangle;
+    add.rectangle = () => {
+      const r = realRect();
+      const handlers: Record<string, Array<() => void>> = {};
+      r.on = (ev: string, fn: () => void) => {
+        if (!handlers[ev]) handlers[ev] = [];
+        handlers[ev].push(fn);
+        return r;
+      };
+      r.setInteractive = () => r;
+      rects.push(handlers);
+      return r;
+    };
+
+    const o = opts();
+    const s = new BottomSheet(scene, o);
+    s.showInspect(view());
+
+    const pressHits = (): Array<Record<string, Array<() => void>>> =>
+      rects.filter((h) => h.pointerdown); // only attachPressFeedback rects register pointerdown
+    pressHits()[0].pointerdown[0](); // press begins on the current upgrade hit
+
+    s.refreshInspect(view()); // same shape ×3 — must NOT rebuild the hit rects
+    s.refreshInspect(view());
+    s.refreshInspect(view());
+
+    const hits = pressHits();
+    expect(hits.length).toBe(2); // upgrade + sell hit, not rebuilt per frame
+    // Phaser dispatches pointerup to whatever hit is topmost now — the latest upgrade hit.
+    hits[hits.length - 2].pointerup[0]();
+    expect(o.onUpgrade).toHaveBeenCalledTimes(1);
   });
 });
 
