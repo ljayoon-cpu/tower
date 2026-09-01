@@ -1,8 +1,13 @@
 import { getTower } from '../data/towers';
-import {
-  frostFreezeEffect, boltStaggerEffect, poisonArmorPierceEffect, sniperExecuteEffect,
-} from '../data/mergeEffects';
-import type { TowerLevelStats } from './types';
+import type { TowerDef, TowerLevelStats } from './types';
+
+/**
+ * 그 레벨의 실효 수치. 분기 타워(paths 존재)는 Lv3~5 를 경로 A 에서 고른다
+ * (Task 6 에서 path 인자 추가 예정; 지금은 A 고정 — 동작 보존).
+ */
+function statsAt(def: TowerDef, lv: number): TowerLevelStats {
+  return def.paths && lv >= 3 ? def.paths.a.levels[lv - 3] : def.levels[lv - 1];
+}
 
 export interface TowerInfo {
   key: string;
@@ -38,13 +43,13 @@ function dpsOf(stats: TowerLevelStats, attack: string): number {
   return Math.round(stats.damage * stats.fireRate * volley);
 }
 
-function noteOf(key: string, level: number, stats: TowerLevelStats, attack: string): string {
-  const note = baseNoteOf(key, level, stats, attack);
+function noteOf(key: string, stats: TowerLevelStats, attack: string): string {
+  const note = baseNoteOf(key, stats, attack);
   if (getTower(key).targetsAir === false) return note ? `지상 전용 · ${note}` : '지상 전용';
   return note;
 }
 
-function baseNoteOf(key: string, level: number, stats: TowerLevelStats, attack: string): string {
+function baseNoteOf(key: string, stats: TowerLevelStats, attack: string): string {
   if ((stats.airDamageMultiplier ?? 1) > 1) {
     return (stats.projectileCount ?? 1) > 1
       ? `대공 x${stats.airDamageMultiplier} · 멀티샷 ${stats.projectileCount}발`
@@ -60,27 +65,24 @@ function baseNoteOf(key: string, level: number, stats: TowerLevelStats, attack: 
       : base;
   }
   if (attack === 'slow') {
-    const freeze = frostFreezeEffect(level);
     const slow = `감속 ${Math.round((1 - (stats.slowMul ?? 1)) * 100)}%`;
-    return key === 'frost' && freeze
-      ? `${slow} · ${freeze.hits}타 빙결 ${freeze.durationMs / 1000}초`
+    return stats.freezeHits != null
+      ? `${slow} · ${stats.freezeHits}타 빙결 ${(stats.freezeDurationMs ?? 0) / 1000}초`
       : slow;
   }
   if (attack === 'chain') {
     const chain = `연쇄 ${(stats.chainTargets ?? 0) + 1}타`;
-    const stagger = key === 'bolt' ? boltStaggerEffect(level) : undefined;
-    return stagger ? `${chain} · 경직 ${stagger.durationMs / 1000}초` : chain;
+    return stats.staggerDurationMs != null
+      ? `${chain} · 경직 ${stats.staggerDurationMs / 1000}초` : chain;
   }
   if (attack === 'poison') {
     const poison = `독 지속 ${stats.poisonDps ?? 0}/초`;
-    const pierce = key === 'poison' ? poisonArmorPierceEffect(level) : undefined;
-    return pierce ? `${poison} · 방어 무시 ${pierce.armorPierce}` : poison;
+    return stats.poisonArmorPierce != null
+      ? `${poison} · 방어 무시 ${stats.poisonArmorPierce}` : poison;
   }
   if (attack === 'single' && key === 'sniper') {
-    const exec = sniperExecuteEffect(level);
-    return exec
-      ? `체력 ${Math.round(exec.healthRatio * 100)}% 이하 처형 ×${exec.damageMultiplier}`
-      : '';
+    return stats.executeHealthRatio != null
+      ? `체력 ${Math.round(stats.executeHealthRatio * 100)}% 이하 처형 ×${stats.executeDamageMultiplier}` : '';
   }
   if (attack === 'beam') {
     const base = `집중 시 최대 ${Math.round((stats.beamRampMax ?? 1) * 100)}% 피해`;
@@ -104,8 +106,8 @@ function baseNoteOf(key: string, level: number, stats: TowerLevelStats, attack: 
 export function towerInfo(key: string, level: number): TowerInfo {
   const def = getTower(key);
   const lv = Math.min(Math.max(Math.floor(level), 1), def.maxLevel);
-  const stats = def.levels[lv - 1];
-  const next = lv < def.maxLevel ? dpsOf(def.levels[lv], def.attack) : null;
+  const stats = statsAt(def, lv);
+  const next = lv < def.maxLevel ? dpsOf(statsAt(def, lv + 1), def.attack) : null;
   return {
     key: def.key,
     name: def.name,
@@ -115,6 +117,6 @@ export function towerInfo(key: string, level: number): TowerInfo {
     range: stats.range,
     fireRate: stats.fireRate,
     nextDps: next,
-    note: noteOf(def.key, lv, stats, def.attack),
+    note: noteOf(def.key, stats, def.attack),
   };
 }

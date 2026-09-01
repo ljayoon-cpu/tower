@@ -15,9 +15,6 @@ import { Tutorial } from '../core/tutorial';
 import type { TutorialEvent } from '../core/tutorial';
 import { getEnemy } from '../data/enemies';
 import { getTower, TOWER_KEYS, cumulativeCost, upgradeCost } from '../data/towers';
-import {
-  frostFreezeEffect, boltStaggerEffect, poisonArmorPierceEffect, sniperDamageMultiplier,
-} from '../data/mergeEffects';
 import { canMerge, mergeResultLevel } from '../systems/MergeController';
 import { towerInfo } from '../core/towerInfo';
 import type { MergeCandidate } from '../systems/MergeController';
@@ -34,7 +31,7 @@ import { Tower } from '../entities/Tower';
 import { Projectile } from '../entities/Projectile';
 import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius, towerLayers, eligibleTargets } from '../systems/TargetingSystem';
-import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot } from '../systems/combat';
+import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier } from '../systems/combat';
 import { BuildMenu } from '../ui/BuildMenu';
 import { audioFor } from '../ui/audio';
 import { WorldBackground } from '../ui/worldBackground';
@@ -955,7 +952,9 @@ export class Game extends Phaser.Scene {
             // Determine jumps on impact, using current positions and living targets (레이어 필터 유지).
             const chain = buildChain(enemy, eligibleTargets(this.enemies, layers), s.chainRange ?? 0, s.chainTargets ?? 0);
             const dmgs = chainDamages(s.damage, s.chainFalloff ?? 1, chain.length - 1);
-            const stagger = boltStaggerEffect(tower.level);
+            const stagger = s.staggerDurationMs != null
+              ? { durationMs: s.staggerDurationMs, cooldownMs: s.staggerCooldownMs ?? 1800 }
+              : undefined;
             chain.forEach((hit, i) => {
               const e = this.enemies.find((x) => x.id === hit.id);
               if (!e) return;
@@ -990,7 +989,7 @@ export class Game extends Phaser.Scene {
             // 비교하지만 두 타워 모두 지상 전용이라 hitPos ≈ 지상점이라 무해. 공중 광역이 생기면 renderPos 반경으로.
             if (def.attack === 'poison') {
               this.impactFlash(hitPos, COLORS.poison, 'light');
-              const pierce = poisonArmorPierceEffect(tower.level)?.armorPierce ?? 0;
+              const pierce = s.poisonArmorPierce ?? 0;
               for (const hit of enemiesInRadius(hitPos, s.poisonRadius ?? 0, this.enemies, layers)) {
                 const affected = this.enemies.find((e) => e.id === hit.id);
                 if (affected) this.dealDamage(tower.key, affected, { amount: s.damage, armorPierce: pierce || undefined, kind: 'poison' });
@@ -1011,7 +1010,7 @@ export class Game extends Phaser.Scene {
               const airMul = e.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;
               if (def.key === 'sniper') {
                 this.dealDamage(tower.key, e, {
-                  amount: shot.damage * sniperDamageMultiplier(tower.level, e.healthRatio) * airMul,
+                  amount: shot.damage * executeMultiplier(s, e.healthRatio) * airMul,
                   armorPierce: s.armorPierce ?? 0,
                   kind: 'single',
                 });
@@ -1029,7 +1028,9 @@ export class Game extends Phaser.Scene {
                 : def.key === 'sniper' ? 'heavy' : 'light');
               if (def.attack === 'slow') {
                 e.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
-                const freeze = frostFreezeEffect(tower.level);
+                const freeze = s.freezeHits != null
+                  ? { hits: s.freezeHits, durationMs: s.freezeDurationMs ?? 0, cooldownMs: s.freezeCooldownMs ?? 4000 }
+                  : undefined;
                 if (freeze && e.applyFreezeHit(freeze.hits, freeze.durationMs, freeze.cooldownMs)) {
                   this.impactFlash(e.renderPos, COLORS.frost, 'heavy');
                 }

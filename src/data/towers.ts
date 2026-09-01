@@ -4,27 +4,62 @@ export const TOWERS: Record<string, TowerDef> = {
   // 머지 비용은 레벨마다 2배로 늘지만(2^(n-1) x cost), 데미지는 그보다 가파르게
   // 오른다. 즉 자리를 합쳐 레벨을 올리면 골드당 화력이 커진다 — 넓게 깔기와
   // 높게 쌓기를 저울질하게 만드는 핵심 수치.
+  // arrow/cannon/frost/bolt/sniper/poison 은 Lv3 에서 분기한다 (Task: tower-upgrade-branching).
+  // levels 는 공통 Lv1~2 뿐, Lv3~5 는 paths.a / paths.b 에서 고른다. 지금은 경로 B 가
+  // 경로 A 의 복제(임시 스캐폴딩) — 실제 B 수치는 Phase 4 에서 채운다.
+  // 기존 머지 3·5합 능력(빙결·경직·처형·독관통)은 여기서 TowerLevelStats 필드로 이관됐다
+  // (mergeEffects.ts 삭제). 경로 기본값은 'a' 라 동작은 종전과 동일하다.
   arrow: {
     key: 'arrow', name: '화살탑', attack: 'single', cost: 50, maxLevel: 5,
     levels: [
-      { damage: 8,   range: 150, fireRate: 2.0 },
-      { damage: 14,  range: 162, fireRate: 2.2 },
-      { damage: 28,  range: 174, fireRate: 2.4, projectileCount: 2, projectileDamageMultiplier: 0.6 },
-      { damage: 56,  range: 188, fireRate: 2.7, projectileCount: 2, projectileDamageMultiplier: 0.6 },
-      { damage: 113, range: 205, fireRate: 3.0, projectileCount: 3, projectileDamageMultiplier: 0.45 },
+      { damage: 8,  range: 150, fireRate: 2.0 },
+      { damage: 14, range: 162, fireRate: 2.2 },
     ],
+    paths: {
+      a: {
+        key: 'a', name: '연발형', desc: '멀티샷 — 뭉친 스웜을 여러 발로.',
+        levels: [
+          { damage: 28,  range: 174, fireRate: 2.4, projectileCount: 2, projectileDamageMultiplier: 0.6 },
+          { damage: 56,  range: 188, fireRate: 2.7, projectileCount: 2, projectileDamageMultiplier: 0.6 },
+          { damage: 113, range: 205, fireRate: 3.0, projectileCount: 3, projectileDamageMultiplier: 0.45 },
+        ],
+      },
+      b: {
+        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        levels: [
+          { damage: 28,  range: 174, fireRate: 2.4, projectileCount: 2, projectileDamageMultiplier: 0.6 },
+          { damage: 56,  range: 188, fireRate: 2.7, projectileCount: 2, projectileDamageMultiplier: 0.6 },
+          { damage: 113, range: 205, fireRate: 3.0, projectileCount: 3, projectileDamageMultiplier: 0.45 },
+        ],
+      },
+    },
   },
   cannon: {
     // 광역. 단일 화력·연사는 화살보다 낮지만 뭉친 적을 한 번에 친다.
     key: 'cannon', name: '파열탑', attack: 'splash', cost: 110, maxLevel: 5,
     targetsAir: false,
     levels: [
-      { damage: 24,  range: 132, fireRate: 0.58, splashRadius: 58 },
-      { damage: 44,  range: 138, fireRate: 0.62, splashRadius: 66 },
-      { damage: 86,  range: 146, fireRate: 0.66, splashRadius: 76, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
-      { damage: 170, range: 154, fireRate: 0.70, splashRadius: 88, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
-      { damage: 340, range: 164, fireRate: 0.76, splashRadius: 102, armorBreakPercent: 0.2, armorBreakDurationMs: 2000 },
+      { damage: 24, range: 132, fireRate: 0.58, splashRadius: 58 },
+      { damage: 44, range: 138, fireRate: 0.62, splashRadius: 66 },
     ],
+    paths: {
+      a: {
+        key: 'a', name: '제압형', desc: '방어 파괴 — 대장갑·거점을 무너뜨린다.',
+        levels: [
+          { damage: 86,  range: 146, fireRate: 0.66, splashRadius: 76, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
+          { damage: 170, range: 154, fireRate: 0.70, splashRadius: 88, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
+          { damage: 340, range: 164, fireRate: 0.76, splashRadius: 102, armorBreakPercent: 0.2, armorBreakDurationMs: 2000 },
+        ],
+      },
+      b: {
+        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        levels: [
+          { damage: 86,  range: 146, fireRate: 0.66, splashRadius: 76, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
+          { damage: 170, range: 154, fireRate: 0.70, splashRadius: 88, armorBreakPercent: 0.1, armorBreakDurationMs: 1500 },
+          { damage: 340, range: 164, fireRate: 0.76, splashRadius: 102, armorBreakPercent: 0.2, armorBreakDurationMs: 2000 },
+        ],
+      },
+    },
   },
   frost: {
     // 감속이 정체성이지만 데미지도 화살에 약간 못 미치는 수준으로 받쳐, 혼자서도 초반은 넘긴다.
@@ -33,10 +68,25 @@ export const TOWERS: Record<string, TowerDef> = {
     levels: [
       { damage: 10, range: 142, fireRate: 1.7, slowMul: 0.90, slowDurationMs: 1200 },
       { damage: 19, range: 152, fireRate: 1.8, slowMul: 0.85, slowDurationMs: 1350 },
-      { damage: 38, range: 162, fireRate: 1.9, slowMul: 0.80, slowDurationMs: 1500 },
-      { damage: 74, range: 172, fireRate: 2.0, slowMul: 0.75, slowDurationMs: 1700 },
-      { damage: 140, range: 184, fireRate: 2.1, slowMul: 0.70, slowDurationMs: 2000 },
     ],
+    paths: {
+      a: {
+        key: 'a', name: '빙결형', desc: '빙결 CC — 적중을 쌓아 얼린다.',
+        levels: [
+          { damage: 38,  range: 162, fireRate: 1.9, slowMul: 0.80, slowDurationMs: 1500, freezeHits: 3, freezeDurationMs: 350, freezeCooldownMs: 4000 },
+          { damage: 74,  range: 172, fireRate: 2.0, slowMul: 0.75, slowDurationMs: 1700, freezeHits: 3, freezeDurationMs: 350, freezeCooldownMs: 4000 },
+          { damage: 140, range: 184, fireRate: 2.1, slowMul: 0.70, slowDurationMs: 2000, freezeHits: 3, freezeDurationMs: 700, freezeCooldownMs: 3000 },
+        ],
+      },
+      b: {
+        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        levels: [
+          { damage: 38,  range: 162, fireRate: 1.9, slowMul: 0.80, slowDurationMs: 1500, freezeHits: 3, freezeDurationMs: 350, freezeCooldownMs: 4000 },
+          { damage: 74,  range: 172, fireRate: 2.0, slowMul: 0.75, slowDurationMs: 1700, freezeHits: 3, freezeDurationMs: 350, freezeCooldownMs: 4000 },
+          { damage: 140, range: 184, fireRate: 2.1, slowMul: 0.70, slowDurationMs: 2000, freezeHits: 3, freezeDurationMs: 700, freezeCooldownMs: 3000 },
+        ],
+      },
+    },
   },
   bolt: {
     // 체인 라이트닝: 1차 대상 명중 후 근처 적에게 순차 전이, 전이마다 데미지 ×chainFalloff.
@@ -44,22 +94,52 @@ export const TOWERS: Record<string, TowerDef> = {
     levels: [
       { damage: 7,  range: 150, fireRate: 2.4, chainTargets: 2, chainFalloff: 0.55, chainRange: 90 },
       { damage: 12, range: 160, fireRate: 2.5, chainTargets: 2, chainFalloff: 0.60, chainRange: 98 },
-      { damage: 23, range: 170, fireRate: 2.6, chainTargets: 3, chainFalloff: 0.65, chainRange: 106 },
-      { damage: 44, range: 182, fireRate: 2.8, chainTargets: 3, chainFalloff: 0.70, chainRange: 116 },
-      { damage: 84, range: 196, fireRate: 3.0, chainTargets: 4, chainFalloff: 0.78, chainRange: 128 },
     ],
+    paths: {
+      a: {
+        key: 'a', name: '과부하형', desc: '경직 — 연쇄가 적을 묶는다.',
+        levels: [
+          { damage: 23, range: 170, fireRate: 2.6, chainTargets: 3, chainFalloff: 0.65, chainRange: 106, staggerDurationMs: 120, staggerCooldownMs: 1800 },
+          { damage: 44, range: 182, fireRate: 2.8, chainTargets: 3, chainFalloff: 0.70, chainRange: 116, staggerDurationMs: 120, staggerCooldownMs: 1800 },
+          { damage: 84, range: 196, fireRate: 3.0, chainTargets: 4, chainFalloff: 0.78, chainRange: 128, staggerDurationMs: 250, staggerCooldownMs: 1800 },
+        ],
+      },
+      b: {
+        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        levels: [
+          { damage: 23, range: 170, fireRate: 2.6, chainTargets: 3, chainFalloff: 0.65, chainRange: 106, staggerDurationMs: 120, staggerCooldownMs: 1800 },
+          { damage: 44, range: 182, fireRate: 2.8, chainTargets: 3, chainFalloff: 0.70, chainRange: 116, staggerDurationMs: 120, staggerCooldownMs: 1800 },
+          { damage: 84, range: 196, fireRate: 3.0, chainTargets: 4, chainFalloff: 0.78, chainRange: 128, staggerDurationMs: 250, staggerCooldownMs: 1800 },
+        ],
+      },
+    },
   },
   sniper: {
     // 고비용·장거리 단일 화력. 관통으로 장갑·보호막에 강하지만 연사가 느려
     // 스웜엔 약하다.
     key: 'sniper', name: '저격탑', attack: 'single', cost: 125, maxLevel: 5,
     levels: [
-      { damage: 30,  range: 222, fireRate: 0.82, armorPierce: 3 },
-      { damage: 60,  range: 237, fireRate: 0.88, armorPierce: 5 },
-      { damage: 120, range: 252, fireRate: 0.96, armorPierce: 7 },
-      { damage: 240, range: 268, fireRate: 1.05, armorPierce: 10 },
-      { damage: 480, range: 284, fireRate: 1.15, armorPierce: 14 },
+      { damage: 30, range: 222, fireRate: 0.82, armorPierce: 3 },
+      { damage: 60, range: 237, fireRate: 0.88, armorPierce: 5 },
     ],
+    paths: {
+      a: {
+        key: 'a', name: '처형형', desc: '처형 — 체력 낮은 적을 마무리한다.',
+        levels: [
+          { damage: 120, range: 252, fireRate: 0.96, armorPierce: 7,  executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 },
+          { damage: 240, range: 268, fireRate: 1.05, armorPierce: 10, executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 },
+          { damage: 480, range: 284, fireRate: 1.15, armorPierce: 14, executeHealthRatio: 0.4, executeDamageMultiplier: 2.2 },
+        ],
+      },
+      b: {
+        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        levels: [
+          { damage: 120, range: 252, fireRate: 0.96, armorPierce: 7,  executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 },
+          { damage: 240, range: 268, fireRate: 1.05, armorPierce: 10, executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 },
+          { damage: 480, range: 284, fireRate: 1.15, armorPierce: 14, executeHealthRatio: 0.4, executeDamageMultiplier: 2.2 },
+        ],
+      },
+    },
   },
   poison: {
     // 좁은 반경에 중독을 갱신하는 지속 피해형. 스웜엔 훌륭하지만 단일 대상 화력이
@@ -67,12 +147,27 @@ export const TOWERS: Record<string, TowerDef> = {
     key: 'poison', name: '역병탑', attack: 'poison', cost: 90, maxLevel: 5,
     targetsAir: false,
     levels: [
-      { damage: 2,  range: 148, fireRate: 1.3, poisonDps: 8,  poisonDurationMs: 1500, poisonRadius: 52 },
-      { damage: 4,  range: 158, fireRate: 1.4, poisonDps: 15, poisonDurationMs: 1600, poisonRadius: 60 },
-      { damage: 7,  range: 168, fireRate: 1.5, poisonDps: 27, poisonDurationMs: 1800, poisonRadius: 68 },
-      { damage: 13, range: 180, fireRate: 1.6, poisonDps: 48, poisonDurationMs: 2000, poisonRadius: 78 },
-      { damage: 24, range: 192, fireRate: 1.7, poisonDps: 86, poisonDurationMs: 2200, poisonRadius: 90 },
+      { damage: 2, range: 148, fireRate: 1.3, poisonDps: 8,  poisonDurationMs: 1500, poisonRadius: 52 },
+      { damage: 4, range: 158, fireRate: 1.4, poisonDps: 15, poisonDurationMs: 1600, poisonRadius: 60 },
     ],
+    paths: {
+      a: {
+        key: 'a', name: '부식형', desc: '방어 무시 — 독이 장갑을 녹인다.',
+        levels: [
+          { damage: 7,  range: 168, fireRate: 1.5, poisonDps: 27, poisonDurationMs: 1800, poisonRadius: 68, poisonArmorPierce: 8 },
+          { damage: 13, range: 180, fireRate: 1.6, poisonDps: 48, poisonDurationMs: 2000, poisonRadius: 78, poisonArmorPierce: 8 },
+          { damage: 24, range: 192, fireRate: 1.7, poisonDps: 86, poisonDurationMs: 2200, poisonRadius: 90, poisonArmorPierce: 15 },
+        ],
+      },
+      b: {
+        key: 'b', name: '(임시)', desc: '(임시: Phase 4)',
+        levels: [
+          { damage: 7,  range: 168, fireRate: 1.5, poisonDps: 27, poisonDurationMs: 1800, poisonRadius: 68, poisonArmorPierce: 8 },
+          { damage: 13, range: 180, fireRate: 1.6, poisonDps: 48, poisonDurationMs: 2000, poisonRadius: 78, poisonArmorPierce: 8 },
+          { damage: 24, range: 192, fireRate: 1.7, poisonDps: 86, poisonDurationMs: 2200, poisonRadius: 90, poisonArmorPierce: 15 },
+        ],
+      },
+    },
   },
   laser: {
     // 집중포화. 같은 대상을 계속 쏘면 데미지가 점점 오른다 — 보스·장갑병 상대로 최강,

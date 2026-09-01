@@ -18,7 +18,11 @@ describe.skipIf(!process.env.BALANCE_EXPLORE)('temporary balance exploration, no
       frost: [3, 8, 19, 47, 117],
     };
     try {
-      for (const [key, damages] of Object.entries(damageArrays)) damages.forEach((d, i) => TOWERS[key].levels[i].damage = d);
+      for (const [key, damages] of Object.entries(damageArrays)) {
+        const t = TOWERS[key];
+        const flat = t.paths ? [...t.levels, ...t.paths.a.levels] : t.levels;
+        damages.forEach((d, i) => { flat[i].damage = d; });
+      }
       const strategies = {
         none: noDefense, oneArrow,
         arrowSpread: spread(['arrow']), cannonSpread: spread(['cannon']), boltSpread: spread(['bolt']),

@@ -18,7 +18,7 @@ describe('towerInfo', () => {
   });
 
   it('chain dps sums the falloff jumps', () => {
-    const s = TOWERS.bolt.levels[2];
+    const s = TOWERS.bolt.paths!.a.levels[0]; // Lv3 = 경로 A 첫 항목
     const jumps = s.chainTargets ?? 0;
     let expected = 0;
     for (let i = 0; i <= jumps; i++) expected += Math.round(s.damage * (s.chainFalloff ?? 1) ** i);

@@ -1,5 +1,5 @@
 import type { Targetable } from './TargetingSystem';
-import type { Vec2 } from '../core/types';
+import type { TowerLevelStats, Vec2 } from '../core/types';
 
 /**
  * 체인 라이트닝 데미지 배열. 길이 `extraJumps + 1`,
@@ -49,6 +49,13 @@ export function buildMultiShot(
  */
 export function buffMultiplier(auras: number[]): number {
   return 1 + Math.max(0, ...auras, 0);
+}
+
+/** 저격탑 처형: 대상 체력 비율이 executeHealthRatio 이하면 executeDamageMultiplier, 아니면 1. */
+export function executeMultiplier(stats: TowerLevelStats, targetHealthRatio: number): number {
+  const r = stats.executeHealthRatio;
+  const m = stats.executeDamageMultiplier;
+  return r != null && m != null && targetHealthRatio <= r ? m : 1;
 }
 
 function dist2(a: Vec2, b: Vec2): number {

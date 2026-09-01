@@ -73,7 +73,11 @@ export class Tower {
   }
 
   stats(): TowerLevelStats {
-    return getTower(this.key).levels[this.level - 1];
+    const def = getTower(this.key);
+    // 분기 타워(paths)는 Lv3~5 를 경로에서 고른다. Task 3 에서 Tower.path 로 A/B 선택;
+    // 지금은 A 고정이라 동작은 종전과 동일하다.
+    if (this.level <= 2 || !def.paths) return def.levels[this.level - 1];
+    return def.paths.a.levels[this.level - 3];
   }
 
   get maxLevel(): number {

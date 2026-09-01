@@ -1,5 +1,5 @@
 import {
-  chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot,
+  chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier,
 } from '../../src/systems/combat';
 import type { Targetable } from '../../src/systems/TargetingSystem';
 
@@ -48,6 +48,15 @@ describe('buildMultiShot', () => {
     expect(buildMultiShot(primary, all, origin, 200, 1).map((t) => t.id)).toEqual([1]);
     // more shots than available targets -> everything valid
     expect(buildMultiShot(primary, all, origin, 999, 9).map((t) => t.id)).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe('executeMultiplier', () => {
+  it('applies the multiplier only within the execute band', () => {
+    const s = { executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 } as any;
+    expect(executeMultiplier(s, 0.25)).toBe(1.6);
+    expect(executeMultiplier(s, 0.5)).toBe(1);
+    expect(executeMultiplier({} as any, 0.1)).toBe(1);
   });
 });
 
