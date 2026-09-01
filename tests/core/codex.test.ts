@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { TOWER_KEYS } from '../../src/data/towers';
+import { TOWER_KEYS, getTower } from '../../src/data/towers';
 import {
-  TOWER_CODEX, ENEMY_CODEX, CODEX_ENEMY_KEYS, towerCard, enemyCard,
+  TOWER_CODEX, ENEMY_CODEX, CODEX_TOWER_KEYS, CODEX_ENEMY_KEYS, towerCard, enemyCard,
 } from '../../src/core/codex';
 import { getEnemy } from '../../src/data/enemies';
 
@@ -26,12 +26,22 @@ describe('codex data', () => {
     }
   });
 
-  it('towerCard pulls live numbers from the tower table', () => {
+  it('towerCard gives the Lv1→Lv5 progression for the "/" display', () => {
     const c = towerCard('arrow');
     expect(c.name).toBe('화살탑');
     expect(c.cost).toBe(50);
-    expect(c.dps).toBeGreaterThan(0);
-    expect(c.range).toBeGreaterThan(0);
+    expect(c.dps).toHaveLength(5);
+    expect(c.range).toHaveLength(5);
+    expect(c.fireRate).toHaveLength(5);
+    // 강화할수록 오른다.
+    expect(c.dps[4]).toBeGreaterThan(c.dps[0]);
+    expect(c.range[4]).toBeGreaterThanOrEqual(c.range[0]);
+  });
+
+  it('codex lists towers cheapest-first', () => {
+    const costs = CODEX_TOWER_KEYS.map((k) => getTower(k).cost);
+    expect(costs).toEqual([...costs].sort((a, b) => a - b));
+    expect(CODEX_TOWER_KEYS).toHaveLength(TOWER_KEYS.length);
   });
 
   it('enemyCard tags derive from enemy traits', () => {

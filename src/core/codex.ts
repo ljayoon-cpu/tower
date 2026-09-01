@@ -49,17 +49,22 @@ export const ENEMY_CODEX: EnemyCodexEntry[] = [
   { key: 'airboss',     trait: '월드 3 피날레. 급강하·편대 전개. (공중)',        counter: '창공탑 집중 + 마광탑. 대공 화력이 필수.' },
 ];
 
-/** 도감 카드에 표시할 타워 요약(수치 포함). */
+/** 도감 카드에 표시할 타워 요약 — Lv1~Lv5 진행을 "/" 로 이어 보여준다. */
 export function towerCard(key: string): {
-  name: string; cost: number; dps: number; range: number; fireRate: number;
+  name: string; cost: number;
+  dps: number[]; range: number[]; fireRate: number[];
   note: string; role: string; strong: string; weak: string;
 } {
   const def = getTower(key);
-  const info = towerInfo(key, 1);
+  const levels = Array.from({ length: def.maxLevel }, (_, i) => towerInfo(key, i + 1));
   const c = TOWER_CODEX.find((e) => e.key === key);
   return {
-    name: def.name, cost: def.cost, dps: info.dps, range: info.range, fireRate: info.fireRate,
-    note: info.note, role: c?.role ?? '', strong: c?.strong ?? '', weak: c?.weak ?? '',
+    name: def.name, cost: def.cost,
+    dps: levels.map((l) => l.dps),
+    range: levels.map((l) => l.range),
+    fireRate: levels.map((l) => Number(l.fireRate.toFixed(2))),
+    note: towerInfo(key, def.maxLevel).note,
+    role: c?.role ?? '', strong: c?.strong ?? '', weak: c?.weak ?? '',
   };
 }
 
@@ -84,5 +89,6 @@ export function enemyCard(key: string): {
   };
 }
 
-export const CODEX_TOWER_KEYS = TOWER_KEYS;
+// 도감은 가격순(설치비 오름차순)으로 보여준다.
+export const CODEX_TOWER_KEYS = [...TOWER_KEYS].sort((a, b) => getTower(a).cost - getTower(b).cost);
 export const CODEX_ENEMY_KEYS = ENEMY_CODEX.map((e) => e.key);

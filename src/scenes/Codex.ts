@@ -8,8 +8,9 @@ import {
 
 const LIST_TOP = 196;
 const LIST_BOTTOM = GAME_HEIGHT - 96;
-const CARD_H = 168;
 const CARD_GAP = 12;
+const TOWER_CARD_H = 196;
+const ENEMY_CARD_H = 150;
 const MONO = 'monospace';
 
 type Tab = 'tower' | 'enemy';
@@ -67,9 +68,10 @@ export class Codex extends Phaser.Scene {
     const list = this.add.container(0, 0).setDepth(1);
     this.list = list;
 
+    const cardH = this.tab === 'tower' ? TOWER_CARD_H : ENEMY_CARD_H;
     const keys = this.tab === 'tower' ? CODEX_TOWER_KEYS : CODEX_ENEMY_KEYS;
     keys.forEach((key, i) => {
-      const y = LIST_TOP + CARD_H / 2 + i * (CARD_H + CARD_GAP);
+      const y = LIST_TOP + cardH / 2 + i * (cardH + CARD_GAP);
       list.add(this.tab === 'tower' ? this.towerCardObjects(key, y) : this.enemyCardObjects(key, y));
     });
 
@@ -79,44 +81,50 @@ export class Codex extends Phaser.Scene {
   private towerCardObjects(key: string, y: number): Phaser.GameObjects.GameObject[] {
     const d = towerCard(key);
     const left = 40;
-    const box = this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 40, CARD_H, 0x1b1d33).setStrokeStyle(2, 0x2f3350);
-    const icon = this.add.image(left + 26, y - CARD_H / 2 + 30, `tower_${key}`).setScale(0.62);
-    const title = this.add.text(left + 60, y - CARD_H / 2 + 14, `${d.name}   설치 ${d.cost}G`, {
+    const top = y - TOWER_CARD_H / 2;
+    const box = this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 40, TOWER_CARD_H, 0x1b1d33).setStrokeStyle(2, 0x2f3350);
+    const icon = this.add.image(left + 26, top + 30, `tower_${key}`).setScale(0.62);
+    const title = this.add.text(left + 60, top + 12, `${d.name}   설치 ${d.cost}G`, {
       fontFamily: MONO, fontSize: '21px', color: '#f2f2f7', fontStyle: 'bold',
     });
-    const stat = this.add.text(left + 60, y - CARD_H / 2 + 42,
-      `DPS ${d.dps}  ·  사거리 ${d.range}  ·  연사 ${Number(d.fireRate.toFixed(2))}/초`, {
-        fontFamily: MONO, fontSize: '15px', color: '#9fb0d0',
+    // Lv1 → Lv5 강화 진행을 "/" 로.
+    const dps = this.add.text(left + 60, top + 40, `DPS  ${d.dps.join(' / ')}`, {
+      fontFamily: MONO, fontSize: '15px', color: '#9fb0d0',
+    });
+    const other = this.add.text(left, top + 62,
+      `사거리 ${d.range[0]} / ${d.range[d.range.length - 1]}      연사 ${d.fireRate[0]} / ${d.fireRate[d.fireRate.length - 1]} 회/초`, {
+        fontFamily: MONO, fontSize: '14px', color: '#7f8db0',
       });
-    const role = this.add.text(left, y - CARD_H / 2 + 72, d.role, {
+    const role = this.add.text(left, top + 92, d.role, {
       fontFamily: MONO, fontSize: '16px', color: '#cdd6f4', wordWrap: { width: GAME_WIDTH - 96 },
     });
-    const strong = this.add.text(left, y - CARD_H / 2 + 100, `◎ ${d.strong}`, {
+    const strong = this.add.text(left, top + 122, `◎ ${d.strong}`, {
       fontFamily: MONO, fontSize: '15px', color: '#7dd87d', wordWrap: { width: GAME_WIDTH - 96 },
     });
-    const weak = this.add.text(left, y - CARD_H / 2 + 128, `▽ ${d.weak}`, {
+    const weak = this.add.text(left, top + 152, `▽ ${d.weak}`, {
       fontFamily: MONO, fontSize: '15px', color: '#ff8f8f', wordWrap: { width: GAME_WIDTH - 96 },
     });
-    return [box, icon, title, stat, role, strong, weak];
+    return [box, icon, title, dps, other, role, strong, weak];
   }
 
   private enemyCardObjects(key: string, y: number): Phaser.GameObjects.GameObject[] {
     const d = enemyCard(key);
     const left = 40;
-    const box = this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 40, CARD_H, 0x1b1d33).setStrokeStyle(2, 0x2f3350);
-    const icon = this.add.image(left + 28, y - CARD_H / 2 + 32, `enemy_${key}`);
+    const top = y - ENEMY_CARD_H / 2;
+    const box = this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 40, ENEMY_CARD_H, 0x1b1d33).setStrokeStyle(2, 0x2f3350);
+    const icon = this.add.image(left + 28, top + 32, `enemy_${key}`);
     icon.setScale(Math.min(1.3, 50 / Math.max(icon.width, icon.height)));
-    const title = this.add.text(left + 62, y - CARD_H / 2 + 14, d.name, {
+    const title = this.add.text(left + 62, top + 14, d.name, {
       fontFamily: MONO, fontSize: '21px', color: '#f2f2f7', fontStyle: 'bold',
     });
-    const stat = this.add.text(left + 62, y - CARD_H / 2 + 42,
+    const stat = this.add.text(left + 62, top + 42,
       `HP ${d.hp}  ·  속도 ${d.speed}${d.tags.length ? '   [ ' + d.tags.join(' · ') + ' ]' : ''}`, {
         fontFamily: MONO, fontSize: '15px', color: '#9fb0d0', wordWrap: { width: GAME_WIDTH - 130 },
       });
-    const trait = this.add.text(left, y - CARD_H / 2 + 78, d.trait, {
+    const trait = this.add.text(left, top + 78, d.trait, {
       fontFamily: MONO, fontSize: '16px', color: '#cdd6f4', wordWrap: { width: GAME_WIDTH - 96 },
     });
-    const counter = this.add.text(left, y - CARD_H / 2 + 118, `→ ${d.counter}`, {
+    const counter = this.add.text(left, top + 112, `→ ${d.counter}`, {
       fontFamily: MONO, fontSize: '16px', color: '#ffd27d', wordWrap: { width: GAME_WIDTH - 96 },
     });
     return [box, icon, title, stat, trait, counter];
@@ -125,8 +133,9 @@ export class Codex extends Phaser.Scene {
   private scrollMinY = 0;
 
   private applyScrollClamp(): void {
+    const cardH = this.tab === 'tower' ? TOWER_CARD_H : ENEMY_CARD_H;
     const keys = this.tab === 'tower' ? CODEX_TOWER_KEYS : CODEX_ENEMY_KEYS;
-    const contentH = LIST_TOP + keys.length * (CARD_H + CARD_GAP);
+    const contentH = LIST_TOP + keys.length * (cardH + CARD_GAP);
     this.scrollMinY = Math.min(0, LIST_BOTTOM - contentH);
     if (this.list) this.list.y = Phaser.Math.Clamp(this.list.y, this.scrollMinY, 0);
   }
