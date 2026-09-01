@@ -19,6 +19,14 @@ export interface BottomSheetOpts {
   onDismiss: () => void;
 }
 
+/** 타워를 탭했을 때 뜨는 정보 시트의 내용. 렌더는 BottomSheet, 값 계산은 호출부(Task 4). */
+export interface InspectView {
+  title: string; // "화살탑 · 관통형 Lv3"
+  lines: string[]; // [dpsLine, statLine, ...noteLine 분할]
+  upgrade: { label: string; afford: boolean } | null; // null = 만렙
+  sell: { label: string };
+}
+
 // 2열 격자 — BuildMenu 에서 그대로 옮겨온 수치. 세로로 긴 폰에서도 10칸이 한눈에.
 const ROW_H = 62;
 const COL_W = 186;
@@ -84,6 +92,19 @@ export class BottomSheet {
       if (selectable) row.hit.setInteractive({ useHandCursor: true });
       else row.hit.disableInteractive();
     }
+  }
+
+  /** 타워 탭 → 정보/강화/판매 시트. path 모드에서의 전환 가드는 Task 3 담당. */
+  showInspect(view: InspectView): void {
+    this.buildInspect(view);
+    this._mode = 'inspect';
+    this.slideIn();
+  }
+
+  /** 열려 있는 동안 매 프레임 호출 — DPS·강화비 등 변하는 값을 반영해 통째로 다시 그린다. */
+  refreshInspect(view: InspectView): void {
+    if (this._mode !== 'inspect') return;
+    this.buildInspect(view);
   }
 
   hide(): void {
@@ -186,6 +207,87 @@ export class BottomSheet {
     });
 
     this.currentHeight = h;
+  }
+
+  /** 정보 시트 본문을 컨테이너에 구성한다. 매 프레임 통째로 다시 부르므로 가볍게 유지. */
+  private buildInspect(view: InspectView): void {
+    this.container.removeAll(true);
+    this.rows = [];
+
+    const w = GAME_WIDTH - 24;
+    const h = 60 + view.lines.length * 34 + 64;
+
+    const bg = this.scene.add
+      .rectangle(0, -h / 2, w, h, 0x11121f, 0.96)
+      .setStrokeStyle(2, 0x66ccff);
+    this.container.add(bg);
+
+    const title = this.scene.add.text(-w / 2 + 20, -h + 20, view.title, {
+      fontFamily: 'monospace',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+    });
+    this.container.add(title);
+
+    view.lines.forEach((ln, i) => {
+      const line = this.scene.add.text(-w / 2 + 20, -h + 54 + i * 34, ln, {
+        fontFamily: 'monospace',
+        fontSize: '16px',
+        color: '#cdd6f4',
+      });
+      this.container.add(line);
+    });
+
+    const btnW = view.upgrade ? w / 2 - 24 : w - 32;
+    const btnH = 44;
+    const btnY = -40;
+
+    if (view.upgrade) {
+      const upX = -w / 4;
+      const upBtn = this.scene.add
+        .rectangle(upX, btnY, btnW, btnH, this.hexColor(view.upgrade.afford ? '#2a5d3a' : '#4a3030'))
+        .setStrokeStyle(1, 0x66ccff);
+      const upLabel = this.scene.add
+        .text(upX, btnY, view.upgrade.label, {
+          fontFamily: 'monospace',
+          fontSize: '16px',
+          color: '#f2f2f7',
+        })
+        .setOrigin(0.5);
+      const upHit = this.scene.add
+        .rectangle(upX, btnY, btnW, btnH, 0xffffff, 0.001)
+        .setInteractive({ useHandCursor: true });
+      attachPressFeedback(this.scene, upHit, [upBtn, upLabel], this.audio, () =>
+        this.opts.onUpgrade(),
+      );
+      this.container.add([upBtn, upLabel, upHit]);
+    }
+
+    const sellX = view.upgrade ? w / 4 : 0;
+    const sellBtn = this.scene.add
+      .rectangle(sellX, btnY, btnW, btnH, this.hexColor('#3a3350'))
+      .setStrokeStyle(1, 0x66ccff);
+    const sellLabel = this.scene.add
+      .text(sellX, btnY, view.sell.label, {
+        fontFamily: 'monospace',
+        fontSize: '16px',
+        color: '#f2f2f7',
+      })
+      .setOrigin(0.5);
+    const sellHit = this.scene.add
+      .rectangle(sellX, btnY, btnW, btnH, 0xffffff, 0.001)
+      .setInteractive({ useHandCursor: true });
+    attachPressFeedback(this.scene, sellHit, [sellBtn, sellLabel], this.audio, () =>
+      this.opts.onSell(),
+    );
+    this.container.add([sellBtn, sellLabel, sellHit]);
+
+    this.currentHeight = h;
+  }
+
+  private hexColor(css: string): number {
+    return parseInt(css.replace('#', ''), 16);
   }
 
   private slideIn(): void {
