@@ -39,6 +39,12 @@ function dpsOf(stats: TowerLevelStats, attack: string): number {
 }
 
 function noteOf(key: string, level: number, stats: TowerLevelStats, attack: string): string {
+  const note = baseNoteOf(key, level, stats, attack);
+  if (getTower(key).targetsAir === false) return note ? `지상 전용 · ${note}` : '지상 전용';
+  return note;
+}
+
+function baseNoteOf(key: string, level: number, stats: TowerLevelStats, attack: string): string {
   if ((stats.airDamageMultiplier ?? 1) > 1) {
     return (stats.projectileCount ?? 1) > 1
       ? `대공 x${stats.airDamageMultiplier} · 멀티샷 ${stats.projectileCount}발`

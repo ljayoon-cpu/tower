@@ -31,6 +31,14 @@ describe('towerInfo', () => {
     expect(towerInfo('frost', 1).note).toContain('감속');
   });
 
+  it('flags ground-only towers (파열탑·역병탑) and leaves air-capable ones alone', () => {
+    expect(towerInfo('cannon', 1).note.startsWith('지상 전용 · ')).toBe(true);
+    expect(towerInfo('poison', 1).note.startsWith('지상 전용 · ')).toBe(true);
+    expect(towerInfo('arrow', 1).note).not.toContain('지상 전용');
+    expect(towerInfo('ballista', 1).note).not.toContain('지상 전용');
+    expect(towerInfo('ballista', 1).note).toContain('대공');
+  });
+
   it('surfaces the merge (3/5) tower abilities in the note', () => {
     expect(towerInfo('arrow', 2).note).toBe('');
     expect(towerInfo('arrow', 3).note).toContain('멀티샷');

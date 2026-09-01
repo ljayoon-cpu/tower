@@ -89,12 +89,13 @@ export const ENEMIES: Record<string, EnemyDef> = {
     key: 'carrier', name: '강하 수송선', hp: 260, speed: 40, bounty: 20, lifeDamage: 2,
     movementLayer: 'air',
     deathSpawn: { enemyKey: 'minion', count: 3 },
+    // splash 1.2 는 현재 도달 불가(파열탑 지상 전용) — 공중 광역이 생기면 활성화되는 예약 값.
     resist: { single: 0.85, splash: 1.2 },
   },
   airboss: {
     key: 'airboss', name: '공중 기함', hp: 2200, speed: 70, bounty: 180, lifeDamage: 6,
     isBoss: true, movementLayer: 'air', armor: 6,
-    poisonResist: 0.35,
+    poisonResist: 0.35, // 현재 도달 불가(역병탑 지상 전용) — 공중 독이 생기면 활성화.
     resist: { single: 0.7, chain: 0.75, beam: 1.1, slow: 0.85 },
     shield: { energy: 160, rechargeDelayMs: 3600, rechargePerSecond: 18 },
     bossPhases: [

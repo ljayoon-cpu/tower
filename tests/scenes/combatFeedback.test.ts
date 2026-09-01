@@ -5,8 +5,8 @@ import { Game } from '../../src/scenes/Game';
 type FeedbackGame = {
   impactFlash(pos: { x: number; y: number }, color: number, force?: 'light' | 'heavy' | 'frost'): void;
   startHitstop(): void;
-  knockbackEnemy(enemy: { id: number; pos: { x: number; y: number }; sprite: unknown }): void;
-  deathBurst(enemy: { pos: { x: number; y: number }; def: { key: string }; sprite: unknown }): void;
+  knockbackEnemy(enemy: { id: number; renderPos: { x: number; y: number }; sprite: unknown }): void;
+  deathBurst(enemy: { renderPos: { x: number; y: number }; def: { key: string }; sprite: unknown }): void;
 };
 
 describe('combat feedback', () => {
@@ -48,7 +48,7 @@ describe('combat feedback', () => {
     scene.tweens = { add };
     scene.enemyMotion = new Map([[7, { x: 4, y: 0 }]]);
 
-    scene.knockbackEnemy({ id: 7, pos: { x: 100, y: 120 }, sprite: {} });
+    scene.knockbackEnemy({ id: 7, renderPos: { x: 100, y: 120 }, sprite: {} });
 
     expect(add).toHaveBeenCalledWith(expect.objectContaining({ x: 96, y: 120, duration: 50, yoyo: true }));
   });
@@ -63,7 +63,7 @@ describe('combat feedback', () => {
     scene.add = { circle: vi.fn(() => particle) };
     scene.tweens = { add };
 
-    scene.deathBurst({ pos: { x: 64, y: 128 }, def: { key: 'normal' }, sprite: {} });
+    scene.deathBurst({ renderPos: { x: 64, y: 128 }, def: { key: 'normal' }, sprite: {} });
 
     expect(scene.add.circle).toHaveBeenCalledTimes(6);
   });

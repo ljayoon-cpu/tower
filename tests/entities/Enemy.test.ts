@@ -134,20 +134,26 @@ describe('enemy simulation time', () => {
   });
 });
 
+const AIR_ALTITUDE = 22;
+
 describe('air enemy', () => {
-  it('reports the air layer and keeps pos on the ground projection', () => {
+  it('reports the air layer; pos stays on the ground projection, renderPos rides at altitude', () => {
     const e = makeEnemy(100, { key: 'drone', movementLayer: 'air' });
     e.update(100, 1); // 경로 (0,0)->(0,10000), speed 100 -> 10px 진행
     expect(e.layer).toBe('air');
-    expect(e.pos.y).toBeCloseTo(10, 0);        // 그림자(지상) 기준
-    expect((e.sprite as unknown as { y: number }).y).toBeLessThan(10); // 스프라이트는 위로
+    expect(e.pos.y).toBeCloseTo(10, 0);                    // 그림자(지상) 기준 — 사거리/타겟팅
+    expect(e.renderPos.x).toBeCloseTo(e.pos.x, 5);
+    expect(e.renderPos.y).toBeCloseTo(e.pos.y - AIR_ALTITUDE, -1); // 스프라이트 = 지상점 - 고도 (±부유 2px)
+    expect(e.renderPos.y).toBeLessThan(e.pos.y - AIR_ALTITUDE + 2.001);
+    expect((e.sprite as unknown as { y: number }).y).toBe(e.renderPos.y);
   });
 
-  it('defaults to ground layer with pos == sprite', () => {
+  it('defaults to ground layer with pos === renderPos === sprite', () => {
     const e = makeEnemy(100, { key: 'normal' });
     e.update(100, 1);
     expect(e.layer).toBe('ground');
-    expect(e.pos.y).toBeCloseTo((e.sprite as unknown as { y: number }).y, 5);
+    expect(e.renderPos).toEqual(e.pos);
+    expect(e.renderPos.y).toBe((e.sprite as unknown as { y: number }).y);
   });
 });
 

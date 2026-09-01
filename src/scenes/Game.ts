@@ -837,7 +837,7 @@ export class Game extends Phaser.Scene {
     }
 
     tower.beamLockMs += dtMs;
-    tower.faceToward(enemy.pos);
+    tower.faceToward(enemy.renderPos);
     const dmgPerHit = beamDamage(s.damage, (tower.beamLockMs / 1000) * 2.6, s.beamRampPct ?? 0, s.beamRampMax ?? 1);
     const mult = s.damage > 0 ? dmgPerHit / s.damage : 1;
 
@@ -851,11 +851,11 @@ export class Game extends Phaser.Scene {
       enemy.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
     }
 
-    this.drawBeam(tower, enemy.pos, mult);
+    this.drawBeam(tower, enemy.renderPos, mult);
     tower.beamFxMs += dtMs;
     if (tower.beamFxMs >= 230) {
       tower.beamFxMs = 0;
-      this.impactFlash(enemy.pos, COLORS.laser, mult > 2 ? 'heavy' : 'light');
+      this.impactFlash(enemy.renderPos, COLORS.laser, mult > 2 ? 'heavy' : 'light');
       this.audio.play('laser');
     }
   }
@@ -898,7 +898,7 @@ export class Game extends Phaser.Scene {
 
       const enemy = this.enemies.find((e) => e.id === target.id);
       if (!enemy) continue;
-      tower.faceToward(enemy.pos);
+      tower.faceToward(enemy.renderPos);
       if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
         this.audio.play(tower.key);
       } else if (tower.key === 'ballista') {
@@ -913,11 +913,11 @@ export class Game extends Phaser.Scene {
         this.fireProjectile(tower.homePos, {
           speed: 620,
           textureKey: PROJECTILE_TEXTURE[tower.key],
-          targetPos: () => (enemy.alive ? enemy.pos : null),
+          targetPos: () => (enemy.alive ? enemy.renderPos : null),
           onHit: () => {
             if (!enemy.alive) return;
-            // Determine jumps on impact, using current positions and living targets.
-            const chain = buildChain(enemy, this.enemies, s.chainRange ?? 0, s.chainTargets ?? 0);
+            // Determine jumps on impact, using current positions and living targets (레이어 필터 유지).
+            const chain = buildChain(enemy, eligibleTargets(this.enemies, layers), s.chainRange ?? 0, s.chainTargets ?? 0);
             const dmgs = chainDamages(s.damage, s.chainFalloff ?? 1, chain.length - 1);
             const stagger = boltStaggerEffect(tower.level);
             chain.forEach((hit, i) => {
@@ -927,7 +927,7 @@ export class Game extends Phaser.Scene {
               e.takeDamage({ amount: dmgs[i] * airMul, kind: 'chain' });
               if (e.alive) this.knockbackEnemy(e);
               const stunned = stagger ? e.applyStagger(stagger.durationMs, stagger.cooldownMs) : false;
-              this.impactFlash(e.pos, COLORS.bolt, stunned ? 'stagger' : 'light');
+              this.impactFlash(e.renderPos, COLORS.bolt, stunned ? 'stagger' : 'light');
             });
           },
         });
@@ -937,7 +937,7 @@ export class Game extends Phaser.Scene {
       // 화살탑 3·5합 멀티샷: 근처 표적에 여러 발(발당 피해 감소). 그 외는 현재 표적 한 발.
       const multi = (def.key === 'arrow' || def.key === 'ballista') && (s.projectileCount ?? 1) > 1;
       const shots = multi
-        ? buildMultiShot(enemy, this.enemies, tower.homePos, s.range, s.projectileCount ?? 1)
+        ? buildMultiShot(enemy, eligibleTargets(this.enemies, layers), tower.homePos, s.range, s.projectileCount ?? 1)
           .map((tg) => ({ id: tg.id, damage: Math.round(s.damage * (s.projectileDamageMultiplier ?? 1)) }))
         : [{ id: enemy.id, damage: s.damage }];
 
@@ -947,10 +947,9 @@ export class Game extends Phaser.Scene {
           textureKey: PROJECTILE_TEXTURE[tower.key],
           targetPos: () => {
             const e = this.enemies.find((x) => x.id === shot.id);
-            return e && e.alive ? e.pos : null;
+            return e && e.alive ? e.renderPos : null;
           },
           onHit: (hitPos) => {
-            const layers = towerLayers(def.targetsGround, def.targetsAir);
             if (def.attack === 'poison') {
               this.impactFlash(hitPos, COLORS.poison, 'light');
               const pierce = poisonArmorPierceEffect(tower.level)?.armorPierce ?? 0;
@@ -983,7 +982,7 @@ export class Game extends Phaser.Scene {
               }
               if (def.key === 'arrow' && e.alive) this.knockbackEnemy(e);
               if (def.key === 'sniper') this.startHitstop();
-              this.impactFlash(e.pos,
+              this.impactFlash(e.renderPos,
                 def.key === 'ballista' ? COLORS.ballista
                 : def.attack === 'slow' ? COLORS.frost
                 : def.key === 'sniper' ? COLORS.sniper : COLORS.arrow,
@@ -994,7 +993,7 @@ export class Game extends Phaser.Scene {
                 e.applySlow(s.slowMul ?? 1, s.slowDurationMs ?? 0);
                 const freeze = frostFreezeEffect(tower.level);
                 if (freeze && e.applyFreezeHit(freeze.hits, freeze.durationMs, freeze.cooldownMs)) {
-                  this.impactFlash(e.pos, COLORS.frost, 'heavy');
+                  this.impactFlash(e.renderPos, COLORS.frost, 'heavy');
                 }
               }
             }
@@ -1022,10 +1021,11 @@ export class Game extends Phaser.Scene {
     if (!this.tweens) return;
     const motion = this.enemyMotion.get(enemy.id) ?? { x: 0, y: 1 };
     const length = Math.hypot(motion.x, motion.y) || 1;
+    const rp = enemy.renderPos;
     this.tweens.add({
       targets: enemy.sprite,
-      x: enemy.pos.x - (motion.x / length) * 4,
-      y: enemy.pos.y - (motion.y / length) * 4,
+      x: rp.x - (motion.x / length) * 4,
+      y: rp.y - (motion.y / length) * 4,
       duration: 50,
       yoyo: true,
       ease: 'Quad.out',
@@ -1039,12 +1039,13 @@ export class Game extends Phaser.Scene {
     const sprite = enemy.sprite as Phaser.GameObjects.Image & { setScale?: (x: number, y?: number) => unknown };
     sprite.setScale?.(sprite.scaleX * 1.1, sprite.scaleY * 0.86);
     const offsets = [[-1, -1], [0, -1], [1, -1], [-1, 1], [0, 1], [1, 1]] as const;
+    const rp = enemy.renderPos;
     for (const [dx, dy] of offsets) {
-      const particle = this.add.circle(enemy.pos.x, enemy.pos.y, 3, color, 0.92).setDepth(25);
+      const particle = this.add.circle(rp.x, rp.y, 3, color, 0.92).setDepth(25);
       this.tweens.add({
         targets: particle,
-        x: enemy.pos.x + dx * 18,
-        y: enemy.pos.y + dy * 18,
+        x: rp.x + dx * 18,
+        y: rp.y + dy * 18,
         scale: 0.35,
         alpha: 0,
         duration: 180,
@@ -1209,7 +1210,7 @@ export class Game extends Phaser.Scene {
     for (const e of removed) {
       if (e.hp <= 0) {
         this.bus.emit('enemy:killed', { bounty: e.def.bounty });
-        this.floatingGold(e.pos, e.def.bounty);
+        this.floatingGold(e.renderPos, e.def.bounty);
         this.deathBurst(e);
         // 분열체: 죽은 자리(경로 진행도 유지)에서 조각들로 쪼개진다.
         const split = e.collectDeathSpawn();

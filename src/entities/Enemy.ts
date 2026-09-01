@@ -132,10 +132,15 @@ export class Enemy {
     if ((def.movementLayer ?? 'ground') === 'air') {
       this.shadow = scene.add.ellipse(start.x, start.y, 20, 8, 0x000000, 0.28).setDepth(3) as never;
       this.sprite.setDepth(12);
+      // 공중 스프라이트가 depth 12라 상태 오라(기본 depth 4~5)가 가려진다 — 위로 끌어올린다.
+      for (const aura of [this.slowAura, this.freezeAura, this.poisonAura, this.armorBreakAura]) aura.setDepth(13);
     }
   }
 
+  /** 게임플레이용: 경로 위 지상 투영점. 사거리·타겟팅·범위 판정은 전부 이걸 쓴다. */
   get pos(): Vec2 { return { x: this.groundPos.x, y: this.groundPos.y }; }
+  /** 연출 전용: 스프라이트가 실제로 그려지는 점(공중은 고도 오프셋·부유 포함). */
+  get renderPos(): Vec2 { return { x: this.sprite.x, y: this.sprite.y }; }
   get hp(): number { return this.state.hp; }
   get alive(): boolean { return this.state.alive && !this._done; }
   get reachedGoal(): boolean { return this._done; }
