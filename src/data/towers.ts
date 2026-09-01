@@ -131,9 +131,14 @@ export function getTower(key: string): TowerDef {
   return t;
 }
 
-/** 판매 기준액은 레벨과 무관하게 Lv1 설치비. 머지에 쓴 비용은 회수하지 못한다. */
-export function cumulativeCost(def: TowerDef, _level: number): number {
-  return def.cost;
+/**
+ * 그 레벨까지 실제로 부은 골드 총액 = 설치비 + 이후 강화/머지 비용 누계.
+ * upgradeCost(k) = cost·2^(k-1) 이므로 Σ_{k=1..level} 을 접으면 cost·2^(level-1).
+ * (Lv1=cost, Lv2=×2, Lv3=×4, Lv5=×16.) 판매 환급은 이 총액의 60%(+메타) — 투자에 비례.
+ */
+export function cumulativeCost(def: TowerDef, level: number): number {
+  const lv = Math.min(Math.max(Math.floor(level), 1), def.maxLevel);
+  return def.cost * 2 ** (lv - 1);
 }
 
 /**
