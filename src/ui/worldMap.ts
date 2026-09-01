@@ -10,6 +10,13 @@ export interface WorldMapTheme {
   accent: number;
 }
 
+/** 전투 중 읽기 쉬운 타일 대비 규칙. 경로가 설치 칸보다 먼저 보이게 한다. */
+export interface WorldTileStyle {
+  edgeWidth: number;
+  edgeAlpha: number;
+  detailAlpha: number;
+}
+
 // 다크 판타지 톤 — 채도·명도를 낮춰 "밤의 평원 / 붉은 동굴 / 구름 위" 분위기를 유지한다.
 const MAP_THEMES: Record<string, WorldMapTheme> = {
   '1': {
@@ -46,6 +53,12 @@ export function worldMapTheme(world: string): WorldMapTheme {
 export function worldTileTextureKey(world: string, tile: 'PATH' | 'BUILDABLE'): string {
   const prefix = world === '2' ? 'world2' : world === '3' ? 'world3' : 'world1';
   return `${prefix}_${tile.toLowerCase()}`;
+}
+
+export function worldTileStyle(_world: string, tile: 'PATH' | 'BUILDABLE'): WorldTileStyle {
+  return tile === 'PATH'
+    ? { edgeWidth: 2, edgeAlpha: 0.94, detailAlpha: 0.52 }
+    : { edgeWidth: 1, edgeAlpha: 0.42, detailAlpha: 0.34 };
 }
 
 export function worldLabel(world: string): string {
@@ -312,72 +325,89 @@ export class WorldMapPainter {
     if (this.scene.textures.exists(key)) return;
 
     const theme = worldMapTheme(world);
+    const style = worldTileStyle(world, tile);
     const g = this.scene.make.graphics({ x: 0, y: 0 }, false);
     const base = tile === 'PATH' ? theme.pathBase : theme.buildableBase;
     const edge = tile === 'PATH' ? theme.pathEdge : theme.buildableEdge;
     g.fillStyle(base, 1);
     g.fillRect(0, 0, TILE, TILE);
-    g.lineStyle(tile === 'PATH' ? 3 : 2, edge, tile === 'PATH' ? 0.82 : 0.6);
+    g.lineStyle(style.edgeWidth, edge, style.edgeAlpha);
     g.strokeRect(1, 1, TILE - 2, TILE - 2);
 
     // 월드 1은 국경 평원, 월드 2는 용광로, 월드 3은 강철 비행 갑판으로 구분한다.
-    if (world === '2') this.drawForgeTile(g, tile, edge);
-    else if (world === '3') this.drawArmoryTile(g, tile, edge);
-    else this.drawFrontierTile(g, tile, edge);
+    // 설치 칸의 무늬는 길·적을 가리지 않도록 경로보다 의도적으로 약하게 둔다.
+    if (world === '2') this.drawForgeTile(g, tile, edge, style.detailAlpha);
+    else if (world === '3') this.drawArmoryTile(g, tile, edge, style.detailAlpha);
+    else this.drawFrontierTile(g, tile, edge, style.detailAlpha);
 
     g.generateTexture(key, TILE, TILE);
     g.destroy();
   }
 
-  private drawFrontierTile(g: Phaser.GameObjects.Graphics, tile: 'PATH' | 'BUILDABLE', edge: number): void {
+  private drawFrontierTile(
+    g: Phaser.GameObjects.Graphics,
+    tile: 'PATH' | 'BUILDABLE',
+    edge: number,
+    detailAlpha: number,
+  ): void {
     if (tile === 'PATH') {
-      g.fillStyle(0x8c7652, 0.5);
+      g.fillStyle(0x8c7652, detailAlpha);
       g.fillCircle(13, 16, 4); g.fillCircle(45, 43, 5); g.fillCircle(31, 54, 3);
-      g.lineStyle(1, 0xd5bc83, 0.48);
+      g.lineStyle(1, 0xd5bc83, detailAlpha);
       g.lineBetween(7, 28, 55, 25); g.lineBetween(9, 40, 52, 37);
       return;
     }
-    g.lineStyle(2, 0x32654f, 0.76);
+    g.lineStyle(1, edge, detailAlpha);
     g.lineBetween(11, 46, 16, 36); g.lineBetween(18, 49, 22, 35); g.lineBetween(44, 22, 48, 12);
-    g.fillStyle(edge, 0.38);
+    g.fillStyle(edge, detailAlpha * 0.7);
     g.fillCircle(18, 18, 2); g.fillCircle(52, 49, 2);
   }
 
-  private drawForgeTile(g: Phaser.GameObjects.Graphics, tile: 'PATH' | 'BUILDABLE', edge: number): void {
+  private drawForgeTile(
+    g: Phaser.GameObjects.Graphics,
+    tile: 'PATH' | 'BUILDABLE',
+    edge: number,
+    detailAlpha: number,
+  ): void {
     if (tile === 'PATH') {
-      g.fillStyle(0x6d3a2d, 0.68);
+      g.fillStyle(0x6d3a2d, detailAlpha);
       g.fillRect(5, 8, 54, 12); g.fillRect(5, 30, 54, 12); g.fillRect(5, 52, 54, 7);
       g.fillStyle(0x211a22, 0.9);
       for (const x of [12, 32, 52]) { g.fillCircle(x, 14, 2); g.fillCircle(x, 36, 2); }
-      g.lineStyle(2, edge, 0.74);
+      g.lineStyle(2, edge, detailAlpha);
       g.lineBetween(4, 4, 60, 4); g.lineBetween(4, 60, 60, 60);
       return;
     }
-    g.lineStyle(2, 0x604271, 0.8);
+    g.lineStyle(1, 0x604271, detailAlpha);
     g.lineBetween(14, 9, 25, 28); g.lineBetween(25, 28, 18, 45); g.lineBetween(25, 28, 43, 39);
-    g.lineStyle(1, edge, 0.72);
+    g.lineStyle(1, edge, detailAlpha);
     g.lineBetween(44, 7, 53, 19); g.lineBetween(53, 19, 49, 29);
-    g.fillStyle(0xa96ac7, 0.28);
+    g.fillStyle(0xa96ac7, detailAlpha * 0.7);
     g.fillTriangle(45, 47, 51, 31, 57, 47);
   }
 
-  private drawArmoryTile(g: Phaser.GameObjects.Graphics, tile: 'PATH' | 'BUILDABLE', edge: number): void {
+  private drawArmoryTile(
+    g: Phaser.GameObjects.Graphics,
+    tile: 'PATH' | 'BUILDABLE',
+    edge: number,
+    detailAlpha: number,
+  ): void {
     if (tile === 'PATH') {
-      g.fillStyle(0x36485a, 0.74);
+      g.fillStyle(0x36485a, detailAlpha);
       g.fillRect(5, 8, 54, 13); g.fillRect(5, 30, 54, 13); g.fillRect(5, 52, 54, 7);
       g.fillStyle(0x142130, 0.92);
       for (const x of [12, 32, 52]) { g.fillCircle(x, 14, 2); g.fillCircle(x, 36, 2); }
-      g.lineStyle(2, 0x9fd8ff, 0.52);
+      g.lineStyle(2, 0x9fd8ff, detailAlpha);
       g.lineBetween(5, 25, 59, 25); g.lineBetween(5, 47, 59, 47);
       return;
     }
-    g.fillStyle(0x1b2a3b, 0.58);
+    g.fillStyle(0x1b2a3b, detailAlpha);
     g.fillRect(9, 12, 46, 40);
-    g.lineStyle(2, edge, 0.78);
+    g.lineStyle(1, edge, detailAlpha);
     g.lineBetween(11, 18, 53, 18); g.lineBetween(11, 46, 53, 46);
-    g.lineStyle(1, 0x9fd8ff, 0.36);
+    g.lineStyle(1, 0x9fd8ff, detailAlpha * 0.7);
     g.lineBetween(18, 9, 18, 55); g.lineBetween(46, 9, 46, 55);
-    g.fillStyle(0xbfe9ff, 0.34);
+    g.fillStyle(0xbfe9ff, detailAlpha * 0.7);
     g.fillCircle(18, 18, 2); g.fillCircle(46, 46, 2);
   }
 }
