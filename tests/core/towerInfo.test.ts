@@ -17,6 +17,12 @@ describe('towerInfo', () => {
     expect(towerInfo('arrow', 5).nextDps).toBeNull();
   });
 
+  it('cannot preview next dps at the Lv2 branch point until a path is chosen', () => {
+    expect(towerInfo('arrow', 2).nextDps).toBeNull();          // 경로 미선택 — A/B 알 수 없음
+    expect(towerInfo('arrow', 2, 'b').nextDps).toBe(towerInfo('arrow', 3, 'b').dps);
+    expect(towerInfo('command', 2).nextDps).not.toBeNull();    // 분기 없는 타워는 그대로 미리보기
+  });
+
   it('chain dps sums the falloff jumps', () => {
     const s = TOWERS.bolt.paths!.a.levels[0]; // Lv3 = 경로 A 첫 항목
     const jumps = s.chainTargets ?? 0;

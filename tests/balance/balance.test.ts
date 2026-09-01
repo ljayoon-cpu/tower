@@ -13,6 +13,7 @@ describe('balance measurement with production combat', () => {
       mixedSpread: spread(['arrow', 'cannon', 'bolt', 'frost', 'poison', 'sniper']),
       arrowMerge: mergeArmy(['arrow', 'arrow', 'arrow']),
       mixedMerge: mergeArmy(['arrow', 'cannon', 'bolt', 'frost', 'poison', 'sniper']),
+      mixedMergeB: mergeArmy(['arrow', 'cannon', 'bolt', 'frost', 'poison', 'sniper'], 5, 'b'),
     };
     const rows = [];
     for (const stage of STAGES) for (const [strategy, play] of Object.entries(strategies)) {

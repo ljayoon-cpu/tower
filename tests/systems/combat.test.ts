@@ -2,6 +2,7 @@ import {
   chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets,
 } from '../../src/systems/combat';
 import type { Targetable } from '../../src/systems/TargetingSystem';
+import type { TowerLevelStats } from '../../src/core/types';
 
 const mk = (id: number, x: number, y: number, alive = true): Targetable =>
   ({ id, pos: { x, y }, progress: 0, alive });
@@ -53,10 +54,10 @@ describe('buildMultiShot', () => {
 
 describe('executeMultiplier', () => {
   it('applies the multiplier only within the execute band', () => {
-    const s = { executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 } as any;
+    const s = { executeHealthRatio: 0.3, executeDamageMultiplier: 1.6 } as Partial<TowerLevelStats> as TowerLevelStats;
     expect(executeMultiplier(s, 0.25)).toBe(1.6);
     expect(executeMultiplier(s, 0.5)).toBe(1);
-    expect(executeMultiplier({} as any, 0.1)).toBe(1);
+    expect(executeMultiplier({} as Partial<TowerLevelStats> as TowerLevelStats, 0.1)).toBe(1);
   });
 });
 
@@ -88,7 +89,7 @@ describe('pierceLineTargets', () => {
       mk(2, 70, 0),
       mk(3, 50, 0),
     ];
-    const result = pierceLineTargets(origin, target, enemies, 20);
+    const result = pierceLineTargets(origin, target, enemies, 20, 9999);
     expect(result.map((e) => e.id)).toEqual([1, 3, 2]); // ordered along the line
   });
 
@@ -102,7 +103,15 @@ describe('pierceLineTargets', () => {
       mk(4, 70, 8),    // near line, inside band
       mk(5, 50, 20, false), // off line, but dead
     ];
-    const result = pierceLineTargets(origin, target, enemies, 20);
+    const result = pierceLineTargets(origin, target, enemies, 20, 9999);
     expect(result.map((e) => e.id)).toEqual([1, 3, 4]);
+  });
+
+  it('excludes enemies beyond maxDistance', () => {
+    const origin = { x: 0, y: 0 };
+    const target = { x: 100, y: 0 };
+    const enemies = [mk(1, 40, 0), mk(2, 90, 0), mk(3, 150, 0)];
+    const result = pierceLineTargets(origin, target, enemies, 20, 100);
+    expect(result.map((e) => e.id)).toEqual([1, 2]); // enemy 3 at dist 150 > 100 excluded
   });
 });

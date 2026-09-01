@@ -36,6 +36,8 @@ export class Tower {
   beamTickMs = 0;
   /** 씬이 소유·갱신하는 지속 빔 그래픽. */
   beamGfx?: Phaser.GameObjects.Line;
+  /** 씬이 소유하는 slowAura(빙결 경로 B) 반경 링 — 있으면 한 번만 그린다. */
+  auraRing?: Phaser.GameObjects.Arc;
   /** support(금광탑): 골드 생성까지 누적된 시간(ms), 뜨는 숫자용 누적 골드. */
   goldTimerMs = 0;
   goldDisplayAcc = 0;
@@ -114,7 +116,7 @@ export class Tower {
   /** 사거리 링에 그릴 반경. 지휘탑은 버프 반경(그게 정체성), 나머지는 공격 사거리. */
   private displayRadius(): number {
     const s = this.stats();
-    return s.buffRadius ?? s.range;
+    return s.buffRadius ?? s.slowAuraRadius ?? s.range;
   }
 
   private applyLevelVisual(): void {
@@ -181,6 +183,7 @@ export class Tower {
     this.ring.destroy();
     this.mergeHint.destroy();
     this.beamGfx?.destroy();
+    this.auraRing?.destroy();
   }
 }
 

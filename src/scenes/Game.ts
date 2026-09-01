@@ -361,6 +361,8 @@ export class Game extends Phaser.Scene {
     catcher.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       if (!this.running || this.paused) return;
       if (this.time.now < this.suppressTapUntil) return;
+      // 경로 선택 메뉴가 열려 있으면 다른 곳 탭 = 취소 (스펙 §3)
+      if (this.pathMenu.isOpen) { this.pathMenu.close(); return; }
       // 빈 곳/타일 탭 → 표시 중인 사거리 링 숨김
       this.clearTowerRanges();
       if (this.buildMenu.isOpen) {
@@ -470,6 +472,8 @@ export class Game extends Phaser.Scene {
     const cost = upgradeCost(getTower(tower.key), tower.level);
     if (this.eco.gold < cost) { this.audio.play('click'); return; }
     const finish = (path?: 'a' | 'b') => {
+      // 경로 선택 메뉴가 열린 사이 일시정지/판매됐을 수 있다.
+      if (!this.running || this.paused || !this.towers.includes(tower)) return;
       // 골드는 경로 선택을 마친 뒤에만 차감한다(선택 취소 시 손해 없음).
       if (!this.eco.spend(cost)) { this.audio.play('click'); return; }
       tower.setLevel(tower.level + 1, path);
@@ -526,6 +530,8 @@ export class Game extends Phaser.Scene {
           const b: MergeCandidate = { id: targetTower.id, key: targetTower.key, level: targetTower.level, path: targetTower.path };
           if (canMerge(a, b, dragged.maxLevel)) {
             const doMerge = (path?: 'a' | 'b') => {
+              // 경로 선택 메뉴가 열린 사이 일시정지/판매됐을 수 있다(dragged 는 이 클로저 안에서 제거됨).
+              if (!this.running || this.paused || !this.towers.includes(targetTower)) return;
               const sourceVisual = {
                 origin: { ...dragged.homePos },
                 texture: `tower_${dragged.key}`,
@@ -941,11 +947,17 @@ export class Game extends Phaser.Scene {
       }
       const sAura = this.effectiveStats(tower);
       if (sAura.slowAura) {
+        // 빙결 경로 B: 오라 반경을 한 번만 희미한 링으로 그려 둔다(시뮬 테스트에선 생략).
+        const addC = this.add as { circle?: (...a: unknown[]) => Phaser.GameObjects.Arc };
+        if (typeof addC.circle === 'function' && !tower.auraRing) {
+          tower.auraRing = addC.circle(tower.homePos.x, tower.homePos.y, sAura.slowAuraRadius ?? 0, COLORS.frost, 0.05)
+            .setStrokeStyle(1, COLORS.frost, 0.25).setDepth(1);
+        }
         const auraLayers = towerLayers(def.targetsGround, def.targetsAir);
         for (const hit of enemiesInRadius(tower.homePos, sAura.slowAuraRadius ?? 0, this.enemies, auraLayers)) {
           const e = this.enemies.find((x) => x.id === hit.id);
           if (!e) continue;
-          e.applySlow(sAura.slowMul ?? 1, 200);
+          e.applySlow(sAura.slowMul ?? 1, sAura.slowDurationMs ?? 200);
           this.dealDamage(tower.key, e, { amount: (sAura.damage * dtMs) / 1000, kind: 'slow' }, false);
         }
         continue;
@@ -1053,7 +1065,7 @@ export class Game extends Phaser.Scene {
               if (!e || !e.alive) return;
               const airMul = e.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;
               if (s.pierceAll) {
-                for (const hit of pierceLineTargets(tower.homePos, e.renderPos, eligible, TILE * 0.9)) {
+                for (const hit of pierceLineTargets(tower.homePos, e.pos, eligible, TILE * 0.9, s.range)) {
                   const pe = this.enemies.find((x) => x.id === hit.id);
                   if (!pe) continue;
                   const am = pe.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;

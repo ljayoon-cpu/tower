@@ -26,11 +26,11 @@ export const TOWERS: Record<string, TowerDef> = {
         ],
       },
       b: {
-        key: 'b', name: '관통형', desc: '관통 — 방어구를 뚫고 직선상 여러 적을.',
+        key: 'b', name: '관통형', desc: '관통 — 높은 방어구도 그대로 뚫는다.',
         levels: [
           { damage: 24, range: 218, fireRate: 2.2, armorPierce: 4 },
           { damage: 45, range: 235, fireRate: 2.3, armorPierce: 7 },
-          { damage: 84, range: 256, fireRate: 2.4, armorPierce: 12, executeHealthRatio: 0.2, executeDamageMultiplier: 1.3 },
+          { damage: 84, range: 256, fireRate: 2.4, armorPierce: 12 },
         ],
       },
     },

@@ -107,7 +107,9 @@ export function towerInfo(key: string, level: number, path?: 'a' | 'b' | null): 
   const def = getTower(key);
   const lv = Math.min(Math.max(Math.floor(level), 1), def.maxLevel);
   const stats = statsAt(def, lv, path);
-  const next = lv < def.maxLevel ? dpsOf(statsAt(def, lv + 1, path), def.attack) : null;
+  // Lv2 분기 타워에서 경로 미선택이면 다음 레벨(Lv3)은 A/B 중 무엇이 될지 모른다 — 미리보기 불가.
+  const cannotPreview = lv === 2 && def.paths != null && path == null;
+  const next = lv < def.maxLevel && !cannotPreview ? dpsOf(statsAt(def, lv + 1, path), def.attack) : null;
   return {
     key: def.key,
     name: def.name,
