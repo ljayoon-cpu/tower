@@ -10,20 +10,28 @@ export interface WorldMapTheme {
   accent: number;
 }
 
+// 다크 판타지 톤 — 채도·명도를 낮춰 "밤의 평원 / 붉은 동굴 / 구름 위" 분위기를 유지한다.
 const MAP_THEMES: Record<string, WorldMapTheme> = {
   '1': {
-    pathBase: 0x66553c,
-    buildableBase: 0x1c392e,
-    pathEdge: 0xb89b67,
-    buildableEdge: 0x4d917a,
-    accent: 0x78d9df,
+    pathBase: 0x3a3327,
+    buildableBase: 0x141d24,
+    pathEdge: 0x6b5c41,
+    buildableEdge: 0x2f5044,
+    accent: 0x5b98a0,
   },
   '2': {
-    pathBase: 0x462722,
-    buildableBase: 0x25202e,
-    pathEdge: 0xef8750,
-    buildableEdge: 0x8e5cac,
-    accent: 0xffa15a,
+    pathBase: 0x33201c,
+    buildableBase: 0x1c1822,
+    pathEdge: 0x8a4e35,
+    buildableEdge: 0x5a3f6d,
+    accent: 0xc9713f,
+  },
+  '3': {
+    pathBase: 0x293646,
+    buildableBase: 0x141a28,
+    pathEdge: 0x47607d,
+    buildableEdge: 0x33475f,
+    accent: 0x7fb4d6,
   },
 };
 
@@ -36,12 +44,12 @@ export function worldMapTheme(world: string): WorldMapTheme {
 }
 
 export function worldTileTextureKey(world: string, tile: 'PATH' | 'BUILDABLE'): string {
-  const prefix = world === '2' ? 'world2' : 'world1';
+  const prefix = world === '2' ? 'world2' : world === '3' ? 'world3' : 'world1';
   return `${prefix}_${tile.toLowerCase()}`;
 }
 
 export function worldLabel(world: string): string {
-  return world === '2' ? '붉은 용광로' : '국경 성벽';
+  return world === '2' ? '붉은 용광로' : world === '3' ? '부유 병기창' : '국경 성벽';
 }
 
 export type BattlefieldLandmarkKind = 'watchfire' | 'ruins' | 'crystal' | 'vent';
@@ -234,13 +242,13 @@ export class WorldMapPainter {
   }
 
   private createTextures(): void {
-    for (const world of ['1', '2'] as const) {
+    for (const world of ['1', '2', '3'] as const) {
       this.createTileTexture(world, 'BUILDABLE');
       this.createTileTexture(world, 'PATH');
     }
   }
 
-  private createTileTexture(world: '1' | '2', tile: 'PATH' | 'BUILDABLE'): void {
+  private createTileTexture(world: '1' | '2' | '3', tile: 'PATH' | 'BUILDABLE'): void {
     const key = worldTileTextureKey(world, tile);
     if (this.scene.textures.exists(key)) return;
 
@@ -250,11 +258,12 @@ export class WorldMapPainter {
     const edge = tile === 'PATH' ? theme.pathEdge : theme.buildableEdge;
     g.fillStyle(base, 1);
     g.fillRect(0, 0, TILE, TILE);
-    g.lineStyle(tile === 'PATH' ? 3 : 2, edge, tile === 'PATH' ? 0.92 : 0.75);
+    g.lineStyle(tile === 'PATH' ? 3 : 2, edge, tile === 'PATH' ? 0.82 : 0.6);
     g.strokeRect(1, 1, TILE - 2, TILE - 2);
 
-    if (world === '1') this.drawFrontierTile(g, tile, edge);
-    else this.drawForgeTile(g, tile, edge);
+    // 월드 2는 강철 격자, 그 외(국경·구름 위)는 옅은 선 장식. 색은 theme 이 정한다.
+    if (world === '2') this.drawForgeTile(g, tile, edge);
+    else this.drawFrontierTile(g, tile, edge);
 
     g.generateTexture(key, TILE, TILE);
     g.destroy();

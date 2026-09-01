@@ -10,8 +10,10 @@ export interface BuildMenuOpts {
   isBanned: (key: string) => boolean;
 }
 
-const ROW_H = 56;
-const MENU_W = 220;
+// 2열 격자 — 세로로 긴 폰에서도 10칸이 한눈에 들어오게. 열당 최대 5칸.
+const ROW_H = 62;
+const COL_W = 186;
+const COLS = 2;
 
 interface Row {
   key: string;
@@ -36,25 +38,30 @@ export class BuildMenu {
     this.container.removeAll(true);
     this.rows = [];
 
-    const h = ROW_H * TOWER_KEYS.length + 12;
+    const perCol = Math.ceil(TOWER_KEYS.length / COLS);
+    const w = COL_W * COLS;
+    const h = ROW_H * perCol + 16;
     const bg = this.scene.add
-      .rectangle(0, 0, MENU_W, h, 0x11121f, 0.95)
+      .rectangle(0, 0, w, h, 0x11121f, 0.96)
       .setStrokeStyle(2, 0x66ccff);
     this.container.add(bg);
 
     TOWER_KEYS.forEach((key, i) => {
       const def = getTower(key);
-      const yy = -((TOWER_KEYS.length - 1) / 2) * ROW_H + i * ROW_H;
+      const col = Math.floor(i / perCol);
+      const rowInCol = i % perCol;
+      const cx = -w / 2 + COL_W / 2 + col * COL_W;
+      const yy = -((perCol - 1) / 2) * ROW_H + rowInCol * ROW_H;
       const banned = this.opts.isBanned(key);
 
-      const icon = this.scene.add.image(-80, yy, `tower_${key}`).setScale(0.7);
-      const label = this.scene.add.text(-52, yy - 14, banned ? `${def.name}\n이번 판 봉인` : `${def.name}\n${def.cost}G`, {
-        fontFamily: 'monospace', fontSize: '18px', color: '#f2f2f7',
+      const icon = this.scene.add.image(cx - COL_W / 2 + 26, yy, `tower_${key}`).setScale(0.62);
+      const label = this.scene.add.text(cx - COL_W / 2 + 50, yy - 15, banned ? `${def.name}\n이번 판 봉인` : `${def.name}\n${def.cost}G`, {
+        fontFamily: 'monospace', fontSize: '17px', color: '#f2f2f7',
       });
       const lock = banned
-        ? this.scene.add.text(82, yy, '봉인', { fontFamily: 'monospace', fontSize: '16px', color: '#ff7799' }).setOrigin(0.5)
+        ? this.scene.add.text(cx + COL_W / 2 - 16, yy, '봉인', { fontFamily: 'monospace', fontSize: '15px', color: '#ff7799' }).setOrigin(1, 0.5)
         : undefined;
-      const hit = this.scene.add.rectangle(0, yy, MENU_W - 10, ROW_H - 4, 0xffffff, 0.001);
+      const hit = this.scene.add.rectangle(cx, yy, COL_W - 8, ROW_H - 6, 0xffffff, 0.001);
       attachPressFeedback(this.scene, hit, [icon, label], audioFor(this.scene), () => {
         if (!this.rows.find((r) => r.key === key)?.selectable) return;
         this.opts.onPick(key);
@@ -65,9 +72,9 @@ export class BuildMenu {
       this.rows.push({ key, banned, selectable: false, icon, label, hit });
     });
 
-    const cx = Phaser.Math.Clamp(x, MENU_W / 2 + 10, GAME_WIDTH - MENU_W / 2 - 10);
-    const cy = Phaser.Math.Clamp(y, h / 2 + 168, GAME_HEIGHT - h / 2 - 10);
-    this.container.setPosition(cx, cy).setVisible(true);
+    const px = Phaser.Math.Clamp(x, w / 2 + 8, GAME_WIDTH - w / 2 - 8);
+    const py = Phaser.Math.Clamp(y, h / 2 + 150, GAME_HEIGHT - h / 2 - 10);
+    this.container.setPosition(px, py).setVisible(true);
     this.visible = true;
     this.refresh();
   }

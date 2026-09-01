@@ -13,14 +13,14 @@ export function buildTextures(scene: Phaser.Scene): void {
     g.generateTexture(key, s, s);
   };
 
-  // 창공탑: 하늘빛 석궁 — 위로 겨눈 활 + 화살. (창공탑은 아직 도형; 시트가 없다.)
+  // 창공탑: 하늘빛 석궁 — 위로 겨눈 활 + 화살. (아직 도형; Codex 타워 시트 64px에 맞춰 64px.)
   g.clear();
-  g.fillStyle(0x14324a, 1); g.fillCircle(24, 24, 22);
-  g.lineStyle(4, COLORS.ballista, 1); g.beginPath();
-  g.arc(24, 30, 15, Math.PI * 1.15, Math.PI * 1.85, false); g.strokePath();
-  g.fillStyle(COLORS.ballista, 1); g.fillTriangle(24, 3, 30, 18, 18, 18); g.fillRect(22, 14, 4, 18);
-  g.lineStyle(2, 0xdff2ff, 0.9); g.strokeCircle(24, 24, 20);
-  g.generateTexture('tower_ballista', 48, 48);
+  g.fillStyle(0x14324a, 1); g.fillCircle(32, 32, 30);
+  g.lineStyle(5, COLORS.ballista, 1); g.beginPath();
+  g.arc(32, 40, 20, Math.PI * 1.15, Math.PI * 1.85, false); g.strokePath();
+  g.fillStyle(COLORS.ballista, 1); g.fillTriangle(32, 4, 40, 24, 24, 24); g.fillRect(29, 18, 6, 24);
+  g.lineStyle(3, 0xdff2ff, 0.9); g.strokeCircle(32, 32, 27);
+  g.generateTexture('tower_ballista', 64, 64);
 
 
   g.clear(); g.fillStyle(COLORS.laser, 1); g.fillRect(2, 13, 30, 6); g.fillStyle(0xffe0e6, 1); g.fillRect(24, 12, 10, 8); g.generateTexture('projectile_laser', 36, 32);

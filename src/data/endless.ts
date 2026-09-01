@@ -50,16 +50,30 @@ const L_BOT = [TL, TR, BR, BOT_MID, BOT_GOAL];             // 위로 → 오른�
 const R_TOP = [BR, BL, TL, TOP_MID, TOP_GOAL];             // 아래로 → 왼쪽 위로 → 위 탈출
 const R_BOT = [TR, TL, BL, BOT_MID, BOT_GOAL];             // 위로 → 왼쪽 아래로 → 아래 탈출
 
+// 보스 전용(lane 4~7): 링을 한 바퀴 더 돌고 나서 같은 출구로. 사격 시간이 길어져 체감 난이도가 내려간다.
+const B_L_TOP = [TL, TR, BR, ...L_TOP];                    // RING_LM → 한 바퀴(위·오른·아래) → 평소 좌·위 경로
+const B_L_BOT = [BL, BR, TR, ...L_BOT];                    // RING_LM → 한 바퀴(아래·오른·위) → 평소 좌·아래 경로
+const B_R_TOP = [TR, TL, BL, ...R_TOP];                    // RING_RM → 한 바퀴(위·왼·아래) → 평소 우·위 경로
+const B_R_BOT = [BR, BL, TL, ...R_BOT];                    // RING_RM → 한 바퀴(아래·왼·위) → 평소 우·아래 경로
+
 const PATH: PathNode = {
   points: [],
   branches: [
-    { points: [LEFT_SPAWN, RING_LM], branches: [{ points: L_TOP }, { points: L_BOT }] },
-    { points: [RIGHT_SPAWN, RING_RM], branches: [{ points: R_TOP }, { points: R_BOT }] },
+    { points: [LEFT_SPAWN, RING_LM], branches: [
+      { points: L_TOP }, { points: L_BOT }, { points: B_L_TOP }, { points: B_L_BOT },
+    ] },
+    { points: [RIGHT_SPAWN, RING_RM], branches: [
+      { points: R_TOP }, { points: R_BOT }, { points: B_R_TOP }, { points: B_R_BOT },
+    ] },
   ],
 };
+// PathManager.routes() 리프 순서: L_TOP=0, L_BOT=1, B_L_TOP=2, B_L_BOT=3, R_TOP=4, R_BOT=5, B_R_TOP=6, B_R_BOT=7.
+// 일반 적 레인(0/1/4/5) → 보스 레인 매핑.
+const BOSS_LANE: Record<number, number> = { 0: 2, 1: 3, 4: 6, 5: 7 };
 
+// 일반 적이 쓰는 레인(보스 레인 2/3/6/7 제외).
 const LANES = {
-  left: [0, 1], right: [2, 3], up: [0, 2], down: [1, 3], all: [0, 1, 2, 3],
+  left: [0, 1], right: [4, 5], up: [0, 4], down: [1, 5], all: [0, 1, 4, 5],
 } as const;
 
 /** 무한 모드 스폰 위상: 앞은 한 쪽 입구씩 번갈아, 중반은 좌우 열을 나눠서, 뒤는 사방에서. */
@@ -139,7 +153,9 @@ export function endlessWave(n: number): Wave {
   }
   if (n >= 10 && n % 5 === 0) {
     // 15웨이브까지는 한 입구에서만, 그 뒤 사방 협공. 첫 보스는 기본 체력보다 약하게 시작.
-    const bossFrom = phase === 'both' ? bossLanes : [alt === 0 ? 0 : 3];
+    // 보스는 링을 한 바퀴 더 도는 전용 레인(BOSS_LANE)으로 — 사격 시간이 길어진다.
+    const bossEntry = phase === 'both' ? bossLanes : [alt === 0 ? 0 : 5];
+    const bossFrom = bossEntry.map((l) => BOSS_LANE[l] ?? l);
     const bossCount = n >= 50 ? 4 : n >= 35 ? 3 : n >= 25 ? 2 : 1;
     across(bossFrom, 'boss', bossCount, {
       intervalMs: 3400, startDelayMs: 1200,
