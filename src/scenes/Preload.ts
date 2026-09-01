@@ -6,6 +6,19 @@ import { SFX_KEYS } from '../core/audio';
 export class Preload extends Phaser.Scene {
   constructor() { super('preload'); }
   preload() {
+    for (const [key, file] of [
+      ['tower_arrow', 'arrow-tower-sheet-v1'],
+      ['tower_cannon', 'cannon-tower-sheet-v1'],
+      ['tower_frost', 'frost-tower-sheet-v1'],
+      ['tower_bolt', 'bolt-tower-sheet-v1'],
+      ['tower_sniper', 'sniper-tower-sheet-v1'],
+      ['tower_poison', 'poison-tower-sheet-v1'],
+      ['tower_laser', 'laser-tower-sheet-v1'],
+      ['tower_command', 'command-tower-sheet-v1'],
+      ['tower_mine', 'mine-tower-sheet-v1'],
+    ] as const) {
+      this.load.spritesheet(key, `art/towers/${file}.png`, { frameWidth: 64, frameHeight: 64 });
+    }
     // 지상 보병 4종은 128px 4프레임 걷기 시트를 쓰고, Enemy가 이동 시간에 맞춰 프레임을 순환한다.
     for (const [key, file] of [
       ['enemy_fast', 'fast-hound-walk-v1'],
