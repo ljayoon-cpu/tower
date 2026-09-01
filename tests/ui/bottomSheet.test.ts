@@ -18,6 +18,28 @@ function fakeScene(): Phaser.Scene {
   } as unknown as Phaser.Scene;
 }
 
+/**
+ * fakeScene 과 같되 tweens 를 지연 실행하는 stub 으로 바꾼다: add() 는 설정을 쌓아두고
+ * remove() 가능한 핸들을 돌려주며, flush() 를 부를 때 아직 살아있는 tween 의 onComplete 만 실행한다.
+ * hide() 슬라이드아웃 완료가 그 사이 다시 열린 시트를 지우는 레이스를 재현하는 데 쓴다.
+ */
+function deferredTweenScene(): { scene: Phaser.Scene; flush: () => void } {
+  const base = fakeScene() as unknown as Record<string, unknown>;
+  const pending: Array<{ cfg: { onComplete?: () => void }; removed: boolean }> = [];
+  base.tweens = {
+    add: (cfg: { onComplete?: () => void }) => {
+      const entry = { cfg, removed: false };
+      pending.push(entry);
+      return { remove: () => { entry.removed = true; } };
+    },
+  };
+  const flush = (): void => {
+    for (const e of pending) if (!e.removed) e.cfg.onComplete?.();
+    pending.length = 0;
+  };
+  return { scene: base as unknown as Phaser.Scene, flush };
+}
+
 const opts = () => ({
   onBuildPick: vi.fn(), canAfford: () => true, isBanned: () => false,
   isAtLimit: () => false, limitLabel: () => '최대 2개',
@@ -97,6 +119,35 @@ describe('BottomSheet inspect mode', () => {
     const s = new BottomSheet(scene, opts());
     s.showInspect(view());
     expect(interactiveCalls).toBeGreaterThanOrEqual(2); // upgrade hit + sell hit
+  });
+});
+
+describe('BottomSheet slide-tween race', () => {
+  const view = () => ({
+    title: '화살탑 Lv2',
+    lines: ['DPS 30 → 60', '사거리 162   연사 2.2/초'],
+    upgrade: { label: '⬆ Lv3 강화  100G', afford: true },
+    sell: { label: '⌫ 판매 +60G' },
+  });
+
+  it('a hide() slide-out completing after a re-show does not wipe the new sheet', () => {
+    const { scene, flush } = deferredTweenScene();
+    const s = new BottomSheet(scene, opts());
+    s.showBuild();
+    s.hide();              // 슬라이드아웃 onComplete 예약 (아직 실행 안 됨)
+    s.showInspect(view()); // _mode -> 'inspect' 동기 반영, 대기 중 hide tween 취소
+    flush();               // 남은 onComplete 실행 — 낡은 hide 정리는 no-op 이어야 한다
+    expect(s.mode).toBe('inspect');
+    expect(s.isOpen).toBe(true);
+  });
+
+  it('hide() then an immediate showBuild() stays in build mode (synchronous path)', () => {
+    const s = new BottomSheet(fakeScene(), opts());
+    s.showInspect(view());
+    s.hide();
+    s.showBuild();
+    expect(s.mode).toBe('build');
+    expect(s.isOpen).toBe(true);
   });
 });
 

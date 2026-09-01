@@ -73,6 +73,9 @@ export class BottomSheet {
   private bottomInset = 0;
   private currentHeight = 0;
   private rows: Row[] = [];
+  /** 진행 중인 슬라이드 tween. 새 슬라이드가 시작되면 이전 것을 취소해, 닫힘 tween 의
+   *  onComplete 가 그 사이에 다시 열린 시트를 지워버리는 레이스를 막는다. */
+  private slideTween?: Phaser.Tweens.Tween;
 
   // audioFor() 는 scene.sound / scene.cache 를 만진다. 실제 press 시점까지 미뤄서
   // 오디오 매니저 없는 헤드리스 씬(단위 테스트)에서도 시트를 구성할 수 있게 한다.
@@ -147,20 +150,25 @@ export class BottomSheet {
   hide(): void {
     // isOpen / mode 는 tween 여부와 무관하게 즉시 반영. done 콜백엔 시각 정리만.
     this._mode = null;
+    // done 은 슬라이드아웃이 끝날 때 실행되지만, 그 사이 show* 가 _mode 를 다시 세팅했다면
+    // 이 정리는 낡은 것이므로 아무 것도 하지 않는다(레이스 가드).
     const done = (): void => {
+      if (this._mode !== null) return;
       this.container.setVisible(false);
       this.container.removeAll(true);
       this.rows = [];
-      this._mode = null;
+      this.slideTween = undefined;
     };
+    this.slideTween?.remove();
     if (this.scene.tweens) {
-      this.scene.tweens.add({
+      this.slideTween = this.scene.tweens.add({
         targets: this.container,
         y: GAME_HEIGHT + 40,
         duration: SLIDE_MS,
         onComplete: done,
       });
     } else {
+      this.slideTween = undefined;
       done();
     }
   }
@@ -179,6 +187,7 @@ export class BottomSheet {
   }
 
   destroy(): void {
+    this.slideTween?.remove();
     this.container.destroy();
   }
 
@@ -415,15 +424,19 @@ export class BottomSheet {
   private slideIn(): void {
     this.container.setVisible(true);
     const targetY = GAME_HEIGHT - this.bottomInset;
+    // 대기 중인 닫힘(또는 이전 열림) tween 을 먼저 취소 — 그 onComplete 가 이 시트를 지우지 못하게.
+    this.slideTween?.remove();
     if (this.scene.tweens) {
       this.container.y = GAME_HEIGHT + 40;
-      this.scene.tweens.add({
+      this.slideTween = this.scene.tweens.add({
         targets: this.container,
         y: targetY,
         duration: SLIDE_MS,
         ease: 'Quad.out',
+        onComplete: () => { this.slideTween = undefined; },
       });
     } else {
+      this.slideTween = undefined;
       this.container.y = targetY;
     }
   }
