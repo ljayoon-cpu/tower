@@ -186,7 +186,7 @@ export function spread(keys: string[]): Strategy {
  * 한 종류 타워만 총력전: 같은 레벨 쌍이 생기면 합치고(낮은 레벨부터), 아니면 자리가
  * 남는 한 계속 산다. 그 타워의 이론상 최대 잠재력에 가깝다.
  */
-export function monoTower(key: string): Strategy {
+export function monoTower(key: string, path?: 'a' | 'b'): Strategy {
   const def = getTower(key);
   return c => {
     for (let guard = 0; guard < 400; guard++) {
@@ -198,7 +198,7 @@ export function monoTower(key: string): Strategy {
         pairs.set(t.level, list);
       }
       const lowestPair = [...pairs.entries()].sort((a, b) => a[0] - b[0]).find(([, l]) => l.length >= 2);
-      if (lowestPair) { c.merge(lowestPair[1][0], lowestPair[1][1]); continue; }
+      if (lowestPair) { c.merge(lowestPair[1][0], lowestPair[1][1], path); continue; }
       if (!c.game.eco.canAfford(def.cost)) break;
       const tile = trunkTiles.find(([col, row]) => c.game.grid.canPlace({ col, row }));
       if (!tile || !c.buy(key, ...tile)) break;
@@ -206,7 +206,7 @@ export function monoTower(key: string): Strategy {
   };
 }
 
-export function mergeArmy(keys: string[], maxLevel = 3): Strategy {
+export function mergeArmy(keys: string[], maxLevel = 3, path?: 'a' | 'b'): Strategy {
   return c => {
     // Keep a small mixed core, then raise each core tower in rotation.
     // Pick the first placeable trunk tile per core tower so the strategy
@@ -237,12 +237,12 @@ export function mergeArmy(keys: string[], maxLevel = 3): Strategy {
         while (result.level < targetLevel) {
           const feeder = make(result.level);
           if (!feeder) return null;
-          c.merge(feeder, result);
+          c.merge(feeder, result, path);
         }
         return result;
       };
       const feeder = make(tower.level);
-      if (feeder) c.merge(feeder, tower);
+      if (feeder) c.merge(feeder, tower, path);
     }
     spread(keys)(c);
   };
