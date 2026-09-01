@@ -334,8 +334,13 @@ export class Enemy {
     this.state.applyArmorBreak(percent, durationMs);
   }
 
-  applyPoison(dps: number, durationMs: number): void {
-    this.state.applyPoison(dps, durationMs);
+  applyPoison(source: string, dps: number, durationMs: number): void {
+    this.state.applyPoison(source, dps, durationMs);
+  }
+
+  /** 이번 프레임에 독으로 깎인 체력을 출처(타워 key)별로 반환한다. Game이 기여도 집계에 더한다. */
+  collectPoisonDamage(): { source: string; amount: number }[] {
+    return this.state.collectPoisonDamage();
   }
 
   /** 소환수만 별도 카운트하므로, 웨이브 완료 판정은 부하 처치에 막히지 않는다. */
@@ -428,7 +433,7 @@ export class Enemy {
       this.drawBars();
       const slowed = this.slowLeftMs > 0;
       const frozen = this.state.frozen;
-      const poisoned = this.state.poisonLeftMs > 0;
+      const poisoned = this.state.poisoned;
       const armorBroken = this.state.armorBreakPercent > 0;
       this.slowAura.setVisible(slowed);
       this.freezeAura.setVisible(frozen);

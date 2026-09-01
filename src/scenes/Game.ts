@@ -929,8 +929,13 @@ export class Game extends Phaser.Scene {
   /** enemy.takeDamage + 타워 종류별 기여도 집계. 실제로 깎은 체력+보호막을 누적한다. */
   private dealDamage(towerKey: string, enemy: Enemy, packet: DamagePacket, flash = true): number {
     const dealt = enemy.takeDamage(packet, flash);
-    if (dealt > 0) this.damageByTower.set(towerKey, (this.damageByTower.get(towerKey) ?? 0) + dealt);
+    this.creditDamage(towerKey, dealt);
     return dealt;
+  }
+
+  /** takeDamage를 거치지 않는 피해(독 지속딜 등)를 결과창 타워별 집계에만 더한다. */
+  private creditDamage(towerKey: string, amount: number): void {
+    if (amount > 0) this.damageByTower.set(towerKey, (this.damageByTower.get(towerKey) ?? 0) + amount);
   }
 
   private updateTowers(dtMs: number) {
@@ -1036,11 +1041,11 @@ export class Game extends Phaser.Scene {
               for (const hit of enemiesInRadius(hitPos, s.poisonRadius ?? 0, this.enemies, layers)) {
                 const affected = this.enemies.find((e) => e.id === hit.id);
                 if (affected) this.dealDamage(tower.key, affected, { amount: s.damage, armorPierce: pierce || undefined, kind: 'poison' });
-                affected?.applyPoison(s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
+                affected?.applyPoison(tower.key, s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
                 if (affected && s.poisonSpreadRadius) {
                   for (const near of enemiesInRadius(affected.pos, s.poisonSpreadRadius, this.enemies, layers)) {
                     const ne = this.enemies.find((e) => e.id === near.id);
-                    ne?.applyPoison((s.poisonDps ?? 0) * (s.poisonSpreadRatio ?? 0.5), s.poisonDurationMs ?? 0);
+                    ne?.applyPoison(tower.key, (s.poisonDps ?? 0) * (s.poisonSpreadRatio ?? 0.5), s.poisonDurationMs ?? 0);
                   }
                 }
               }
@@ -1056,7 +1061,7 @@ export class Game extends Phaser.Scene {
               if (s.burnDps) {
                 for (const hit of enemiesInRadius(hitPos, s.burnRadius ?? s.splashRadius ?? 0, this.enemies, layers)) {
                   const be = this.enemies.find((e) => e.id === hit.id);
-                  be?.applyPoison(s.burnDps, s.burnDurationMs ?? 1400);
+                  be?.applyPoison(tower.key, s.burnDps, s.burnDurationMs ?? 1400);
                   if (be) this.impactFlash(be.renderPos, COLORS.cannon, 'light');
                 }
               }
@@ -1301,6 +1306,8 @@ export class Game extends Phaser.Scene {
       e.update(dtMsRaw, this.speedMul);
       const after = e.pos;
       this.enemyMotion.set(e.id, { x: after.x - before.x, y: after.y - before.y });
+      // 독 지속딜은 EnemyState.update 안에서 체력을 깎으므로 dealDamage를 안 거친다 — 여기서 집계에 반영.
+      for (const { source, amount } of e.collectPoisonDamage()) this.creditDamage(source, amount);
       for (const phase of e.collectBossPhases()) {
         this.bus.emit('boss:phase', { name: e.def.name, phaseName: phase.name });
       }

@@ -147,13 +147,26 @@ describe('enemy simulation time', () => {
   });
   it('applies poison damage over simulation time and stops when the effect expires', () => {
     const e = makeEnemy();
-    e.applyPoison(10, 1000);
+    e.applyPoison('poison', 10, 1000);
     e.update(500, 1);
     expect(e.hp).toBeCloseTo(95);
     e.update(500, 1);
     expect(e.hp).toBeCloseTo(90);
     e.update(100, 1);
     expect(e.hp).toBeCloseTo(90);
+  });
+  it('reports poison damage per source so the result screen can credit each tower', () => {
+    const e = makeEnemy();
+    e.applyPoison('poison', 10, 1000);
+    e.applyPoison('cannon', 6, 1000);
+    e.update(1000, 1);
+    expect(e.collectPoisonDamage()).toEqual(
+      expect.arrayContaining([
+        { source: 'poison', amount: 10 },
+        { source: 'cannon', amount: 6 },
+      ]),
+    );
+    expect(e.collectPoisonDamage()).toEqual([]);
   });
 
   it('stops movement for the freeze duration after the third frost hit', () => {

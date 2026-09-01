@@ -33,8 +33,13 @@ export class EnemyState {
 
   hp: number;
   shield: number;
-  poisonDps = 0;
-  poisonLeftMs = 0;
+  /**
+   * 출처(타워 key)별 독 채널. 서로 독립적으로 틱하므로 대포 B의 화상과 독탑의 중독이
+   * 같은 적에게 겹쳐도 약한 쪽이 버려지지 않는다. 같은 출처는 갱신만 한다(자가 중첩 없음).
+   */
+  private poison = new Map<string, { dps: number; leftMs: number }>();
+  /** update()가 이번 프레임에 독으로 깎은 체력을 출처별로 모아둔다. collectPoisonDamage로 수거·초기화. */
+  private poisonDamageDealt = new Map<string, number>();
   freezeLeftMs = 0;
   private freezeHits = 0;
   private freezeCooldownLeftMs = 0;
@@ -81,6 +86,12 @@ export class EnemyState {
     return this.armorBreaks.reduce((hi, e) => Math.max(hi, e.percent), 0);
   }
 
+  /** 어느 출처든 독이 아직 진행 중인지 — 상태 오라·재생 억제 판정용. */
+  get poisoned(): boolean {
+    for (const p of this.poison.values()) if (p.leftMs > 0) return true;
+    return false;
+  }
+
   restoreShield(ratio: number): void {
     this.shield = Math.max(this.shield, this.maxShield * Math.max(0, Math.min(1, ratio)));
   }
@@ -115,10 +126,25 @@ export class EnemyState {
     return { shieldDamage, armorBlocked, healthDamage };
   }
 
-  applyPoison(dps: number, durationMs: number): void {
+  /** `source`는 타워 종류 key. 같은 출처는 세기·지속을 갱신, 다른 출처는 별도 채널로 쌓인다. */
+  applyPoison(source: string, dps: number, durationMs: number): void {
     const resisted = dps * (this.def.poisonResist ?? 1);
-    this.poisonDps = Math.max(this.poisonDps, resisted);
-    this.poisonLeftMs = Math.max(this.poisonLeftMs, durationMs);
+    if (resisted <= 0 || durationMs <= 0) return;
+    const cur = this.poison.get(source);
+    if (cur) {
+      cur.dps = Math.max(cur.dps, resisted);
+      cur.leftMs = Math.max(cur.leftMs, durationMs);
+    } else {
+      this.poison.set(source, { dps: resisted, leftMs: durationMs });
+    }
+  }
+
+  /** 이번 프레임까지 독으로 깎은 체력을 출처별로 반환하고 누적값을 비운다(타워 기여도 집계용). */
+  collectPoisonDamage(): { source: string; amount: number }[] {
+    if (this.poisonDamageDealt.size === 0) return [];
+    const out = [...this.poisonDamageDealt].map(([source, amount]) => ({ source, amount }));
+    this.poisonDamageDealt.clear();
+    return out;
   }
 
   /** 서리 적중을 누적해 정해진 횟수에서만 짧게 빙결시킨다. */
@@ -169,14 +195,21 @@ export class EnemyState {
       .map((e) => ({ percent: e.percent, leftMs: e.leftMs - dt }))
       .filter((e) => e.leftMs > 0);
     const stoppedForMs = Math.max(frozenForMs, staggeredForMs);
-    const poisonedForMs = Math.min(dt, this.poisonLeftMs);
 
-    if (poisonedForMs > 0 && this.alive) {
-      this.hp = Math.max(0, this.hp - (this.poisonDps * poisonedForMs) / 1000);
-      this.poisonLeftMs -= poisonedForMs;
-      if (this.poisonLeftMs <= 0) {
-        this.poisonLeftMs = 0;
-        this.poisonDps = 0;
+    let poisonedForMs = 0;
+    if (this.alive && this.poison.size > 0) {
+      for (const [source, p] of [...this.poison]) {
+        const tickMs = Math.min(dt, p.leftMs);
+        if (tickMs <= 0) continue;
+        poisonedForMs = Math.max(poisonedForMs, tickMs);
+        const before = this.hp;
+        this.hp = Math.max(0, this.hp - (p.dps * tickMs) / 1000);
+        const dealt = before - this.hp;
+        if (dealt > 0) {
+          this.poisonDamageDealt.set(source, (this.poisonDamageDealt.get(source) ?? 0) + dealt);
+        }
+        p.leftMs -= tickMs;
+        if (p.leftMs <= 0) this.poison.delete(source);
       }
     }
 

@@ -109,12 +109,64 @@ describe('EnemyState', () => {
     enemy.update(1000);
     expect(enemy.hp).toBe(60);
 
-    enemy.applyPoison(10, 1000);
+    enemy.applyPoison('poison', 10, 1000);
     enemy.update(1000);
     expect(enemy.hp).toBe(50);
 
     enemy.update(1000);
     expect(enemy.hp).toBe(60);
+  });
+
+  it('attributes each poison tick to its source and drains the tally once collected', () => {
+    const enemy = new EnemyState({ ...shieldedDef, shield: undefined, armor: 0 });
+
+    enemy.applyPoison('poison', 10, 1000);
+    expect(enemy.poisoned).toBe(true);
+    enemy.update(500);
+
+    expect(enemy.hp).toBe(95);
+    expect(enemy.collectPoisonDamage()).toEqual([{ source: 'poison', amount: 5 }]);
+    expect(enemy.collectPoisonDamage()).toEqual([]);
+
+    enemy.update(500);
+    expect(enemy.poisoned).toBe(false);
+    expect(enemy.collectPoisonDamage()).toEqual([{ source: 'poison', amount: 5 }]);
+  });
+
+  it('ticks poison from different sources independently so burn and venom stack', () => {
+    const enemy = new EnemyState({ ...shieldedDef, shield: undefined, armor: 0 });
+
+    enemy.applyPoison('poison', 10, 1000);
+    enemy.applyPoison('cannon', 4, 1000);
+    enemy.update(1000);
+
+    expect(enemy.hp).toBe(86);
+    expect(enemy.collectPoisonDamage()).toEqual(
+      expect.arrayContaining([
+        { source: 'poison', amount: 10 },
+        { source: 'cannon', amount: 4 },
+      ]),
+    );
+  });
+
+  it('refreshes a same-source poison instead of stacking it on itself', () => {
+    const enemy = new EnemyState({ ...shieldedDef, shield: undefined, armor: 0 });
+
+    enemy.applyPoison('poison', 10, 1000);
+    enemy.applyPoison('poison', 6, 1000);
+    enemy.update(1000);
+
+    expect(enemy.hp).toBe(90);
+  });
+
+  it('clamps the killing poison tick to remaining health when attributing it', () => {
+    const enemy = new EnemyState({ ...shieldedDef, hp: 3, shield: undefined, armor: 0 } as EnemyDef);
+
+    enemy.applyPoison('poison', 100, 1000);
+    enemy.update(1000);
+
+    expect(enemy.hp).toBe(0);
+    expect(enemy.collectPoisonDamage()).toEqual([{ source: 'poison', amount: 3 }]);
   });
 
   it('ignoreShield bypasses shield and applies damage directly to health', () => {
