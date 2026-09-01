@@ -854,7 +854,6 @@ export class Game extends Phaser.Scene {
     }
 
     tower.beamLockMs += dtMs;
-    tower.faceToward(enemy.renderPos);
     const dmgPerHit = beamDamage(s.damage, (tower.beamLockMs / 1000) * 2.6, s.beamRampPct ?? 0, s.beamRampMax ?? 1);
     const mult = s.damage > 0 ? dmgPerHit / s.damage : 1;
 
@@ -872,7 +871,6 @@ export class Game extends Phaser.Scene {
     tower.beamFxMs += dtMs;
     if (tower.beamFxMs >= 230) {
       tower.beamFxMs = 0;
-      tower.playAttack();
       this.impactFlash(enemy.renderPos, COLORS.laser, mult > 2 ? 'heavy' : 'light');
       this.audio.play('laser');
     }
@@ -903,7 +901,6 @@ export class Game extends Phaser.Scene {
 
   private updateTowers(dtMs: number, realDtMs: number) {
     for (const tower of this.towers) {
-      tower.updateVisual(dtMs);
       tower.updateSupportGlow(realDtMs);
       const def = getTower(tower.key);
       if (def.attack === 'support') {
@@ -925,8 +922,6 @@ export class Game extends Phaser.Scene {
 
       const enemy = this.enemies.find((e) => e.id === target.id);
       if (!enemy) continue;
-      tower.faceToward(enemy.renderPos);
-      tower.playAttack();
       if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
         this.audio.play(tower.key);
       } else if (tower.key === 'ballista') {
