@@ -20,7 +20,6 @@ import {
 } from '../data/mergeEffects';
 import { canMerge, mergeResultLevel } from '../systems/MergeController';
 import { towerInfo } from '../core/towerInfo';
-import { TARGET_PRIORITY_LABEL } from '../systems/TargetingSystem';
 import type { MergeCandidate } from '../systems/MergeController';
 import { GridManager } from '../systems/GridManager';
 import { PathManager } from '../systems/PathManager';
@@ -200,13 +199,7 @@ export class Game extends Phaser.Scene {
         lineSpacing: 6, backgroundColor: '#0b0c16f2', padding: { x: 12, y: 9 },
       })
       .setDepth(500)
-      .setVisible(false)
-      .setInteractive({ useHandCursor: true });
-    attachPressFeedback(this, this.inspectText, [this.inspectText], this.audio, () => {
-      if (!this.running || this.paused || !this.selectedTower) return;
-      this.selectedTower.cyclePriority();
-      this.showInspect(this.selectedTower);
-    });
+      .setVisible(false);
 
     this.upgradeButton = this.add
       .text(20, 148, '', {
@@ -419,16 +412,10 @@ export class Game extends Phaser.Scene {
         ? `DPS ${info.dps} → ${info.nextDps}`
         : `DPS ${info.dps} (최대)`;
     const rate = Number(info.fireRate.toFixed(2));
-    const isSupport = getTower(tower.key).attack === 'support';
-    const statLine = buffRadius != null
-      ? `사거리 ${buffRadius}   연사 ${rate}/초`
-      : `사거리 ${info.range}   연사 ${rate}/초`;
+    const statLine = `사거리 ${buffRadius ?? info.range}   연사 ${rate}/초`;
     const noteLine = info.note ? `\n${info.note}` : '';
-    const priorityLine = isSupport
-      ? ''
-      : `\n표적: ${TARGET_PRIORITY_LABEL[tower.priority]} ▸ (눌러 변경)`;
     this.inspectText
-      .setText(`${info.name} Lv${info.level}   ${dpsLine}\n${statLine}${noteLine}${priorityLine}`)
+      .setText(`${info.name} Lv${info.level}   ${dpsLine}\n${statLine}${noteLine}`)
       .setVisible(true);
 
     this.refreshUpgradeButton();
