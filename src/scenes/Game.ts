@@ -33,7 +33,6 @@ import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius, towerLayers, eligibleTargets } from '../systems/TargetingSystem';
 import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets } from '../systems/combat';
 import { BottomSheet, type InspectView } from '../ui/BottomSheet';
-import { PathChoiceMenu } from '../ui/PathChoiceMenu';
 import { audioFor } from '../ui/audio';
 import { WorldBackground } from '../ui/worldBackground';
 import { WorldMapPainter, worldTileTextureKey } from '../ui/worldMap';
@@ -87,8 +86,9 @@ export class Game extends Phaser.Scene {
   private projectiles: Projectile[] = [];
   private projectilePool!: Pool<Projectile>;
   private sheet!: BottomSheet;
-  private pathMenu!: PathChoiceMenu;
   private background?: WorldBackground;
+  /** 경로 선택 시트가 A/B 를 돌려줄 때 실행할 대기 중인 강화/머지 액션. */
+  private pendingPathAction?: (p: 'a' | 'b') => void;
   private pendingTile: TileCoord | null = null;
   private buildPreview: Phaser.GameObjects.Arc | null = null;
   private selectedTower?: Tower;
@@ -182,7 +182,6 @@ export class Game extends Phaser.Scene {
       this.input.off('drag');
       this.input.off('dragend');
       this.input.off('pointerup');
-      this.pathMenu?.destroy();
       this.sheet?.destroy();
       this.bus.clear();
       this.scene.stop('hud');
@@ -191,7 +190,6 @@ export class Game extends Phaser.Scene {
     this.drawMap();
     this.setupBuildInput();
     this.setupDragInput();
-    this.pathMenu = new PathChoiceMenu(this);
 
     this.selectedTower = undefined;
 
@@ -372,6 +370,7 @@ export class Game extends Phaser.Scene {
     this.pendingTile = null;
     this.buildPreview?.destroy();
     this.buildPreview = null;
+    this.pendingPathAction = undefined;
   }
 
   /** 시트 판매 버튼 → 선택 타워 판매 확인 팝업. */
@@ -380,8 +379,10 @@ export class Game extends Phaser.Scene {
   }
 
   /** 경로 선택 시트에서 A/B 를 고른 결과를 대기 중인 강화/머지에 전달한다. */
-  private resolvePendingPath(_p: 'a' | 'b'): void {
-    // Task 6
+  private resolvePendingPath(p: 'a' | 'b'): void {
+    const act = this.pendingPathAction;
+    this.pendingPathAction = undefined;
+    act?.(p);
   }
 
   /** except 타워만 사거리 링을 켜고 나머지는 끈다. 선택된 타워는 정보를 표시한다. */
@@ -418,6 +419,8 @@ export class Game extends Phaser.Scene {
       if (this.sheet.mode === 'inspect') this.sheet.hide();
       return;
     }
+    // 경로 선택 시트가 떠 있으면 showInspect 는 내부적으로 no-op — selectedTower 도 바꾸지 않는다.
+    if (this.sheet.mode === 'path') return;
     this.selectedTower = tower;
     this.sheet.showInspect(this.inspectView(tower));
   }
@@ -440,7 +443,8 @@ export class Game extends Phaser.Scene {
       this.showInspect(tower);
     };
     if (tower.needsPathChoice) {
-      this.pathMenu.open(tower.key, tower.homePos, finish);
+      this.pendingPathAction = finish;
+      this.sheet.showPath(tower.key);
     } else finish();
   }
 
@@ -510,7 +514,8 @@ export class Game extends Phaser.Scene {
             };
             if (targetTower.needsPathChoice) {
               this.snapHome(dragged); // 경로 선택 중 드래그한 타워는 원위치로
-              this.pathMenu.open(targetTower.key, targetTower.homePos, doMerge);
+              this.pendingPathAction = doMerge;
+              this.sheet.showPath(targetTower.key);
             } else doMerge();
             return;
           }
@@ -577,7 +582,6 @@ export class Game extends Phaser.Scene {
   }
 
   private removeTower(t: Tower): void {
-    this.pathMenu?.close();
     this.sheet?.hide();
     this.towers = this.towers.filter((x) => x.id !== t.id);
     t.destroy();
@@ -728,7 +732,6 @@ export class Game extends Phaser.Scene {
     this.audio.stop();
     this.input.enabled = false;
     this.sellTimer?.remove();
-    this.pathMenu?.close();
     this.sheet?.hide();
 
     if (this.stage.endless) {

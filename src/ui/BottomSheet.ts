@@ -149,9 +149,6 @@ export class BottomSheet {
 
   hide(): void {
     // isOpen / mode 는 tween 여부와 무관하게 즉시 반영. done 콜백엔 시각 정리만.
-    this._mode = null;
-    // done 은 슬라이드아웃이 끝날 때 실행되지만, 그 사이 show* 가 _mode 를 다시 세팅했다면
-    // 이 정리는 낡은 것이므로 아무 것도 하지 않는다(레이스 가드).
     const done = (): void => {
       if (this._mode !== null) return;
       this.container.setVisible(false);
@@ -159,6 +156,20 @@ export class BottomSheet {
       this.rows = [];
       this.slideTween = undefined;
     };
+    // 이미 닫혀 있거나 슬라이드아웃 중인데 다시 hide() 가 불렸다면(예: removeTower 직후 endStage),
+    // 새 tween 을 걸지 않고 시각 상태만 동기적으로 강제한다. 두 번째 tween 이 또 제거되면
+    // 컨테이너가 슬라이드 중간에 보이는 채로 남는 것을 막는다.
+    if (this._mode === null) {
+      this.slideTween?.remove();
+      this.slideTween = undefined;
+      this.container.setVisible(false);
+      this.container.removeAll(true);
+      this.rows = [];
+      return;
+    }
+    this._mode = null;
+    // done 은 슬라이드아웃이 끝날 때 실행되지만, 그 사이 show* 가 _mode 를 다시 세팅했다면
+    // 이 정리는 낡은 것이므로 아무 것도 하지 않는다(레이스 가드).
     this.slideTween?.remove();
     if (this.scene.tweens) {
       this.slideTween = this.scene.tweens.add({

@@ -149,6 +149,27 @@ describe('BottomSheet slide-tween race', () => {
     expect(s.mode).toBe('build');
     expect(s.isOpen).toBe(true);
   });
+
+  it('two back-to-back hide() calls end hidden without a dangling slide (fix B)', () => {
+    const { scene, flush } = deferredTweenScene();
+    let visible = false;
+    const add = scene.add as unknown as { container: () => Record<string, unknown> };
+    const realContainer = add.container;
+    add.container = () => {
+      const c = realContainer();
+      c.setVisible = (v: boolean) => { visible = v; return c; };
+      return c;
+    };
+    const s = new BottomSheet(scene, opts());
+    s.showInspect(view());   // 시트 열림 (visible === true)
+    s.hide();                // 첫 슬라이드아웃 예약
+    s.hide();                // 두 번째 hide — _mode 가 이미 null → 동기적으로 시각 상태 강제
+    expect(s.isOpen).toBe(false);
+    expect(visible).toBe(false);
+    flush();                 // 남은 onComplete 실행 — 상태 그대로 유지
+    expect(s.isOpen).toBe(false);
+    expect(visible).toBe(false);
+  });
 });
 
 describe('BottomSheet path mode', () => {
