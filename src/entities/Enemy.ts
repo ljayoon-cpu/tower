@@ -29,6 +29,11 @@ const BOSS_WALK_FRAME_MS = 180;
 const BOSS_WALK_FRAME_COUNT = 4;
 const SPLITTERLING_HOVER_FRAME_MS = 100;
 const SPLITTERLING_HOVER_FRAME_COUNT = 4;
+const DRONE_HOVER_FRAME_MS = 90;
+const GUNSHIP_HOVER_FRAME_MS = 180;
+const CARRIER_HOVER_FRAME_MS = 220;
+const AIRBOSS_HOVER_FRAME_MS = 260;
+const AIR_HOVER_FRAME_COUNT = 4;
 
 /** 질주병의 이동 시간에 해당하는 스프라이트 시트 프레임. */
 export function fastWalkFrameAt(elapsedMs: number): number {
@@ -88,6 +93,26 @@ export function bossWalkFrameAt(elapsedMs: number): number {
 /** 분해 파편은 궤도 조각을 빠르게 돌리며 부유한다. */
 export function splitterlingHoverFrameAt(elapsedMs: number): number {
   return Math.floor(elapsedMs / SPLITTERLING_HOVER_FRAME_MS) % SPLITTERLING_HOVER_FRAME_COUNT;
+}
+
+/** 정찰 비행체는 빠른 엔진 맥동으로 민첩한 실루엣을 유지한다. */
+export function droneHoverFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / DRONE_HOVER_FRAME_MS) % AIR_HOVER_FRAME_COUNT;
+}
+
+/** 포격 비행정은 무거운 포신과 엔진을 느린 박자로 부유시킨다. */
+export function gunshipHoverFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / GUNSHIP_HOVER_FRAME_MS) % AIR_HOVER_FRAME_COUNT;
+}
+
+/** 강하 수송선은 큰 화물칸이 읽히도록 가장 느린 일반 편대 리듬을 쓴다. */
+export function carrierHoverFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / CARRIER_HOVER_FRAME_MS) % AIR_HOVER_FRAME_COUNT;
+}
+
+/** 공중 기함은 엔진 코어의 묵직한 맥동에 맞춰 가장 느리게 부유한다. */
+export function airbossHoverFrameAt(elapsedMs: number): number {
+  return Math.floor(elapsedMs / AIRBOSS_HOVER_FRAME_MS) % AIR_HOVER_FRAME_COUNT;
 }
 
 export class Enemy {
@@ -154,6 +179,10 @@ export class Enemy {
     if (def.key === 'crusher') this.sprite.setScale(0.66);
     if (def.key === 'boss') this.sprite.setScale(0.7);
     if (def.key === 'splitterling') this.sprite.setScale(0.28);
+    if (def.key === 'drone') this.sprite.setScale(0.25);
+    if (def.key === 'gunship') this.sprite.setScale(0.4);
+    if (def.key === 'carrier') this.sprite.setScale(0.44);
+    if (def.key === 'airboss') this.sprite.setScale(0.62);
     this.barWidth = def.isBoss ? 54 : 22;
     this.healthBar = scene.add.graphics().setDepth(15).setVisible(false);
     this.shieldBar = scene.add.graphics().setDepth(15).setVisible(false);
@@ -328,6 +357,7 @@ export class Enemy {
   }
 
   private static readonly WALK_ANIMATED = new Set(['fast', 'normal', 'tank', 'shield', 'regenerator', 'summoner', 'minion', 'splitter', 'berserker', 'crusher', 'boss', 'splitterling']);
+  private static readonly AIR_ANIMATED = new Set(['drone', 'gunship', 'carrier', 'airboss']);
 
   private updateWalkAnimation(movingMs: number): void {
     if (movingMs <= 0 || !Enemy.WALK_ANIMATED.has(this.def.key)) return;
@@ -348,6 +378,17 @@ export class Enemy {
     sprite.setFrame?.(frame);
   }
 
+  private updateAirAnimation(movingMs: number): void {
+    if (movingMs <= 0 || !Enemy.AIR_ANIMATED.has(this.def.key)) return;
+    this.walkElapsedMs += movingMs;
+    const sprite = this.sprite as Phaser.GameObjects.Image & { setFrame?: (frame: number) => unknown };
+    const frame = this.def.key === 'drone' ? droneHoverFrameAt(this.walkElapsedMs)
+      : this.def.key === 'gunship' ? gunshipHoverFrameAt(this.walkElapsedMs)
+        : this.def.key === 'carrier' ? carrierHoverFrameAt(this.walkElapsedMs)
+          : airbossHoverFrameAt(this.walkElapsedMs);
+    sprite.setFrame?.(frame);
+  }
+
   update(dtMs: number, speedMul: number): void {
     if (!this.alive) return;
     const simulationMs = dtMs * speedMul;
@@ -356,7 +397,7 @@ export class Enemy {
     if (!this.alive) { this.hideIndicators(); return; }
 
     const movingMs = simulationMs - frozenMs;
-    if (this.layer === 'air') this.walkElapsedMs += movingMs;
+    if (this.layer === 'air') this.updateAirAnimation(movingMs);
     else this.updateWalkAnimation(movingMs);
     const slowedMs = Math.min(movingMs, Math.max(0, this.slowLeftMs));
     // 광전사: 체력이 rageBelow 이하면 이동속도 폭증.

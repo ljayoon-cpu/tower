@@ -43,21 +43,7 @@ export function buildTextures(scene: Phaser.Scene): void {
   // 파쇄 전차는 강철 궤도와 전면 분쇄기가 보이는 애니메이션 시트를 Preload에서 로드한다.
   // 공성 지휘관은 왕관·방패·지휘 코어가 보이는 애니메이션 시트를 Preload에서 로드한다.
 
-  // 공중 편대: 전부 하늘빛 계열, 실루엣으로 역할 구분.
-  g.clear(); g.fillStyle(0x9fd8ff, 1); g.fillTriangle(11, 2, 21, 20, 1, 20); g.fillStyle(0xe7f6ff, 1); g.fillCircle(11, 13, 3);
-  g.generateTexture('enemy_drone', 22, 22);
-  g.clear(); g.fillStyle(0x7cc0ef, 1);
-  g.fillPoints([new Phaser.Math.Vector2(4, 14), new Phaser.Math.Vector2(14, 4), new Phaser.Math.Vector2(30, 4), new Phaser.Math.Vector2(36, 14), new Phaser.Math.Vector2(30, 24), new Phaser.Math.Vector2(14, 24)], true);
-  g.fillStyle(0x2c3d4d, 1); g.fillRect(15, 10, 12, 8); g.generateTexture('enemy_gunship', 40, 28);
-  g.clear(); g.fillStyle(0x6fb4e6, 1); g.fillRoundedRect(2, 6, 40, 22, 8);
-  g.fillStyle(0x2b3b4a, 1); g.fillRect(8, 12, 28, 10);
-  g.fillStyle(0x9fd8ff, 1); g.fillTriangle(0, 6, 8, 6, 4, 0); g.fillTriangle(44, 6, 36, 6, 40, 0);
-  g.generateTexture('enemy_carrier', 46, 34);
-  g.clear(); g.fillStyle(0x2b4a63, 1); g.fillCircle(30, 30, 26);
-  g.fillStyle(0x8ad0ff, 1); g.fillCircle(30, 30, 19);
-  g.fillStyle(0xdff2ff, 1); g.fillTriangle(2, 34, 22, 26, 16, 44); g.fillTriangle(58, 34, 38, 26, 44, 44);
-  g.fillStyle(0x16283a, 1); g.fillRect(20, 26, 20, 14);
-  g.lineStyle(3, 0xdff2ff, 0.9); g.strokeCircle(30, 30, 25); g.generateTexture('enemy_airboss', 60, 60);
+  // 공중 편대는 Preload의 128px 4프레임 시트를 사용한다.
 
   circle('projectile', COLORS.text, 5);
   square('tile', 0xffffff, TILE); // tint 로 색 입힘

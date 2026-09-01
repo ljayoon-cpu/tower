@@ -1,7 +1,8 @@
 import type Phaser from 'phaser';
 import {
-  berserkerWalkFrameAt, bossWalkFrameAt, crusherWalkFrameAt, Enemy, fastWalkFrameAt, minionHoverFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt,
-  shieldWalkFrameAt, splitterlingHoverFrameAt, splitterWalkFrameAt, summonerWalkFrameAt, tankWalkFrameAt,
+  airbossHoverFrameAt, berserkerWalkFrameAt, bossWalkFrameAt, carrierHoverFrameAt, crusherWalkFrameAt, droneHoverFrameAt, Enemy, fastWalkFrameAt,
+  gunshipHoverFrameAt, minionHoverFrameAt, normalWalkFrameAt, regeneratorWalkFrameAt, shieldWalkFrameAt, splitterlingHoverFrameAt, splitterWalkFrameAt,
+  summonerWalkFrameAt, tankWalkFrameAt,
 } from '../../src/entities/Enemy';
 import type { EnemyDef } from '../../src/core/types';
 
@@ -172,6 +173,15 @@ describe('enemy simulation time', () => {
 
 const AIR_ALTITUDE = 22;
 
+describe('world 3 air squadron hover animation', () => {
+  it('uses a distinct four-frame rhythm for each aircraft role', () => {
+    expect([0, 89, 90, 180, 270, 360].map(droneHoverFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+    expect([0, 179, 180, 360, 540, 720].map(gunshipHoverFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+    expect([0, 219, 220, 440, 660, 880].map(carrierHoverFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+    expect([0, 259, 260, 520, 780, 1040].map(airbossHoverFrameAt)).toEqual([0, 0, 1, 2, 3, 0]);
+  });
+});
+
 describe('air enemy', () => {
   it('reports the air layer; pos stays on the ground projection, renderPos rides at altitude', () => {
     const e = makeEnemy(100, { key: 'drone', movementLayer: 'air' });
@@ -182,6 +192,7 @@ describe('air enemy', () => {
     expect(e.renderPos.y).toBeCloseTo(e.pos.y - AIR_ALTITUDE, -1); // 스프라이트 = 지상점 - 고도 (±부유 2px)
     expect(e.renderPos.y).toBeLessThan(e.pos.y - AIR_ALTITUDE + 2.001);
     expect((e.sprite as unknown as { y: number }).y).toBe(e.renderPos.y);
+    expect((e.sprite as unknown as { frame: number }).frame).toBe(1);
   });
 
   it('defaults to ground layer with pos === renderPos === sprite', () => {
