@@ -116,4 +116,17 @@ describe('EnemyState', () => {
     enemy.update(1000);
     expect(enemy.hp).toBe(60);
   });
+
+  it('ignoreShield bypasses shield and applies damage directly to health', () => {
+    const enemy = new EnemyState(shieldedDef);
+    expect(enemy.shield).toBe(40);
+    expect(enemy.hp).toBe(100);
+
+    const report = enemy.applyDamage({ amount: 50, ignoreShield: true });
+
+    expect(report.shieldDamage).toBe(0);
+    expect(report.healthDamage).toBeGreaterThan(0);
+    expect(enemy.shield).toBe(40); // shield unchanged
+    expect(enemy.hp).toBeLessThan(100); // health reduced
+  });
 });

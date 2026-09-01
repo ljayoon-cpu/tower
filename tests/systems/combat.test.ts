@@ -1,5 +1,5 @@
 import {
-  chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier,
+  chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets,
 } from '../../src/systems/combat';
 import type { Targetable } from '../../src/systems/TargetingSystem';
 
@@ -76,5 +76,33 @@ describe('buildChain', () => {
     const primary = mk(1, 0, 0);
     const all = [primary, mk(2, 20, 0, false), mk(3, 25, 0)];
     expect(buildChain(primary, all, 40, 2).map((t) => t.id)).toEqual([1, 3]);
+  });
+});
+
+describe('pierceLineTargets', () => {
+  it('returns alive enemies along a ray from origin to target, ordered by distance', () => {
+    const origin = { x: 0, y: 0 };
+    const target = { x: 100, y: 0 };
+    const enemies = [
+      mk(1, 30, 0),
+      mk(2, 70, 0),
+      mk(3, 50, 0),
+    ];
+    const result = pierceLineTargets(origin, target, enemies, 20);
+    expect(result.map((e) => e.id)).toEqual([1, 3, 2]); // ordered along the line
+  });
+
+  it('excludes enemies outside the band and dead enemies', () => {
+    const origin = { x: 0, y: 0 };
+    const target = { x: 100, y: 0 };
+    const enemies = [
+      mk(1, 30, 0),    // on line
+      mk(2, 30, 50),   // off line, outside band
+      mk(3, 70, 0),    // on line
+      mk(4, 70, 8),    // near line, inside band
+      mk(5, 50, 20, false), // off line, but dead
+    ];
+    const result = pierceLineTargets(origin, target, enemies, 20);
+    expect(result.map((e) => e.id)).toEqual([1, 3, 4]);
   });
 });

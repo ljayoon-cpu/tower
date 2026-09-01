@@ -93,3 +93,28 @@ export function buildChain(
   }
   return chain;
 }
+
+/**
+ * origin→target 방향 반직선에서 `bandWidth` 이내 살아있는 적, 진행 순서로 정렬.
+ */
+export function pierceLineTargets(
+  origin: Vec2, target: Vec2, enemies: Targetable[], bandWidth: number,
+): Targetable[] {
+  const dx = target.x - origin.x, dy = target.y - origin.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  const half = bandWidth / 2;
+  return enemies
+    .filter((e) => {
+      if (!e.alive) return false;
+      const rx = e.pos.x - origin.x, ry = e.pos.y - origin.y;
+      const along = rx * ux + ry * uy;             // 라인 진행 거리
+      const perp = Math.abs(rx * uy - ry * ux);    // 라인에서 수직 거리
+      return along >= -8 && perp <= half;
+    })
+    .sort((a, b) => {
+      const aa = (a.pos.x - origin.x) * ux + (a.pos.y - origin.y) * uy;
+      const bb = (b.pos.x - origin.x) * ux + (b.pos.y - origin.y) * uy;
+      return aa - bb;
+    });
+}

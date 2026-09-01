@@ -12,6 +12,8 @@ export interface DamagePacket {
   armorPierce?: number;
   /** 이 피해를 준 타워 공격 종류. 적별 상성 배율(EnemyDef.resist)에 쓰인다. */
   kind?: AttackKind;
+  /** 방어막을 무시하고 체력에 바로 적용할지 여부. */
+  ignoreShield?: boolean;
 }
 
 export interface DamageReport {
@@ -83,17 +85,28 @@ export class EnemyState {
     this.shield = Math.max(this.shield, this.maxShield * Math.max(0, Math.min(1, ratio)));
   }
 
-  applyDamage({ amount, armorPierce = 0, kind }: DamagePacket): DamageReport {
+  applyDamage({ amount, armorPierce = 0, kind, ignoreShield = false }: DamagePacket): DamageReport {
     const resist = kind ? (this.def.resist?.[kind] ?? 1) : 1;
     const incoming = Math.max(0, amount * resist);
-    const shieldDamage = Math.min(this.shield, incoming);
-    this.shield -= shieldDamage;
 
-    if (this.maxShield > 0 && shieldDamage > 0) {
-      this.shieldRechargeLeftMs = this.shieldRechargeDelayMs;
+    let shieldDamage = 0;
+    let afterShield = incoming;
+
+    if (ignoreShield) {
+      // 방어막 무시: 전량 체력으로
+      // shieldDamage stays 0, this.shield unchanged
+    } else if (this.shield > 0) {
+      // 기존 방어막 흡수
+      shieldDamage = Math.min(this.shield, incoming);
+      this.shield -= shieldDamage;
+
+      if (this.maxShield > 0 && shieldDamage > 0) {
+        this.shieldRechargeLeftMs = this.shieldRechargeDelayMs;
+      }
+
+      afterShield = incoming - shieldDamage;
     }
 
-    const afterShield = incoming - shieldDamage;
     const effectiveArmor = this.armor * (1 - this.armorBreakPercent);
     const armorBlocked = Math.min(afterShield, Math.max(0, effectiveArmor - armorPierce));
     const healthDamage = Math.min(this.hp, afterShield - armorBlocked);
