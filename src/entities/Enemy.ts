@@ -209,9 +209,10 @@ export class Enemy {
   /** 0~1. 남은 체력 비율(음수는 0으로 고정). */
   get healthRatio(): number { return Math.max(0, this.state.hp) / this.state.maxHp; }
 
-  takeDamage(packet: number | DamagePacket, flash = true): void {
-    if (!this.alive) return;
-    this.state.applyDamage(typeof packet === 'number' ? { amount: packet } : packet);
+  /** 실제로 깎은 체력+보호막 총량을 돌려준다(타워별 기여도 집계용). */
+  takeDamage(packet: number | DamagePacket, flash = true): number {
+    if (!this.alive) return 0;
+    const report = this.state.applyDamage(typeof packet === 'number' ? { amount: packet } : packet);
     this.advanceBossPhases();
     if (!this.alive) {
       this.hideIndicators();
@@ -219,6 +220,7 @@ export class Enemy {
       if (flash) this.flashHit();
       this.drawBars();
     }
+    return report.shieldDamage + report.healthDamage;
   }
 
   /** 새로 발동한 보스 단계를 한 번만 반환한다. HUD가 경고 문구를 표시할 때 사용한다. */

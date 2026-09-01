@@ -14,10 +14,40 @@ export interface ResultData {
   startLives: number;
   /** 무한 모드 결과. 있으면 별점 대신 도달 웨이브를 보여준다. */
   endless?: { reached: number; best: number; prevBest: number };
+  /** 타워 종류별 누적 피해(많은 순). 결과 화면에 기여도 막대로 표시. */
+  damage?: { key: string; name: string; damage: number }[];
 }
 
 export class Result extends Phaser.Scene {
   constructor() { super('result'); }
+
+  /** 타워별 피해 기여도를 막대로. topY 에서 시작해 마지막 줄 아래 y 를 돌려준다. */
+  private renderDamage(cx: number, topY: number, list: NonNullable<ResultData['damage']>): number {
+    if (!list.length) return topY;
+    const rows = list.slice(0, 5);
+    const total = list.reduce((sum, r) => sum + r.damage, 0) || 1;
+    const max = rows[0].damage || 1;
+    const barX = cx - 150;
+    const barW = 300;
+
+    this.add.text(cx, topY, '타워별 피해', {
+      fontFamily: 'monospace', fontSize: '18px', color: '#8d98bb',
+    }).setOrigin(0.5);
+
+    let y = topY + 34;
+    for (const r of rows) {
+      this.add.text(barX, y, r.name, {
+        fontFamily: 'monospace', fontSize: '16px', color: '#cdd6f4',
+      }).setOrigin(0, 0.5);
+      this.add.text(barX + barW, y, `${r.damage.toLocaleString()}  ·  ${Math.round((r.damage / total) * 100)}%`, {
+        fontFamily: 'monospace', fontSize: '15px', color: '#9fb0d0',
+      }).setOrigin(1, 0.5);
+      this.add.rectangle(barX, y + 15, barW, 7, 0x2a2d44).setOrigin(0, 0.5);
+      this.add.rectangle(barX, y + 15, Math.max(3, barW * (r.damage / max)), 7, 0x66ccff).setOrigin(0, 0.5);
+      y += 40;
+    }
+    return y;
+  }
 
   create(data: ResultData) {
     const audio = audioFor(this);
@@ -52,8 +82,9 @@ export class Result extends Phaser.Scene {
         }).setOrigin(0.5);
         attachPressFeedback(this, bg, [bg, text], audio, onClick);
       };
-      eButton(720, '다시 도전', () => fadeToScene(this, 'game', { stageId: data.stageId }));
-      eButton(820, '메인 메뉴', () => fadeToScene(this, 'mainmenu'));
+      this.renderDamage(cx, 600, data.damage ?? []);
+      eButton(900, '다시 도전', () => fadeToScene(this, 'game', { stageId: data.stageId }));
+      eButton(1000, '메인 메뉴', () => fadeToScene(this, 'mainmenu'));
       return;
     }
 
@@ -86,7 +117,8 @@ export class Result extends Phaser.Scene {
       }).setOrigin(0.5);
       attachPressFeedback(this, bg, [bg, text], audio, onClick);
     };
-    let y = 680;
+    const dmgBottom = this.renderDamage(cx, 620, data.damage ?? []);
+    let y = Math.max(700, dmgBottom + 24);
     const next = nextStageId(data.stageId);
     if (data.won && next) {
       button(y, '다음 스테이지 ▶', () => fadeToScene(this, 'game', { stageId: next }));
