@@ -31,7 +31,7 @@ import { Tower } from '../entities/Tower';
 import { Projectile } from '../entities/Projectile';
 import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius, towerLayers, eligibleTargets } from '../systems/TargetingSystem';
-import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier } from '../systems/combat';
+import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets } from '../systems/combat';
 import { BuildMenu } from '../ui/BuildMenu';
 import { PathChoiceMenu } from '../ui/PathChoiceMenu';
 import { audioFor } from '../ui/audio';
@@ -939,6 +939,17 @@ export class Game extends Phaser.Scene {
         this.updateBeamTower(tower, dtMs);
         continue;
       }
+      const sAura = this.effectiveStats(tower);
+      if (sAura.slowAura) {
+        const auraLayers = towerLayers(def.targetsGround, def.targetsAir);
+        for (const hit of enemiesInRadius(tower.homePos, sAura.slowAuraRadius ?? 0, this.enemies, auraLayers)) {
+          const e = this.enemies.find((x) => x.id === hit.id);
+          if (!e) continue;
+          e.applySlow(sAura.slowMul ?? 1, 200);
+          this.dealDamage(tower.key, e, { amount: (sAura.damage * dtMs) / 1000, kind: 'slow' }, false);
+        }
+        continue;
+      }
       tower.cooldownMs -= dtMs;
       if (tower.cooldownMs > 0) continue;
       const s = this.effectiveStats(tower);
@@ -979,7 +990,7 @@ export class Game extends Phaser.Scene {
               const e = this.enemies.find((x) => x.id === hit.id);
               if (!e) return;
               const airMul = e.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;
-              this.dealDamage(tower.key, e, { amount: dmgs[i] * airMul, kind: 'chain' });
+              this.dealDamage(tower.key, e, { amount: dmgs[i] * airMul, kind: 'chain', ignoreShield: s.shieldPierce });
               if (e.alive) this.knockbackEnemy(e);
               const stunned = stagger ? e.applyStagger(stagger.durationMs, stagger.cooldownMs) : false;
               this.impactFlash(e.renderPos, COLORS.bolt, stunned ? 'stagger' : 'light');
@@ -1014,6 +1025,12 @@ export class Game extends Phaser.Scene {
                 const affected = this.enemies.find((e) => e.id === hit.id);
                 if (affected) this.dealDamage(tower.key, affected, { amount: s.damage, armorPierce: pierce || undefined, kind: 'poison' });
                 affected?.applyPoison(s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
+                if (affected && s.poisonSpreadRadius) {
+                  for (const near of enemiesInRadius(affected.pos, s.poisonSpreadRadius, this.enemies, layers)) {
+                    const ne = this.enemies.find((e) => e.id === near.id);
+                    ne?.applyPoison((s.poisonDps ?? 0) * (s.poisonSpreadRatio ?? 0.5), s.poisonDurationMs ?? 0);
+                  }
+                }
               }
             } else if (def.attack === 'splash') {
               this.impactFlash(hitPos, COLORS.cannon, 'heavy');
@@ -1024,10 +1041,28 @@ export class Game extends Phaser.Scene {
                 affected?.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
               }
               this.startHitstop();
+              if (s.burnDps) {
+                for (const hit of enemiesInRadius(hitPos, s.burnRadius ?? s.splashRadius ?? 0, this.enemies, layers)) {
+                  const be = this.enemies.find((e) => e.id === hit.id);
+                  be?.applyPoison(s.burnDps, s.burnDurationMs ?? 1400);
+                  if (be) this.impactFlash(be.renderPos, COLORS.cannon, 'light');
+                }
+              }
             } else {
               const e = this.enemies.find((x) => x.id === shot.id);
               if (!e || !e.alive) return;
               const airMul = e.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;
+              if (s.pierceAll) {
+                for (const hit of pierceLineTargets(tower.homePos, e.renderPos, eligible, TILE * 0.9)) {
+                  const pe = this.enemies.find((x) => x.id === hit.id);
+                  if (!pe) continue;
+                  const am = pe.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;
+                  this.dealDamage(tower.key, pe, { amount: shot.damage * am, armorPierce: s.armorPierce ?? 0, kind: 'single' });
+                  this.impactFlash(pe.renderPos, COLORS.sniper, 'light');
+                }
+                this.startHitstop();
+                return;
+              }
               if (def.key === 'sniper') {
                 this.dealDamage(tower.key, e, {
                   amount: shot.damage * executeMultiplier(s, e.healthRatio) * airMul,
