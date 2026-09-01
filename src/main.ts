@@ -9,6 +9,7 @@ import { Game } from './scenes/Game';
 import { HUD } from './scenes/HUD';
 import { Result } from './scenes/Result';
 import { Shop } from './scenes/Shop';
+import { Codex } from './scenes/Codex';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -20,7 +21,7 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [Boot, Preload, MainMenu, StageSelect, Game, HUD, Result, Shop],
+  scene: [Boot, Preload, MainMenu, StageSelect, Game, HUD, Result, Shop, Codex],
 });
 
 if (import.meta.env.DEV) {
