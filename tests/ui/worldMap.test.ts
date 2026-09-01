@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  battlefieldLandmarkKind, landmarkCells, worldLabel, worldMapTheme, worldTileTextureKey,
+  battlefieldLandmarkKind, landmarkCells, worldLabel, worldMapTheme, worldTileStyle, worldTileTextureKey,
 } from '../../src/ui/worldMap';
 
 describe('world map theme', () => {
@@ -24,6 +24,17 @@ describe('world map theme', () => {
     expect(worldTileTextureKey('1', 'BUILDABLE')).toBe('world1_buildable');
     expect(worldTileTextureKey('2', 'BUILDABLE')).toBe('world2_buildable');
     expect(worldTileTextureKey('3', 'BUILDABLE')).toBe('world3_buildable');
+  });
+
+  it('keeps paths clearer than build slots on every world map', () => {
+    for (const world of ['1', '2', '3']) {
+      const path = worldTileStyle(world, 'PATH');
+      const buildable = worldTileStyle(world, 'BUILDABLE');
+
+      expect(path.edgeAlpha).toBeGreaterThan(buildable.edgeAlpha);
+      expect(path.edgeWidth).toBeGreaterThan(buildable.edgeWidth);
+      expect(buildable.detailAlpha).toBeLessThanOrEqual(0.42);
+    }
   });
 
   it('chooses a stable landmark type for each world', () => {
