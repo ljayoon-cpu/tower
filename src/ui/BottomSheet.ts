@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import type { SoundEffects } from '../core/audio';
+import type { TowerDef } from '../core/types';
 import { TOWER_KEYS, getTower } from '../data/towers';
 import { audioFor } from './audio';
 import { attachPressFeedback } from './interactionFeedback';
@@ -32,6 +33,25 @@ const ROW_H = 62;
 const COL_W = 186;
 const COLS = 2;
 const SLIDE_MS = 90;
+
+// 경로 선택 카드 — 옛 PathChoiceMenu 수치 그대로.
+const CARD_W = 200;
+const CARD_H = 150;
+const GAP = 14;
+
+/**
+ * 분기 타워별 경로 엠블럼 파일명 (`public/art/paths/<name>.png`, 64×64).
+ * 텍스처 키는 `path_<towerKey>_<a|b>`. T-later: Preload 에서 이 맵으로 load.image 배선 후
+ * buildPath 의 `textures.exists` 가드를 제거한다.
+ */
+export const PATH_EMBLEM: Record<string, { a: string; b: string }> = {
+  arrow: { a: 'arrow-rapid-emblem-v1', b: 'arrow-pierce-emblem-v1' },
+  cannon: { a: 'cannon-suppress', b: 'cannon-carpet' },
+  frost: { a: 'frost-freeze', b: 'frost-aura' },
+  bolt: { a: 'bolt-overload', b: 'bolt-lance' },
+  sniper: { a: 'sniper-execute', b: 'sniper-rail' },
+  poison: { a: 'poison-corrupt', b: 'poison-spread' },
+};
 
 interface Row {
   key: string;
@@ -74,6 +94,7 @@ export class BottomSheet {
   }
 
   showBuild(): void {
+    if (this._mode === 'path') return; // 경로 선택은 모달 — 해결/취소 전까지 무시.
     this.buildBuild();
     this._mode = 'build';
     this.slideIn();
@@ -96,8 +117,24 @@ export class BottomSheet {
 
   /** 타워 탭 → 정보/강화/판매 시트. path 모드에서의 전환 가드는 Task 3 담당. */
   showInspect(view: InspectView): void {
+    if (this._mode === 'path') return; // 경로 선택 중에는 무시 (refreshInspect 도 _mode 가드됨).
     this.buildInspect(view);
     this._mode = 'inspect';
+    this.slideIn();
+  }
+
+  /**
+   * 분기 타워를 머지/강화로 Lv3 에 올릴 때 경로 A/B 선택 시트.
+   * 분기 없는 타워면 열지 않고 즉시 'a' 로 자동 확정.
+   */
+  showPath(towerKey: string): void {
+    const def = getTower(towerKey);
+    if (!def.paths) {
+      this.opts.onPathPick('a');
+      return;
+    }
+    this.buildPath(def);
+    this._mode = 'path';
     this.slideIn();
   }
 
@@ -155,10 +192,7 @@ export class BottomSheet {
     const h = ROW_H * perCol + 16;
 
     // 원점 하단 기준: 컨테이너를 화면 바닥에 두고 자식을 음수 y 로 쌓는다.
-    const bg = this.scene.add
-      .rectangle(0, -h / 2, w, h, 0x11121f, 0.96)
-      .setStrokeStyle(2, 0x66ccff);
-    this.container.add(bg);
+    this.container.add(this.panelBg(w, h));
 
     TOWER_KEYS.forEach((key, i) => {
       const def = getTower(key);
@@ -217,10 +251,7 @@ export class BottomSheet {
     const w = GAME_WIDTH - 24;
     const h = 60 + view.lines.length * 34 + 64;
 
-    const bg = this.scene.add
-      .rectangle(0, -h / 2, w, h, 0x11121f, 0.96)
-      .setStrokeStyle(2, 0x66ccff);
-    this.container.add(bg);
+    this.container.add(this.panelBg(w, h));
 
     const title = this.scene.add.text(-w / 2 + 20, -h + 20, view.title, {
       fontFamily: 'monospace',
@@ -282,6 +313,98 @@ export class BottomSheet {
       this.opts.onSell(),
     );
     this.container.add([sellBtn, sellLabel, sellHit]);
+
+    this.currentHeight = h;
+  }
+
+  /** 시트 패널 배경 — 하단 원점 기준 (`y = -h/2`), 세 모드 공통. */
+  private panelBg(w: number, h: number): Phaser.GameObjects.Rectangle {
+    return this.scene.add
+      .rectangle(0, -h / 2, w, h, 0x11121f, 0.96)
+      .setStrokeStyle(2, 0x66ccff);
+  }
+
+  /** 경로 A/B 선택 시트를 컨테이너에 구성한다. 백드롭 → 패널 → 카드 순으로 쌓는다. */
+  private buildPath(def: TowerDef): void {
+    this.container.removeAll(true);
+    this.rows = [];
+    const paths = def.paths;
+    if (!paths) return; // 호출부(showPath)에서 이미 가드됨.
+
+    // 백드롭 먼저 — 컨테이너 자식이라 카드 아래에 깔린다. 컨테이너가 화면 바닥에 있고
+    // 높이 GAME_HEIGHT*2 라 container.y 와 무관하게 화면 전체를 덮어 보드 입력을 막는다.
+    const backdrop = this.scene.add
+      .rectangle(0, -GAME_HEIGHT, GAME_WIDTH, GAME_HEIGHT * 2, 0x000000, 0.55)
+      .setInteractive();
+    backdrop.on('pointerup', () => {
+      this.hide();
+      this.opts.onDismiss();
+    });
+    this.container.add(backdrop);
+
+    const w = CARD_W * 2 + GAP + 24;
+    const h = CARD_H + 64;
+    this.container.add(this.panelBg(w, h));
+
+    const title = this.scene.add
+      .text(0, -h + 18, `${def.name} — 경로 선택`, {
+        fontFamily: 'monospace',
+        fontSize: '18px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5);
+    this.container.add(title);
+
+    (['a', 'b'] as const).forEach((p) => {
+      const path = paths[p];
+      const cx = (p === 'a' ? -1 : 1) * (CARD_W + GAP) / 2;
+      const cy = -h / 2 + 12;
+      const l5 = path.levels[2];
+      const dps = Math.round(
+        l5.damage * l5.fireRate * ((l5.projectileCount ?? 1) * (l5.projectileDamageMultiplier ?? 1)),
+      );
+
+      const card = this.scene.add
+        .rectangle(cx, cy, CARD_W, CARD_H, 0x1b1d33)
+        .setStrokeStyle(2, 0x2f3350);
+      const name = this.scene.add
+        .text(cx, cy - CARD_H / 2 + 18, path.name, {
+          fontFamily: 'monospace',
+          fontSize: '17px',
+          fontStyle: 'bold',
+          color: '#ffcc44',
+        })
+        .setOrigin(0.5);
+      const desc = this.scene.add
+        .text(cx, cy + 10, `${path.desc}\n\nLv5  DPS ${dps}\n사거리 ${l5.range}`, {
+          fontFamily: 'monospace',
+          fontSize: '13px',
+          color: '#cdd6f4',
+          align: 'center',
+          wordWrap: { width: CARD_W - 20 },
+        })
+        .setOrigin(0.5);
+      this.container.add([card, name, desc]);
+
+      // T-later: Preload these (PATH_EMBLEM) + drop the guard.
+      const emblemKey = `path_${def.key}_${p}`;
+      if (PATH_EMBLEM[def.key] && this.scene.textures?.exists?.(emblemKey)) {
+        const emblem = this.scene.add
+          .image(cx, cy - CARD_H / 2 + 46, emblemKey)
+          .setScale(0.5);
+        this.container.add(emblem);
+      }
+
+      const cardHit = this.scene.add
+        .rectangle(cx, cy, CARD_W, CARD_H, 0xffffff, 0.001)
+        .setInteractive({ useHandCursor: true });
+      attachPressFeedback(this.scene, cardHit, [card, name], this.audio, () => {
+        this.hide();
+        this.opts.onPathPick(p);
+      });
+      this.container.add(cardHit);
+    });
 
     this.currentHeight = h;
   }

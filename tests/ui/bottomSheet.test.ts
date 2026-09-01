@@ -99,3 +99,58 @@ describe('BottomSheet inspect mode', () => {
     expect(interactiveCalls).toBeGreaterThanOrEqual(2); // upgrade hit + sell hit
   });
 });
+
+describe('BottomSheet path mode', () => {
+  it('path mode blocks build/inspect until resolved', () => {
+    const o = opts();
+    const s = new BottomSheet(fakeScene(), o);
+    s.showPath('bolt');
+    expect(s.mode).toBe('path');
+    s.showBuild();
+    expect(s.mode).toBe('path'); // 무시
+    s.showInspect({ title: 'x', lines: [], upgrade: null, sell: { label: 'y' } });
+    expect(s.mode).toBe('path'); // 무시
+    expect(o.onPathPick).not.toHaveBeenCalled();
+    s.hide();
+    expect(s.mode).toBeNull();
+    s.showBuild();
+    expect(s.mode).toBe('build'); // 이제 가능
+  });
+
+  it('non-branched tower resolves to a immediately without opening', () => {
+    const o = opts();
+    const s = new BottomSheet(fakeScene(), o);
+    s.showPath('laser'); // laser 는 paths 없음
+    expect(o.onPathPick).toHaveBeenCalledWith('a');
+    expect(s.isOpen).toBe(false);
+  });
+
+  it('backdrop tap dismisses without picking a path', () => {
+    // buildPath wires the full-screen backdrop (first rectangle it adds) to hide + onDismiss.
+    const o = opts();
+    const scene = fakeScene();
+    const add = scene.add as unknown as { rectangle: () => Record<string, unknown> };
+    const realRect = add.rectangle;
+    const handlers: Record<string, () => void> = {};
+    let first = true;
+    add.rectangle = () => {
+      const r = realRect();
+      if (first) {
+        first = false;
+        r.on = (ev: string, fn: () => void) => {
+          handlers[ev] = fn;
+          return r;
+        };
+        r.setInteractive = () => r;
+      }
+      return r;
+    };
+    const s = new BottomSheet(scene, o);
+    s.showPath('bolt');
+    expect(s.mode).toBe('path');
+    handlers.pointerup?.();
+    expect(o.onDismiss).toHaveBeenCalledTimes(1);
+    expect(o.onPathPick).not.toHaveBeenCalled();
+    expect(s.mode).toBeNull();
+  });
+});
