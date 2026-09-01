@@ -29,6 +29,28 @@ export interface TowerLevelStats {
   /** 공중 표적에 곱하는 피해 배율. 기본 1. 대공탑(창공탑)이 크게 가진다. */
   airDamageMultiplier?: number;
 
+  // --- 머지 3·5합 능력 (경로 stat 으로 이관) ---
+  /** 서리탑: freezeHits 회 적중마다 짧게 빙결. */
+  freezeHits?: number; freezeDurationMs?: number; freezeCooldownMs?: number;
+  /** 번개탑: 적중 시 이동 정지(재발동 대기). */
+  staggerDurationMs?: number; staggerCooldownMs?: number;
+  /** 저격탑: 체력 executeHealthRatio 이하 적에게 executeDamageMultiplier 배. */
+  executeHealthRatio?: number; executeDamageMultiplier?: number;
+  /** 역병탑: 독탄 직접 피해가 무시하는 방어력. */
+  poisonArmorPierce?: number;
+
+  // --- 경로 B 신규 메커니즘 ---
+  /** 역병 B: 중독 적 주변으로 전염(개당 poisonDps × poisonSpreadRatio). */
+  poisonSpreadRadius?: number; poisonSpreadRatio?: number;
+  /** 저격 B: 투사체가 tower→target 라인의 모든 적을 관통. */
+  pierceAll?: boolean;
+  /** 서리 B: 투사체 대신 반경 내 상시 감속·소량 피해. */
+  slowAura?: boolean; slowAuraRadius?: number;
+  /** 번개 B: 방어막을 완전히 무시. */
+  shieldPierce?: boolean;
+  /** 대포 B: 착탄 지점 지면 화상 장판. */
+  burnDps?: number; burnDurationMs?: number; burnRadius?: number;
+
   // 화살탑 머지 3·5합: 한 번에 여러 발을 근처 표적에 쏜다.
   projectileCount?: number;
   projectileDamageMultiplier?: number;   // 멀티샷 한 발의 피해 배율
@@ -51,6 +73,14 @@ export interface TowerLevelStats {
   mineWaveBonus?: number;  // 금광탑 3·5합: 웨이브 클리어마다 추가 골드
 }
 
+/** Lv3 분기 경로 하나. levels 는 정확히 3 = Lv3, Lv4, Lv5. */
+export interface TowerPathDef {
+  key: 'a' | 'b';
+  name: string;
+  desc: string;
+  levels: TowerLevelStats[]; // 정확히 3 = Lv3, Lv4, Lv5
+}
+
 export interface TowerDef {
   key: string;
   name: string;
@@ -62,6 +92,8 @@ export interface TowerDef {
   /** 공중 표적을 조준하는가. 기본 true. 파열탑·역병탑은 false. */
   targetsAir?: boolean;
   levels: TowerLevelStats[]; // length === maxLevel, index 0 = Lv1
+  /** 있으면 분기 타워: levels 는 Lv1~2, Lv3~5 는 paths 에서 고른다. */
+  paths?: { a: TowerPathDef; b: TowerPathDef };
 }
 
 export type MovementLayer = 'ground' | 'air';
