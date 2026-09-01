@@ -418,13 +418,17 @@ export class Game extends Phaser.Scene {
       : info.nextDps != null
         ? `DPS ${info.dps} → ${info.nextDps}`
         : `DPS ${info.dps} (최대)`;
-    const parts = [buffRadius != null ? `사거리 ${buffRadius}` : `사거리 ${info.range}`];
-    if (info.note) parts.push(info.note);
-    const priorityLine = getTower(tower.key).attack === 'support'
+    const rate = Number(info.fireRate.toFixed(2));
+    const isSupport = getTower(tower.key).attack === 'support';
+    const statLine = buffRadius != null
+      ? `사거리 ${buffRadius}   연사 ${rate}/초`
+      : `사거리 ${info.range}   연사 ${rate}/초`;
+    const noteLine = info.note ? `\n${info.note}` : '';
+    const priorityLine = isSupport
       ? ''
       : `\n표적: ${TARGET_PRIORITY_LABEL[tower.priority]} ▸ (눌러 변경)`;
     this.inspectText
-      .setText(`${info.name} Lv${info.level}   ${dpsLine}\n${parts.join('   ')}${priorityLine}`)
+      .setText(`${info.name} Lv${info.level}   ${dpsLine}\n${statLine}${noteLine}${priorityLine}`)
       .setVisible(true);
 
     this.refreshUpgradeButton();
