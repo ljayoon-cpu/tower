@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { buildTextures } from '../ui/textures';
 import { SOUND_ENABLED } from '../core/constants';
 import { SFX_KEYS } from '../core/audio';
+import { PATH_EMBLEMS } from '../data/pathEmblems';
 
 export class Preload extends Phaser.Scene {
   constructor() { super('preload'); }
@@ -19,6 +20,9 @@ export class Preload extends Phaser.Scene {
       ['tower_ballista', 'ballista-tower-sheet-v1'],
     ] as const) {
       this.load.spritesheet(key, `art/towers/${file}.png`, { frameWidth: 64, frameHeight: 64 });
+    }
+    for (const emblem of PATH_EMBLEMS) {
+      this.load.image(emblem.texture, `art/paths/${emblem.file}`);
     }
     // 지상 보병·공중 편대·분열체·특수 유닛은 128px 4프레임 시트를 쓰고, Enemy가 이동 시간에 맞춰 프레임을 순환한다.
     for (const [key, file] of [
