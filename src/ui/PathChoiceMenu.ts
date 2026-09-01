@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import { getTower } from '../data/towers';
+import { pathEmblemKey } from '../data/pathEmblems';
 import { audioFor } from './audio';
 import { attachPressFeedback } from './interactionFeedback';
 
 const CARD_W = 200;
-const CARD_H = 150;
+const CARD_H = 180;
 const GAP = 14;
 
 export class PathChoiceMenu {
@@ -33,13 +34,16 @@ export class PathChoiceMenu {
       const name = this.scene.add.text(cx, 12 - CARD_H / 2 + 18, path.name, {
         fontFamily: 'monospace', fontSize: '19px', fontStyle: 'bold', color: '#ffcc44',
       }).setOrigin(0.5);
+      const emblemKey = pathEmblemKey(towerKey, p);
+      if (!emblemKey) throw new Error(`Missing path emblem: ${towerKey}/${p}`);
+      const emblem = this.scene.add.image(cx, 12 - 22, emblemKey).setDisplaySize(52, 52);
       const l5 = path.levels[2];
-      const desc = this.scene.add.text(cx, 12, `${path.desc}\n\nLv5  DPS ${Math.round((l5.damage) * (l5.fireRate) * ((l5.projectileCount ?? 1) * (l5.projectileDamageMultiplier ?? 1)))}\n사거리 ${l5.range}`, {
+      const desc = this.scene.add.text(cx, 12 + 42, `${path.desc}\n\nLv5  DPS ${Math.round((l5.damage) * (l5.fireRate) * ((l5.projectileCount ?? 1) * (l5.projectileDamageMultiplier ?? 1)))}\n사거리 ${l5.range}`, {
         fontFamily: 'monospace', fontSize: '13px', color: '#cdd6f4', align: 'center',
         wordWrap: { width: CARD_W - 20 },
       }).setOrigin(0.5);
-      attachPressFeedback(this.scene, card, [card, name], audio, () => { this.close(); onPick(p); });
-      this.container.add([card, name, desc]);
+      attachPressFeedback(this.scene, card, [card, name, emblem], audio, () => { this.close(); onPick(p); });
+      this.container.add([card, name, emblem, desc]);
     });
     const px = Phaser.Math.Clamp(at.x, w / 2 + 8, GAME_WIDTH - w / 2 - 8);
     const py = Phaser.Math.Clamp(at.y, h / 2 + 150, GAME_HEIGHT - h / 2 - 10);
