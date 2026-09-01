@@ -8,14 +8,22 @@ import type { EnemyDef } from '../../src/core/types';
 
 // Minimal rendering boundary; movement and status effects use the real Enemy.
 function makeEnemy(hp = 100, extras: Partial<EnemyDef> = {}) {
+  let imageCount = 0;
   const sprite = {
     x: 0, y: 0,
     frame: 0,
     setPosition(x: number, y: number) { this.x = x; this.y = y; return this; },
     setFrame(frame: number) { this.frame = frame; return this; },
     setScale() { return this; },
+    setTint() { return this; },
+    setAlpha() { return this; },
     setVisible() { return this; },
     setDepth() { return this; },
+  };
+  const contrastLayer = {
+    setPosition() { return this; }, setFrame() { return this; }, setScale() { return this; },
+    setTint() { return this; }, setAlpha() { return this; }, setVisible() { return this; },
+    setDepth() { return this; }, destroy() {},
   };
   const bar = {
     clear() { return this; }, fillStyle() { return this; }, fillRect() { return this; },
@@ -28,13 +36,70 @@ function makeEnemy(hp = 100, extras: Partial<EnemyDef> = {}) {
   };
   const scene = {
     add: {
-      image: () => sprite, graphics: () => bar, circle: () => arc,
+      image: () => imageCount++ === 2 ? sprite : contrastLayer, graphics: () => bar, circle: () => arc,
       ellipse: () => arc,
     },
   } as unknown as Phaser.Scene;
   return new Enemy(scene, { key: 'normal', name: '', hp, speed: 100, bounty: 1, lifeDamage: 1, ...extras },
     [{ x: 0, y: 0 }, { x: 0, y: 10000 }]);
 }
+
+function makeVisualEnemy(hp = 100, extras: Partial<EnemyDef> = {}) {
+  const images: Array<{
+    x: number; y: number; frame: number; texture: string; scale: number; depth: number; alpha: number; tint: number;
+    setPosition(x: number, y: number): unknown; setFrame(frame: number): unknown; setScale(scale: number): unknown;
+    setDepth(depth: number): unknown; setAlpha(alpha: number): unknown; setTint(tint: number): unknown;
+    setVisible(): unknown; destroy(): void;
+  }> = [];
+  const image = (x: number, y: number, texture: string) => {
+    const item = {
+      x, y, texture, frame: 0, scale: 1, depth: 0, alpha: 1, tint: 0xffffff,
+      setPosition(nx: number, ny: number) { this.x = nx; this.y = ny; return this; },
+      setFrame(frame: number) { this.frame = frame; return this; },
+      setScale(scale: number) { this.scale = scale; return this; },
+      setDepth(depth: number) { this.depth = depth; return this; },
+      setAlpha(alpha: number) { this.alpha = alpha; return this; },
+      setTint(tint: number) { this.tint = tint; return this; },
+      setVisible() { return this; }, destroy() {},
+    };
+    images.push(item);
+    return item;
+  };
+  const bar = {
+    clear() { return this; }, fillStyle() { return this; }, fillRect() { return this; },
+    setDepth() { return this; }, setVisible() { return this; }, setPosition() { return this; }, destroy() {},
+  };
+  const arc = {
+    setDepth() { return this; }, setVisible() { return this; }, setPosition() { return this; },
+    setStrokeStyle() { return this; }, destroy() {},
+  };
+  const scene = {
+    add: { image, graphics: () => bar, circle: () => arc, ellipse: () => arc },
+  } as unknown as Phaser.Scene;
+  const enemy = new Enemy(scene, { key: 'normal', name: '', hp, speed: 100, bounty: 1, lifeDamage: 1, ...extras },
+    [{ x: 0, y: 0 }, { x: 0, y: 10000 }]);
+  return { enemy, images };
+}
+
+describe('enemy contrast layers', () => {
+  it('keeps a dark outline and a faint rim synchronized with the animated sprite', () => {
+    const { enemy, images } = makeVisualEnemy();
+    expect(images).toHaveLength(3);
+    const [outline, rim, body] = images;
+    expect(outline).toMatchObject({ texture: 'enemy_normal', tint: 0x060914, alpha: 0.9 });
+    expect(rim).toMatchObject({ texture: 'enemy_normal', tint: 0x9edfff, alpha: 0.35 });
+    expect(outline.depth).toBeLessThan(body.depth);
+    expect(rim.depth).toBeLessThan(body.depth);
+    expect(outline.scale).toBeGreaterThan(body.scale);
+
+    enemy.update(160, 1);
+    expect(outline.frame).toBe(1);
+    expect(rim.frame).toBe(1);
+    expect(outline.y).toBe(body.y);
+    expect(rim.x).toBeLessThan(body.x);
+    expect(rim.y).toBeLessThan(body.y);
+  });
+});
 
 describe('enemy health ratio', () => {
   it('reports full health until damaged, then clamps at zero', () => {
