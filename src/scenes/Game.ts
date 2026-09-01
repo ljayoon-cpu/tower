@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   COLORS, TILE, GRID_COLS, GRID_ROWS, GAME_WIDTH, GAME_HEIGHT,
-  waveInterestRate, WAVE_INTEREST_CAP, WORLD_THEMES,
+  waveInterestRate, WAVE_INTEREST_CAP,
 } from '../core/constants';
 import { createEventBus } from '../core/eventBus';
 import type { EventBus } from '../core/eventBus';
@@ -39,6 +39,7 @@ import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot } 
 import { BuildMenu } from '../ui/BuildMenu';
 import { audioFor } from '../ui/audio';
 import { WorldBackground } from '../ui/worldBackground';
+import { WorldMapPainter, worldTileTextureKey } from '../ui/worldMap';
 import { attachPressFeedback, fadeInFromBlack, fadeToScene } from '../ui/interactionFeedback';
 import type { SoundEffects } from '../core/audio';
 import type { HudInit } from './HUD';
@@ -326,18 +327,19 @@ export class Game extends Phaser.Scene {
 
   private drawMap() {
     const world = this.stage.id.split('-')[0];
-    const theme = WORLD_THEMES[world] ?? WORLD_THEMES['1'];
     this.background = new WorldBackground(this, world);
+    const mapPainter = new WorldMapPainter(this, world, this.stage.grid);
+    mapPainter.drawDecorations();
     for (let r = 0; r < GRID_ROWS; r++) {
       for (let c = 0; c < GRID_COLS; c++) {
         const t = this.grid.tileAt({ col: c, row: r });
         if (t === null || t === 'BLOCKED') continue;
-        const img = this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, 'tile');
+        const img = this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, worldTileTextureKey(world, t));
         img.setDisplaySize(TILE - 2, TILE - 2);
-        img.setTint(t === 'PATH' ? theme.path : theme.buildable);
-        img.setAlpha(0.9);
+        img.setAlpha(0.98);
       }
     }
+    mapPainter.drawStageLandmarks(this.stage);
   }
 
   private setupBuildInput() {
