@@ -40,18 +40,18 @@ const CARD_H = 150;
 const GAP = 14;
 
 /**
- * 분기 타워별 경로 엠블럼 파일명 (`public/art/paths/<name>.png`, 64×64).
- * 텍스처 키는 `path_<towerKey>_<a|b>`. T-later: Preload 에서 이 맵으로 load.image 배선 후
- * buildPath 의 `textures.exists` 가드를 제거한다.
+ * 경로 엠블럼이 있는 분기 타워 키. 텍스처는 Preload 가 `path_<towerKey>_<a|b>` 키로
+ * `public/art/paths/<tower>-<variant>-emblem-v1.png` 를 로드한다. buildPath 는 이 집합
+ * 소속 여부만 보고, 실제 그리기 전 `textures.exists` 로 한 번 더 가드한다(헤드리스 안전).
  */
-export const PATH_EMBLEM: Record<string, { a: string; b: string }> = {
-  arrow: { a: 'arrow-rapid-emblem-v1', b: 'arrow-pierce-emblem-v1' },
-  cannon: { a: 'cannon-suppress', b: 'cannon-carpet' },
-  frost: { a: 'frost-freeze', b: 'frost-aura' },
-  bolt: { a: 'bolt-overload', b: 'bolt-lance' },
-  sniper: { a: 'sniper-execute', b: 'sniper-rail' },
-  poison: { a: 'poison-corrupt', b: 'poison-spread' },
-};
+export const PATH_EMBLEM: ReadonlySet<string> = new Set([
+  'arrow',
+  'cannon',
+  'frost',
+  'bolt',
+  'sniper',
+  'poison',
+]);
 
 interface Row {
   key: string;
@@ -387,9 +387,8 @@ export class BottomSheet {
         .setOrigin(0.5);
       this.container.add([card, name, desc]);
 
-      // T-later: Preload these (PATH_EMBLEM) + drop the guard.
       const emblemKey = `path_${def.key}_${p}`;
-      if (PATH_EMBLEM[def.key] && this.scene.textures?.exists?.(emblemKey)) {
+      if (PATH_EMBLEM.has(def.key) && this.scene.textures?.exists?.(emblemKey)) {
         const emblem = this.scene.add
           .image(cx, cy - CARD_H / 2 + 46, emblemKey)
           .setScale(0.5);

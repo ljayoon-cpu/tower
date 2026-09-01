@@ -41,6 +41,18 @@ export class Preload extends Phaser.Scene {
     ] as const) {
       this.load.spritesheet(key, `art/enemies/${file}.png`, { frameWidth: 128, frameHeight: 128 });
     }
+    // 분기 타워 경로 선택 시트의 엠블럼 (`public/art/paths/<tower>-<variant>-emblem-v1.png`).
+    // 텍스처 키는 `path_<towerKey>_<a|b>` — BottomSheet.buildPath 가 이 키로 참조한다.
+    for (const [key, file] of [
+      ['path_arrow_a', 'arrow-rapid-emblem-v1'], ['path_arrow_b', 'arrow-pierce-emblem-v1'],
+      ['path_cannon_a', 'cannon-suppress-emblem-v1'], ['path_cannon_b', 'cannon-carpet-emblem-v1'],
+      ['path_frost_a', 'frost-freeze-emblem-v1'], ['path_frost_b', 'frost-aura-emblem-v1'],
+      ['path_bolt_a', 'bolt-overload-emblem-v1'], ['path_bolt_b', 'bolt-lance-emblem-v1'],
+      ['path_sniper_a', 'sniper-execute-emblem-v1'], ['path_sniper_b', 'sniper-rail-emblem-v1'],
+      ['path_poison_a', 'poison-corrupt-emblem-v1'], ['path_poison_b', 'poison-spread-emblem-v1'],
+    ] as const) {
+      this.load.image(key, `art/paths/${file}.png`);
+    }
     if (SOUND_ENABLED) {
       for (const key of SFX_KEYS) this.load.audio(`sfx_${key}`, `sfx/${key}.wav`);
     }

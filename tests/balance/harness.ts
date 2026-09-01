@@ -90,7 +90,11 @@ export function simulate(stage: StageDef, strategy: Strategy, seed = 1, speed = 
       graphics: () => new DisplayObject(),
     },
     input: { setDraggable() {}, manager: { pointers: [] } },
-    buildMenu: { close() {} },
+    sheet: {
+      mode: null, isOpen: false,
+      hide() {}, refreshBuild() {}, refreshInspect() {}, showBuild() {},
+      showInspect() {}, showPath() {}, setBottomInset() {}, destroy() {},
+    },
     sound: { mute: true, play() {} },
     cache: { audio: { exists: () => false } },
     audio: { play() {}, stop() {} },
