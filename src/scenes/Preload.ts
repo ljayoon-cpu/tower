@@ -16,6 +16,7 @@ export class Preload extends Phaser.Scene {
       ['tower_laser', 'laser-tower-sheet-v1'],
       ['tower_command', 'command-tower-sheet-v1'],
       ['tower_mine', 'mine-tower-sheet-v1'],
+      ['tower_ballista', 'ballista-tower-sheet-v1'],
     ] as const) {
       this.load.spritesheet(key, `art/towers/${file}.png`, { frameWidth: 64, frameHeight: 64 });
     }
