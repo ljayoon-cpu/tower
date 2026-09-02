@@ -83,10 +83,14 @@ export interface StrategyContext {
 }
 export type Strategy = (context: StrategyContext) => void;
 
-export function simulate(stage: StageDef, strategy: Strategy, seed = 1, speed = 1): BalanceReport {
+export function simulate(
+  stage: StageDef, strategy: Strategy, seed = 1, speed = 1,
+  opts: { onReaction?: (el: string, byTowerKey: string) => void } = {},
+): BalanceReport {
   const scene = new Game();
   const game = scene as unknown as GameBoundary;
   Object.assign(scene, {
+    onReaction: opts.onReaction,
     add: {
       image: (x: number, y: number) => new DisplayObject(x, y),
       circle: (x: number, y: number) => new DisplayObject(x, y),

@@ -5,7 +5,7 @@ import {
 } from '../core/constants';
 import { createEventBus } from '../core/eventBus';
 import type { EventBus } from '../core/eventBus';
-import type { GameEvents, StageDef, TileCoord, TowerLevelStats, Vec2 } from '../core/types';
+import type { ElementKind, GameEvents, StageDef, TileCoord, TowerLevelStats, Vec2 } from '../core/types';
 import { Pool } from '../core/pool';
 import { getStage, nextStageId } from '../data/stages';
 import { starsFor } from '../core/stars';
@@ -31,8 +31,8 @@ import { Tower } from '../entities/Tower';
 import { Projectile } from '../entities/Projectile';
 import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius, towerLayers, eligibleTargets } from '../systems/TargetingSystem';
-import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets, isOrthAdjacent } from '../systems/combat';
-import { elementOf } from '../data/reactions';
+import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets, isOrthAdjacent, frostCollapseDamage, reactionBonusDamage, dischargeTargets } from '../systems/combat';
+import { elementOf, REACTIONS, MARK_DURATION_MS, FROST_COLLAPSE, CORROSION_BURST, OVERHEAT } from '../data/reactions';
 import { BottomSheet, type InspectView } from '../ui/BottomSheet';
 import { audioFor } from '../ui/audio';
 import { WorldBackground } from '../ui/worldBackground';
@@ -104,6 +104,8 @@ export class Game extends Phaser.Scene {
   private chargedTowers = new Set<Tower>();
   /** 충전된 타워가 1기라도 있는 key — dealDamage 훅에서 O(1) 조회. */
   private chargedKeys = new Set<string>();
+  /** 테스트 계측용 — 반응이 터질 때마다 호출(프로덕션에선 미설정). */
+  private onReaction?: (el: ElementKind, byTowerKey: string) => void;
   /** 강한 한 방 뒤에 전투 시간만 잠시 멈춘다. 실제 Phaser 장면에서만 시작된다. */
   private hitstopLeftMs = 0;
   /** 직전 프레임의 이동 벡터. 피격 넉백을 진행 방향 반대로 보이게 한다. */
@@ -933,7 +935,74 @@ export class Game extends Phaser.Scene {
   private dealDamage(towerKey: string, enemy: Enemy, packet: DamagePacket, flash = true): number {
     const dealt = enemy.takeDamage(packet, flash);
     this.creditDamage(towerKey, dealt);
+    this.resonanceHook(towerKey, enemy, dealt);
     return dealt;
+  }
+
+  /** 공명: 지원탑이 아니면 다른 각인을 격발하고, 충전된 원소 첨탑이면 자기 각인을 남긴다. */
+  private resonanceHook(towerKey: string, enemy: Enemy, dealt: number): void {
+    if (!enemy.alive && enemy.markedElement == null) return;
+    const def = getTower(towerKey);
+    if (def.attack === 'support') return;
+    const towerEl = elementOf(towerKey);
+
+    // 물리 타워(towerEl === null)는 원소 불문 아무 각인이나 소비한다.
+    // 원소 타워는 다른 원소의 각인만 소비한다(같은 원소면 consumeElementalMark 가 null 반환).
+    const consumed = enemy.consumeElementalMark(towerEl);
+    if (consumed) this.runReaction(consumed, towerKey, enemy, dealt);
+
+    if (towerEl && this.chargedKeys.has(towerKey) && enemy.alive) {
+      enemy.applyElementalMark(towerEl, MARK_DURATION_MS);
+    }
+  }
+
+  /**
+   * 4대 반응. 각 반응의 후속타는 `byTowerKey` 로 `dealDamage` 를 다시 부르지만 재귀는 깊이 1로 끝난다:
+   * 이 시점엔 각인이 이미 소비돼(consumeElementalMark → null) 재격발이 없고, 후속타를 쏜 타워가
+   * 충전 원소 타워가 아니면(대개 물리 기폭탑 or 방금 소비된 원소) 새 각인도 남지 않는다.
+   */
+  private runReaction(el: ElementKind, byTowerKey: string, target: Enemy, dealtAmount: number): void {
+    target.startReactionCooldown(el, REACTIONS[el].cooldownMs);
+    this.onReaction?.(el, byTowerKey);
+    const reactionColor: Record<ElementKind, number> = {
+      ice: COLORS.frost, lightning: COLORS.bolt, decay: COLORS.poison, fire: COLORS.cannon,
+    };
+
+    if (el === 'ice') {
+      const amount = frostCollapseDamage(target.state.maxHp);
+      this.dealDamage(byTowerKey, target, { amount, kind: 'single', ignoreShield: true, armorPierce: 9999 }, false);
+      target.applySlow(FROST_COLLAPSE.slowMul, FROST_COLLAPSE.slowDurationMs);
+    } else if (el === 'lightning') {
+      const jolt = reactionBonusDamage(dealtAmount, 0.35, 40);
+      for (const hit of dischargeTargets(target.pos, this.enemies, target.id)) {
+        const e = this.enemies.find((x) => x.id === hit.id);
+        if (e) this.dealDamage(byTowerKey, e, { amount: jolt, kind: 'chain' }, false);
+      }
+    } else if (el === 'decay') {
+      const dps = target.strongestPoisonDps();
+      const burst = CORROSION_BURST.flat + dps * CORROSION_BURST.poisonDpsRatio;
+      this.dealDamage(byTowerKey, target, { amount: burst, kind: 'poison' }, false);
+      if (dps > 0) {
+        const layers = towerLayers(true, false);
+        let n = 0;
+        for (const hit of enemiesInRadius(target.pos, CORROSION_BURST.spreadRadius, this.enemies, layers)) {
+          if (hit.id === target.id || n >= CORROSION_BURST.spreadMaxTargets) continue;
+          const e = this.enemies.find((x) => x.id === hit.id);
+          if (!e) continue;
+          // 진짜 타워 key 로 독을 건다 — Game.update 의 collectPoisonDamage 크레딧 루프가 자동 귀속.
+          e.applyPoison(byTowerKey, dps * CORROSION_BURST.spreadDpsRatio, CORROSION_BURST.spreadDurationMs);
+          n++;
+        }
+      }
+    } else { // fire
+      target.applyArmorBreak(OVERHEAT.armorBreakPercent, OVERHEAT.armorBreakDurationMs);
+      target.applyPoison(byTowerKey, OVERHEAT.burnDps, OVERHEAT.burnDurationMs);
+      this.dealDamage(byTowerKey, target, {
+        amount: reactionBonusDamage(dealtAmount, OVERHEAT.detonatorRatio, 0), kind: 'splash',
+      }, false);
+    }
+
+    this.impactFlash(target.renderPos, reactionColor[el], el === 'ice' ? 'frost' : 'heavy');
   }
 
   /** takeDamage를 거치지 않는 피해(독 지속딜 등)를 결과창 타워별 집계에만 더한다. */
