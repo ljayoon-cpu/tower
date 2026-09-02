@@ -30,6 +30,10 @@ class DisplayObject {
   setScale() { return this; }
   setRotation() { return this; }
   setRadius() { return this; }
+  setOrigin() { return this; }
+  setAlpha() { return this; }
+  setTo() { return this; }
+  setLineWidth() { return this; }
   setActive() { return this; }
   setTexture() { return this; }
   setFrame() { return this; }
@@ -88,6 +92,7 @@ export function simulate(stage: StageDef, strategy: Strategy, seed = 1, speed = 
       circle: (x: number, y: number) => new DisplayObject(x, y),
       ellipse: (x: number, y: number) => new DisplayObject(x, y),
       graphics: () => new DisplayObject(),
+      line: (x: number, y: number) => new DisplayObject(x, y),
     },
     input: { setDraggable() {}, manager: { pointers: [] } },
     sheet: {

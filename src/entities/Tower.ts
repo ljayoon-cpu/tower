@@ -23,6 +23,8 @@ export class Tower {
   level = 1;
   /** 분기 타워(paths)의 선택 경로. Lv3 진입 시 확정된다. */
   path: 'a' | 'b' | null = null;
+  /** 공명 충전 상태 — Game.recomputeCharged 가 매 배치 변경마다 갱신한다. 공명선·정보 시트용. */
+  charged = false;
   /** 표적 우선순위. 플레이어가 선택 패널에서 순환시킨다. */
   priority: TargetPriority = 'first';
   /** 발사 쿨다운(ms). Task 15 에서 사용. */

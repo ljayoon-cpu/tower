@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { BossPhaseDef, EnemyDef, MovementLayer, Vec2 } from '../core/types';
+import type { BossPhaseDef, ElementKind, EnemyDef, MovementLayer, Vec2 } from '../core/types';
 import { PathManager } from '../systems/PathManager';
 import { EnemyState, type DamagePacket, type EnemyModifiers } from '../systems/EnemyState';
 
@@ -336,6 +336,26 @@ export class Enemy {
 
   applyPoison(source: string, dps: number, durationMs: number): void {
     this.state.applyPoison(source, dps, durationMs);
+  }
+
+  applyElementalMark(element: ElementKind, durationMs: number): void {
+    this.state.applyElementalMark(element, durationMs);
+  }
+
+  consumeElementalMark(byElement: ElementKind | null): ElementKind | null {
+    return this.state.consumeElementalMark(byElement);
+  }
+
+  get markedElement(): ElementKind | null {
+    return this.state.markedElement;
+  }
+
+  startReactionCooldown(element: ElementKind, ms: number): void {
+    this.state.startReactionCooldown(element, ms);
+  }
+
+  strongestPoisonDps(): number {
+    return this.state.strongestPoisonDps();
   }
 
   /** 이번 프레임에 독으로 깎인 체력을 출처(타워 key)별로 반환한다. Game이 기여도 집계에 더한다. */
