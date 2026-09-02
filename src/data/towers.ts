@@ -38,7 +38,7 @@ export const TOWERS: Record<string, TowerDef> = {
   cannon: {
     // 광역. 단일 화력·연사는 화살보다 낮지만 뭉친 적을 한 번에 친다.
     key: 'cannon', name: '파열탑', attack: 'splash', cost: 110, maxLevel: 5,
-    targetsAir: false,
+    targetsAir: false, element: 'fire',
     levels: [
       { damage: 24, range: 132, fireRate: 0.58, splashRadius: 58 },
       { damage: 44, range: 138, fireRate: 0.62, splashRadius: 66 },
@@ -64,7 +64,7 @@ export const TOWERS: Record<string, TowerDef> = {
   },
   frost: {
     // 감속이 정체성이지만 데미지도 화살에 약간 못 미치는 수준으로 받쳐, 혼자서도 초반은 넘긴다.
-    key: 'frost', name: '서리탑', attack: 'slow', cost: 60, maxLevel: 5,
+    key: 'frost', name: '서리탑', attack: 'slow', cost: 60, maxLevel: 5, element: 'ice',
     // 감속률은 완만하게: 10 / 15 / 20 / 25 / 30 %. 65%까지 갔던 예전엔 후반 적이 사실상 멈췄다.
     levels: [
       { damage: 10, range: 142, fireRate: 1.7, slowMul: 0.90, slowDurationMs: 1200 },
@@ -91,7 +91,7 @@ export const TOWERS: Record<string, TowerDef> = {
   },
   bolt: {
     // 체인 라이트닝: 1차 대상 명중 후 근처 적에게 순차 전이, 전이마다 데미지 ×chainFalloff.
-    key: 'bolt', name: '번개탑', attack: 'chain', cost: 95, maxLevel: 5,
+    key: 'bolt', name: '번개탑', attack: 'chain', cost: 95, maxLevel: 5, element: 'lightning',
     levels: [
       { damage: 7,  range: 150, fireRate: 2.4, chainTargets: 2, chainFalloff: 0.55, chainRange: 90 },
       { damage: 12, range: 160, fireRate: 2.5, chainTargets: 2, chainFalloff: 0.60, chainRange: 98 },
@@ -146,7 +146,7 @@ export const TOWERS: Record<string, TowerDef> = {
     // 좁은 반경에 중독을 갱신하는 지속 피해형. 스웜엔 훌륭하지만 단일 대상 화력이
     // 낮아 보스전은 혼자 못 끝낸다.
     key: 'poison', name: '역병탑', attack: 'poison', cost: 90, maxLevel: 5,
-    targetsAir: false,
+    targetsAir: false, element: 'decay',
     levels: [
       { damage: 2, range: 148, fireRate: 1.3, poisonDps: 8,  poisonDurationMs: 1500, poisonRadius: 52 },
       { damage: 4, range: 158, fireRate: 1.4, poisonDps: 15, poisonDurationMs: 1600, poisonRadius: 60 },

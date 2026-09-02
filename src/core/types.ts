@@ -11,6 +11,9 @@ export interface PathNode {
 
 export type AttackKind = 'single' | 'splash' | 'slow' | 'chain' | 'poison' | 'beam' | 'support';
 
+/** 원소 첨탑의 원소. 충전 시 명중한 적에게 이 원소의 각인을 남긴다. */
+export type ElementKind = 'ice' | 'lightning' | 'decay' | 'fire';
+
 export interface TowerLevelStats {
   damage: number;
   range: number;        // 픽셀
@@ -94,6 +97,8 @@ export interface TowerDef {
   levels: TowerLevelStats[]; // length === maxLevel, index 0 = Lv1
   /** 있으면 분기 타워: levels 는 Lv1~2, Lv3~5 는 paths 에서 고른다. */
   paths?: { a: TowerPathDef; b: TowerPathDef };
+  /** 있으면 원소 첨탑 — 충전 시 명중한 적에게 이 원소의 각인을 남긴다. 경로 무관. */
+  element?: ElementKind;
 }
 
 export type MovementLayer = 'ground' | 'air';
