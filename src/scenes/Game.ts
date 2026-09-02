@@ -1019,6 +1019,7 @@ export class Game extends Phaser.Scene {
       target.applySlow(FROST_COLLAPSE.slowMul, FROST_COLLAPSE.slowDurationMs);
     } else if (el === 'lightning') {
       const jolt = reactionBonusDamage(dealtAmount, STATIC_DISCHARGE.detonatorRatio, STATIC_DISCHARGE.flat);
+      // 층 필터 없음(의도적): 전기는 공중으로도 아크가 튄다 — 지상/공중 모두 점프 대상.
       for (const hit of dischargeTargets(target.pos, this.enemies, target.id)) {
         const e = this.enemies.find((x) => x.id === hit.id);
         if (!e) continue;
@@ -1035,6 +1036,8 @@ export class Game extends Phaser.Scene {
       const burst = CORROSION_BURST.flat + dps * CORROSION_BURST.poisonDpsRatio;
       this.dealDamage(byTowerKey, target, { amount: burst, kind: 'poison' }, false);
       if (dps > 0) {
+        // 지상만(의도적): 독 구름은 지면에 퍼지므로 공중 적에겐 전염되지 않는다.
+        // 위 정전 방출의 무필터와 대비 — 원소별 물리적 성질이 다르다.
         const layers = towerLayers(true, false);
         let n = 0;
         for (const hit of enemiesInRadius(target.pos, CORROSION_BURST.spreadRadius, this.enemies, layers)) {
