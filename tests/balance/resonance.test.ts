@@ -68,7 +68,7 @@ describe('resonance reactions fire', () => {
   });
 });
 
-describe('resonance target band — adjacent Lv3 pair vs lone Lv4', () => {
+describe('resonance target band — the adjacent pair vs an identical non-adjacent pair', () => {
   const freeTrunk = (c: StrategyContext): [number, number] | undefined =>
     trunkTiles.find(([col, row]) => c.game.grid.canPlace({ col, row }));
 
@@ -101,60 +101,66 @@ describe('resonance target band — adjacent Lv3 pair vs lone Lv4', () => {
     }
   }
 
-  // frost L3(a) at (4,6) + bolt L3(a) at (4,7) — orthogonally adjacent, so both charge.
-  const pairBuild = (hold: { frost?: Tower; bolt?: Tower }) => (c: StrategyContext) => {
+  type Hold = { frost?: Tower; bolt?: Tower };
+
+  /** frost @ (4,6) + bolt L3(a) @ boltTile. boltTile === [4,7] is orthogonally
+   *  adjacent → both towers charge; [4,8] is two tiles away → neither charges
+   *  (the control). Feeder towers land on earlier trunk tiles, never next to (4,6). */
+  const pairBuild = (boltTile: [number, number], hold: Hold) => (c: StrategyContext) => {
     if (c.wave === 1 && c.game.towers.length === 0) {
       hold.frost = c.buy('frost', 4, 6);
-      hold.bolt = c.buy('bolt', 4, 7);
+      hold.bolt = c.buy('bolt', ...boltTile);
     }
     if (hold.frost) raise(c, hold.frost, 3, 'a');
     if (hold.bolt) raise(c, hold.bolt, 3, 'a');
   };
 
-  it('an adjacent Lv3 pair is a bounded edge over a lone Lv4 — not a blowout', () => {
-    // A lone tower is never a viable full defense on a campaign stage past the opener
-    // (monoTower.test.ts pins this: no single tower/path solos the late campaign, and
-    // the finale resists even arrow-merge). So a lives proxy is only honest for the
-    // first couple of waves — after that the lone build collapses for reasons that have
-    // nothing to do with resonance. We use stage 1-3 (the earliest stage a lone frost
-    // can actually fund L4) and read lives at the end of wave 2, by which point BOTH
-    // builds have reached their target levels and both are still alive.
-    const stage = getStage('1-3');
-    const CHECKPOINT = 2;
+  it('resonance speeds the pair up by a bounded factor (buff-sensitive, unlike a floored lives check)', () => {
+    // The earlier "wave 2 of 1-3" lives comparison was one-directional: the charged
+    // pair floored at startLives, so `Math.abs(pairLives - loneLives)` was driven
+    // entirely by the *lone* build's leak — a resonance BUFF could never fail it.
+    //
+    // Clear-time does not floor: a stronger pair always clears faster. And the
+    // non-adjacent control fires zero reactions (rx === 0), so its clear-time is
+    // provably independent of reactions.ts — a fixed yardstick.
+    //
+    // Stage 1-1, frost(4,6) + bolt L3(a); deterministic across seeds:
+    //   adjacent (charged)      -> 40.9s
+    //   non-adjacent (control)  -> 80.3s   (rx 0)
+    //   ratio 1.96.  Sensitivity: STATIC_DISCHARGE x2 -> 2.06 (fails ceiling);
+    //   a broken detonation hook -> ratio ~1.0 (fails floor).
+    //   Re-run and re-centre this band on any deliberate reactions.ts change.
+    const stage = getStage('1-1');
+    for (const seed of [1, 42, 20260831]) {
+      const chg: Hold = {};
+      const ctl: Hold = {};
+      let rx = 0;
+      let rxCtl = 0;
+      const charged = simulate(stage, pairBuild([4, 7], chg), seed, 1, { onReaction: () => { rx++; } });
+      const control = simulate(stage, pairBuild([4, 8], ctl), seed, 1, { onReaction: () => { rxCtl++; } });
 
-    let reactions = 0;
-    const hold: { frost?: Tower; bolt?: Tower } = {};
-    let loneT: Tower | undefined;
+      // Identical builds — same towers raised to the same levels; only adjacency differs.
+      expect(chg.frost?.level).toBe(ctl.frost?.level);
+      expect(chg.bolt?.level).toBe(ctl.bolt?.level);
+      expect(chg.frost?.level).toBe(3);
+      expect(chg.bolt?.level ?? 0).toBeGreaterThanOrEqual(2);
+      expect(rx).toBeGreaterThan(0);      // adjacent ⇒ charged, reactions fire
+      expect(rxCtl).toBe(0);              // 2 tiles apart ⇒ never charges — the control
+      expect(charged.won && control.won).toBe(true);
 
-    // Deterministic across seeds (verified 1 / 42 / 20260831); one seed keeps it fast.
-    const seed = 42;
-    const pairRep = simulate(stage, pairBuild(hold), seed, 1, { onReaction: () => { reactions++; } });
-    const loneRep = simulate(stage, (c) => {
-      if (c.wave === 1 && c.game.towers.length === 0) loneT = c.buy('frost', 4, 6);
-      if (loneT) raise(c, loneT, 4, 'a');
-    }, seed);
-
-    const pairLives = pairRep.waves[CHECKPOINT - 1].lives;
-    const loneLives = loneRep.waves[CHECKPOINT - 1].lives;
-
-    // Both builds are actually at the level the comparison assumes, and resonance fired.
-    expect(reactions).toBeGreaterThan(0);
-    expect(hold.frost?.level).toBe(3);
-    expect(hold.bolt?.level).toBe(3);
-    expect(loneT?.level).toBe(4);
-
-    // Band: the charged pair leads, but the lead stays within 40% of startLives (20 → 8).
-    // Observed: pair 20, lone 14 → gap 6. The pair's edge is "a second tower on the lane
-    // + reactions"; resonance is a reward for positioning, not an I-win button — and the
-    // same charged pair still does NOT clear the world-1 finale (asserted below).
-    expect(Math.abs(pairLives - loneLives)).toBeLessThanOrEqual(stage.startLives * 0.4);
+      const ratio = control.seconds / charged.seconds;
+      expect(ratio, `1-1 clear-time ratio, seed ${seed}`).toBeGreaterThanOrEqual(1.7);
+      expect(ratio, `1-1 clear-time ratio, seed ${seed}`).toBeLessThanOrEqual(2.0);
+    }
   });
 
-  it('a charged adjacent pair still cannot solo the world-1 finale (combination stays required)', () => {
-    const hold: { frost?: Tower; bolt?: Tower } = {};
-    for (const seed of [1, 42, 20260831]) {
-      const rep = simulate(getStage('1-8'), pairBuild(hold), seed);
-      expect(rep.won, `charged frost+bolt pair must not solo 1-8 (seed ${seed})`).toBe(false);
+  it('a charged adjacent pair still cannot solo 1-6 or the world-1 finale (combination stays required)', () => {
+    for (const stageId of ['1-6', '1-8'] as const) {
+      for (const seed of [1, 42, 20260831]) {
+        const hold: Hold = {};
+        const rep = simulate(getStage(stageId), pairBuild([4, 7], hold), seed);
+        expect(rep.won, `charged frost+bolt pair must not solo ${stageId} (seed ${seed})`).toBe(false);
+      }
     }
   });
 });
