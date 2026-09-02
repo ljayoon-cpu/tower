@@ -109,6 +109,8 @@ export class Game extends Phaser.Scene {
   private chargedTowers = new Set<Tower>();
   /** 충전된 타워가 1기라도 있는 key — dealDamage 훅에서 O(1) 조회. */
   private chargedKeys = new Set<string>();
+  /** 충전된 원소 첨탑과 그 파트너를 잇는 룬 빛줄기. recomputeCharged 마다 다시 그린다. */
+  private resonanceLines: Phaser.GameObjects.Line[] = [];
   /** 테스트 계측용 — 반응이 터질 때마다 호출(프로덕션에선 미설정). */
   private onReaction?: (el: ElementKind, byTowerKey: string) => void;
   /** 강한 한 방 뒤에 전투 시간만 잠시 멈춘다. 실제 Phaser 장면에서만 시작된다. */
@@ -198,6 +200,8 @@ export class Game extends Phaser.Scene {
       this.input.off('dragend');
       this.input.off('pointerup');
       this.sheet?.destroy();
+      for (const l of this.resonanceLines) l.destroy();
+      this.resonanceLines = [];
       this.bus.clear();
       this.scene.stop('hud');
     });
@@ -416,6 +420,8 @@ export class Game extends Phaser.Scene {
     const rate = Number(info.fireRate.toFixed(2));
     const lines = [dpsLine, `사거리 ${buffRadius ?? info.range}   연사 ${rate}/초`];
     if (info.note) lines.push(info.note);
+    const resoLine = this.resonanceInspectLine(tower);
+    if (resoLine) lines.push(resoLine);
     const maxed = tower.level >= tower.maxLevel;
     const cost = upgradeCost(getTower(tower.key), tower.level);
     const refund = Math.floor(cumulativeCost(getTower(tower.key), tower.level) * this.eco.sellRatio);
@@ -425,6 +431,20 @@ export class Game extends Phaser.Scene {
       upgrade: maxed ? null : { label: `⬆ Lv${tower.level + 1} 강화  ${cost}G`, afford: this.eco.gold >= cost },
       sell: { label: `⌫ 판매 +${refund}G` },
     };
+  }
+
+  /** 정보 시트용 공명 상태 한 줄. 없으면 null. */
+  private resonanceInspectLine(tower: Tower): string | null {
+    const el = elementOf(tower.key);
+    if (el && tower.charged) return `공명 충전 · ${REACTIONS[el].name}`;
+    if (el && !tower.charged) return null;
+    // 원소 없는 타워: 인접에 충전된 원소 첨탑이 있으면 기폭기로 표시
+    const partners = this.towers.filter((n) =>
+      n !== tower && elementOf(n.key) && n.charged && isOrthAdjacent(tower.tile, n.tile)
+      && getTower(tower.key).attack !== 'support');
+    if (partners.length === 0) return null;
+    const names = partners.map((n) => `${getTower(n.key).name}→${REACTIONS[elementOf(n.key)!].name}`);
+    return `공명 기폭 · ${names.join(', ')}`;
   }
 
   private showInspect(tower?: Tower): void {
@@ -807,11 +827,30 @@ export class Game extends Phaser.Scene {
         this.chargedKeys.add(t.key);
       }
     }
-    this.updateResonanceLinks(); // Task 7 에서 구현; 지금은 빈 메서드
+    this.updateResonanceLinks();
   }
 
-  /** Task 7 에서 채운다 — 지금은 no-op. */
-  private updateResonanceLinks(): void {}
+  /** 충전된 원소 첨탑 → 유효 파트너(직교 인접·비지원·다른 원소)로 룬 빛줄기를 다시 그린다. */
+  private updateResonanceLinks(): void {
+    for (const l of this.resonanceLines) l.destroy();
+    this.resonanceLines = [];
+    if (typeof this.add.line !== 'function') return; // 밸런스 시뮬 가짜 씬
+    const seen = new Set<string>();
+    for (const t of this.chargedTowers) {
+      for (const n of this.towers) {
+        if (n === t) continue;
+        if (getTower(n.key).attack === 'support') continue;
+        if (elementOf(n.key) === elementOf(t.key)) continue;
+        if (!isOrthAdjacent(t.tile, n.tile)) continue;
+        const pairKey = [t.id, n.id].sort((a, b) => a - b).join('-');
+        if (seen.has(pairKey)) continue;
+        seen.add(pairKey);
+        const line = this.add.line(0, 0, t.homePos.x, t.homePos.y, n.homePos.x, n.homePos.y, COLORS.resonance, 0.5)
+          .setOrigin(0, 0).setDepth(3).setLineWidth(2);
+        this.resonanceLines.push(line);
+      }
+    }
+  }
 
   /** 지휘탑 버프(사거리 안 아군 데미지·연사·사거리 증가, 중첩 없음)를 적용한 실효 스탯. */
   private effectiveStats(tower: Tower): TowerLevelStats {
@@ -982,7 +1021,14 @@ export class Game extends Phaser.Scene {
       const jolt = reactionBonusDamage(dealtAmount, STATIC_DISCHARGE.detonatorRatio, STATIC_DISCHARGE.flat);
       for (const hit of dischargeTargets(target.pos, this.enemies, target.id)) {
         const e = this.enemies.find((x) => x.id === hit.id);
-        if (e) this.dealDamage(byTowerKey, e, { amount: jolt, kind: 'chain' }, false);
+        if (!e) continue;
+        this.dealDamage(byTowerKey, e, { amount: jolt, kind: 'chain' }, false);
+        if (typeof this.add.line === 'function') {
+          const spark = this.add.line(0, 0, target.renderPos.x, target.renderPos.y, e.renderPos.x, e.renderPos.y, COLORS.bolt, 0.9)
+            .setOrigin(0, 0).setDepth(24).setLineWidth(1.5);
+          if (this.tweens) this.tweens.add({ targets: spark, alpha: 0, duration: 140, onComplete: () => spark.destroy() });
+          else spark.destroy();
+        }
       }
     } else if (el === 'decay') {
       const dps = target.strongestPoisonDps();
