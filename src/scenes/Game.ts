@@ -32,7 +32,7 @@ import { Projectile } from '../entities/Projectile';
 import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius, towerLayers, eligibleTargets } from '../systems/TargetingSystem';
 import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets, isOrthAdjacent, frostCollapseDamage, reactionBonusDamage, dischargeTargets } from '../systems/combat';
-import { elementOf, REACTIONS, MARK_DURATION_MS, FROST_COLLAPSE, CORROSION_BURST, OVERHEAT } from '../data/reactions';
+import { elementOf, REACTIONS, MARK_DURATION_MS, FROST_COLLAPSE, STATIC_DISCHARGE, CORROSION_BURST, OVERHEAT } from '../data/reactions';
 import { BottomSheet, type InspectView } from '../ui/BottomSheet';
 import { audioFor } from '../ui/audio';
 import { WorldBackground } from '../ui/worldBackground';
@@ -52,6 +52,11 @@ const PROJECTILE_TEXTURE: Record<string, string> = {
   command: 'projectile_command',
   mine: 'projectile_mine',
   ballista: 'projectile_ballista',
+};
+
+/** 공명 반응 원소별 이펙트 색. runReaction 마다 재할당하지 않도록 모듈 상수. */
+const REACTION_COLOR: Record<ElementKind, number> = {
+  ice: COLORS.frost, lightning: COLORS.bolt, decay: COLORS.poison, fire: COLORS.cannon,
 };
 
 const ENEMY_BURST_COLOR: Record<string, number> = {
@@ -944,7 +949,7 @@ export class Game extends Phaser.Scene {
     if (!enemy.alive && enemy.markedElement == null) return;
     const def = getTower(towerKey);
     if (def.attack === 'support') return;
-    const towerEl = elementOf(towerKey);
+    const towerEl = def.element ?? null;
 
     // 물리 타워(towerEl === null)는 원소 불문 아무 각인이나 소비한다.
     // 원소 타워는 다른 원소의 각인만 소비한다(같은 원소면 consumeElementalMark 가 null 반환).
@@ -957,23 +962,24 @@ export class Game extends Phaser.Scene {
   }
 
   /**
-   * 4대 반응. 각 반응의 후속타는 `byTowerKey` 로 `dealDamage` 를 다시 부르지만 재귀는 깊이 1로 끝난다:
-   * 이 시점엔 각인이 이미 소비돼(consumeElementalMark → null) 재격발이 없고, 후속타를 쏜 타워가
-   * 충전 원소 타워가 아니면(대개 물리 기폭탑 or 방금 소비된 원소) 새 각인도 남지 않는다.
+   * 4대 반응. 후속타는 `byTowerKey` 로 `dealDamage` 를 다시 부르므로 재귀가 생긴다. 이 재귀는
+   * 무한 루프가 되지 않는다: `startReactionCooldown` 이 이 함수 진입 즉시 걸리고 `reactionCdMs` 는
+   * 동기 캐스케이드 도중 감소하지 않으므로, 각 적은 한 번의 동기 캐스케이드에서 원소별로 최대 1회만
+   * 반응한다 → 전체 반응 횟수는 (살아있는 적 수 × 원소 4종) 으로 유한하게 묶인다. (같은 적 경로는
+   * 각인이 이미 소비돼 depth 1 이지만, 번개 정전 방출은 미리 각인된 서로 다른 적 N기를 연쇄시켜
+   * 대략 depth N 까지 갈 수 있다 — 그래도 위 상한 때문에 종료한다.)
    */
   private runReaction(el: ElementKind, byTowerKey: string, target: Enemy, dealtAmount: number): void {
     target.startReactionCooldown(el, REACTIONS[el].cooldownMs);
     this.onReaction?.(el, byTowerKey);
-    const reactionColor: Record<ElementKind, number> = {
-      ice: COLORS.frost, lightning: COLORS.bolt, decay: COLORS.poison, fire: COLORS.cannon,
-    };
 
     if (el === 'ice') {
       const amount = frostCollapseDamage(target.state.maxHp);
+      // armorPierce: 장갑 무시 sentinel (밸런스 노브 아님 — 서리 붕괴는 장갑·저항을 통째로 무시).
       this.dealDamage(byTowerKey, target, { amount, kind: 'single', ignoreShield: true, armorPierce: 9999 }, false);
       target.applySlow(FROST_COLLAPSE.slowMul, FROST_COLLAPSE.slowDurationMs);
     } else if (el === 'lightning') {
-      const jolt = reactionBonusDamage(dealtAmount, 0.35, 40);
+      const jolt = reactionBonusDamage(dealtAmount, STATIC_DISCHARGE.detonatorRatio, STATIC_DISCHARGE.flat);
       for (const hit of dischargeTargets(target.pos, this.enemies, target.id)) {
         const e = this.enemies.find((x) => x.id === hit.id);
         if (e) this.dealDamage(byTowerKey, e, { amount: jolt, kind: 'chain' }, false);
@@ -1002,7 +1008,7 @@ export class Game extends Phaser.Scene {
       }, false);
     }
 
-    this.impactFlash(target.renderPos, reactionColor[el], el === 'ice' ? 'frost' : 'heavy');
+    this.impactFlash(target.renderPos, REACTION_COLOR[el], el === 'ice' ? 'frost' : 'heavy');
   }
 
   /** takeDamage를 거치지 않는 피해(독 지속딜 등)를 결과창 타워별 집계에만 더한다. */
