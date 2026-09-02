@@ -182,3 +182,68 @@ describe('EnemyState', () => {
     expect(enemy.hp).toBeLessThan(100); // health reduced
   });
 });
+
+const grunt = {
+  key: 'normal', name: '보병', hp: 100, speed: 50, bounty: 1, lifeDamage: 1,
+  movementLayer: 'ground',
+} as EnemyDef;
+
+describe('EnemyState elemental marks', () => {
+  it('applies a mark, exposes it, and lets it expire', () => {
+    const e = new EnemyState(grunt);
+    expect(e.markedElement).toBeNull();
+    e.applyElementalMark('ice', 2500);
+    expect(e.markedElement).toBe('ice');
+    e.update(2000);
+    expect(e.markedElement).toBe('ice');
+    e.update(600);
+    expect(e.markedElement).toBeNull();
+  });
+
+  it('newest mark overwrites the previous one (single slot)', () => {
+    const e = new EnemyState(grunt);
+    e.applyElementalMark('ice', 2500);
+    e.applyElementalMark('lightning', 2500);
+    expect(e.markedElement).toBe('lightning');
+  });
+
+  it('consume returns the element for a different detonator and clears the slot', () => {
+    const e = new EnemyState(grunt);
+    e.applyElementalMark('ice', 2500);
+    expect(e.consumeElementalMark('lightning')).toBe('ice');
+    expect(e.markedElement).toBeNull();
+  });
+
+  it('consume with null (physical) always detonates', () => {
+    const e = new EnemyState(grunt);
+    e.applyElementalMark('decay', 2500);
+    expect(e.consumeElementalMark(null)).toBe('decay');
+  });
+
+  it('same-element detonator does not consume', () => {
+    const e = new EnemyState(grunt);
+    e.applyElementalMark('ice', 2500);
+    expect(e.consumeElementalMark('ice')).toBeNull();
+    expect(e.markedElement).toBe('ice');
+  });
+
+  it('reaction cooldown blocks re-consume until it elapses', () => {
+    const e = new EnemyState(grunt);
+    e.applyElementalMark('ice', 2500);
+    expect(e.consumeElementalMark(null)).toBe('ice');
+    e.startReactionCooldown('ice', 900);
+    e.applyElementalMark('ice', 2500);
+    expect(e.consumeElementalMark(null)).toBeNull();  // still cooling
+    e.update(900);
+    e.applyElementalMark('ice', 2500);
+    expect(e.consumeElementalMark(null)).toBe('ice');
+  });
+
+  it('strongestPoisonDps reports the highest active channel', () => {
+    const e = new EnemyState(grunt);
+    expect(e.strongestPoisonDps()).toBe(0);
+    e.applyPoison('poison', 20, 1500);
+    e.applyPoison('cannon', 34, 1500);
+    expect(e.strongestPoisonDps()).toBe(34);
+  });
+});

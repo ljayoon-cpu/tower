@@ -1,4 +1,4 @@
-import type { AttackKind, EnemyDef } from '../core/types';
+import type { AttackKind, ElementKind, EnemyDef } from '../core/types';
 
 export interface EnemyModifiers {
   hpMultiplier?: number;
@@ -47,6 +47,10 @@ export class EnemyState {
   private staggerCooldownLeftMs = 0;
   /** 대포 방어구 파괴: 겹치면 가장 강한 것만 적용, 각자 지속시간을 따로 센다. */
   private armorBreaks: { percent: number; leftMs: number }[] = [];
+  /** 공명 각인 — 슬롯 1개, 최신이 덮어쓴다. */
+  private mark: { element: ElementKind; leftMs: number } | null = null;
+  /** 원소별 반응 재발동 대기. */
+  private reactionCdMs = new Map<ElementKind, number>();
 
   private readonly armor: number;
   private readonly regenPerSecond: number;
@@ -182,9 +186,57 @@ export class EnemyState {
     this.armorBreaks.push({ percent: p, leftMs: d });
   }
 
+  /** 충전된 원소 첨탑의 직격이 호출. 최신 각인이 기존 각인을 덮어쓴다. */
+  applyElementalMark(element: ElementKind, durationMs: number): void {
+    const d = Math.max(0, durationMs);
+    if (!this.alive || d === 0) return;
+    this.mark = { element, leftMs: d };
+  }
+
+  get markedElement(): ElementKind | null {
+    return this.mark && this.mark.leftMs > 0 ? this.mark.element : null;
+  }
+
+  /**
+   * `byElement` 와 다른 각인이 걸려 있고 그 원소 반응이 쿨다운 중이 아니면
+   * 각인을 소비하고 그 원소를 반환. `byElement === null` (물리)이면 원소 비교 없이 소비.
+   * 같은 원소(byElement === 각인)면 소비하지 않는다.
+   */
+  consumeElementalMark(byElement: ElementKind | null): ElementKind | null {
+    const el = this.markedElement;
+    if (!el) return null;
+    if (byElement !== null && byElement === el) return null;
+    if ((this.reactionCdMs.get(el) ?? 0) > 0) return null;
+    this.mark = null;
+    return el;
+  }
+
+  /** 반응 발동 직후 호출 — 같은 적이 매 프레임 같은 반응을 맞지 않게. */
+  startReactionCooldown(element: ElementKind, ms: number): void {
+    this.reactionCdMs.set(element, Math.max(this.reactionCdMs.get(element) ?? 0, Math.max(0, ms)));
+  }
+
+  /** 걸려 있는 독 채널 중 가장 센 dps (없으면 0). */
+  strongestPoisonDps(): number {
+    let hi = 0;
+    for (const p of this.poison.values()) if (p.leftMs > 0 && p.dps > hi) hi = p.dps;
+    return hi;
+  }
+
   /** 상태를 경과시키고, 이번 시간 동안 이동이 멈춘 밀리초를 반환한다. */
   update(dtMs: number): number {
     const dt = Math.max(0, dtMs);
+    if (this.mark) {
+      this.mark.leftMs -= dt;
+      if (this.mark.leftMs <= 0) this.mark = null;
+    }
+    if (this.reactionCdMs.size > 0) {
+      for (const [el, left] of this.reactionCdMs) {
+        const n = left - dt;
+        if (n <= 0) this.reactionCdMs.delete(el);
+        else this.reactionCdMs.set(el, n);
+      }
+    }
     const frozenForMs = Math.min(dt, this.freezeLeftMs);
     this.freezeLeftMs = Math.max(0, this.freezeLeftMs - dt);
     this.freezeCooldownLeftMs = Math.max(0, this.freezeCooldownLeftMs - dt);
