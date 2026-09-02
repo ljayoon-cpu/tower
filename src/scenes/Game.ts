@@ -31,7 +31,8 @@ import { Tower } from '../entities/Tower';
 import { Projectile } from '../entities/Projectile';
 import type { ProjectileOpts } from '../entities/Projectile';
 import { pickTarget, enemiesInRadius, towerLayers, eligibleTargets } from '../systems/TargetingSystem';
-import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets } from '../systems/combat';
+import { chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets, isOrthAdjacent } from '../systems/combat';
+import { elementOf } from '../data/reactions';
 import { BottomSheet, type InspectView } from '../ui/BottomSheet';
 import { audioFor } from '../ui/audio';
 import { WorldBackground } from '../ui/worldBackground';
@@ -99,6 +100,10 @@ export class Game extends Phaser.Scene {
   private bossOnField = false;
   /** 타워 종류별 누적 피해량(실제로 깎은 체력+보호막). 결과 화면 기여도 표시용. */
   private damageByTower = new Map<string, number>();
+  /** 공명 충전된 타워 인스턴스 — 공명선·정보 시트용. */
+  private chargedTowers = new Set<Tower>();
+  /** 충전된 타워가 1기라도 있는 key — dealDamage 훅에서 O(1) 조회. */
+  private chargedKeys = new Set<string>();
   /** 강한 한 방 뒤에 전투 시간만 잠시 멈춘다. 실제 Phaser 장면에서만 시작된다. */
   private hitstopLeftMs = 0;
   /** 직전 프레임의 이동 벡터. 피격 넉백을 진행 방향 반대로 보이게 한다. */
@@ -166,6 +171,8 @@ export class Game extends Phaser.Scene {
     this.bossOnField = false;
     this.hitstopLeftMs = 0;
     this.damageByTower.clear();
+    this.chargedTowers.clear();
+    this.chargedKeys.clear();
     this.enemyMotion.clear();
     this.suppressTapUntil = 0;
     this.sellTimer = undefined;
@@ -530,6 +537,7 @@ export class Game extends Phaser.Scene {
           this.grid.occupy(from, targetTower.id);
           dragged.relocate(to, this.grid.tileToPixelCenter(to));
           targetTower.relocate(from, this.grid.tileToPixelCenter(from));
+          this.recomputeCharged();
           this.audio.play('place');
           return;
         }
@@ -539,6 +547,7 @@ export class Game extends Phaser.Scene {
             this.grid.release(dragged.tile);
             this.grid.occupy(dropTile, dragged.id);
             dragged.relocate(dropTile, this.grid.tileToPixelCenter(dropTile));
+            this.recomputeCharged();
             this.audio.play('place');
             return;
           }
@@ -587,6 +596,7 @@ export class Game extends Phaser.Scene {
     this.towers = this.towers.filter((x) => x.id !== t.id);
     t.destroy();
     if (this.selectedTower === t) this.selectedTower = undefined;
+    this.recomputeCharged();
   }
 
   private confirmSell(t: Tower): void {
@@ -676,6 +686,7 @@ export class Game extends Phaser.Scene {
     const tower = new Tower(this, key, tile, pos);
     this.grid.occupy(tile, tower.id);
     this.towers.push(tower);
+    this.recomputeCharged();
     this.audio.play('place');
     this.advanceTutorial('towerPlaced');
     if (this.towers.filter((t) => t.key === key).length >= 2) this.advanceTutorial('sameTypePlaced');
@@ -763,6 +774,37 @@ export class Game extends Phaser.Scene {
       damage: this.damageBreakdown(),
     });
   }
+
+  /**
+   * 충전 규칙(스펙 §2.2): 원소 첨탑 T 가 상하좌우 인접에
+   * `attack !== 'support'` 이고 원소가 다른(또는 없는) 첨탑을 1기 이상 두면 충전.
+   * 배치가 바뀔 때만(설치·머지·판매·이동) 호출한다.
+   */
+  private recomputeCharged(): void {
+    this.chargedTowers.clear();
+    this.chargedKeys.clear();
+    for (const t of this.towers) {
+      const el = elementOf(t.key);
+      t.charged = false;
+      if (!el) continue;
+      for (const n of this.towers) {
+        if (n === t) continue;
+        if (getTower(n.key).attack === 'support') continue;
+        if (elementOf(n.key) === el) continue;
+        if (!isOrthAdjacent(t.tile, n.tile)) continue;
+        t.charged = true;
+        break;
+      }
+      if (t.charged) {
+        this.chargedTowers.add(t);
+        this.chargedKeys.add(t.key);
+      }
+    }
+    this.updateResonanceLinks(); // Task 7 에서 구현; 지금은 빈 메서드
+  }
+
+  /** Task 7 에서 채운다 — 지금은 no-op. */
+  private updateResonanceLinks(): void {}
 
   /** 지휘탑 버프(사거리 안 아군 데미지·연사·사거리 증가, 중첩 없음)를 적용한 실효 스탯. */
   private effectiveStats(tower: Tower): TowerLevelStats {
