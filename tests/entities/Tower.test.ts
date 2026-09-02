@@ -64,54 +64,34 @@ describe('tower upgrade paths', () => {
 });
 
 describe('tower display frames', () => {
-  it('shows windup, release, then returns to idle without changing its level', () => {
+  it('keeps a tower at its base artwork scale after upgrades', () => {
     const { scene, image } = createScene();
     const tower = new Tower(scene, 'arrow', { col: 1, row: 1 }, { x: 64, y: 64 });
-    tower.setLevel(3);
+    tower.setLevel(5, 'b');
 
-    tower.playAttack();
-    expect(image.setFrame).toHaveBeenLastCalledWith(2);
-
-    tower.updateVisual(75);
-    expect(image.setFrame).toHaveBeenLastCalledWith(3);
-
-    tower.updateVisual(90);
-    expect(image.setFrame).toHaveBeenLastCalledWith(0);
-    expect(tower.level).toBe(3);
+    expect(image.setScale).toHaveBeenLastCalledWith(1);
   });
 
-  it('animates the newly illustrated bolt tower with the same attack timing', () => {
+  it('does not rotate or animate its body while firing', () => {
     const { scene, image } = createScene();
     const tower = new Tower(scene, 'bolt', { col: 1, row: 1 }, { x: 64, y: 64 });
 
+    tower.faceToward({ x: 240, y: 320 });
     tower.playAttack();
-    expect(image.setFrame).toHaveBeenLastCalledWith(2);
     tower.updateVisual(75);
-    expect(image.setFrame).toHaveBeenLastCalledWith(3);
     tower.updateVisual(90);
-    expect(image.setFrame).toHaveBeenLastCalledWith(0);
+    expect(image.setFrame).not.toHaveBeenCalled();
+    expect(image.setRotation).toHaveBeenLastCalledWith(0);
   });
 
-  it('animates the illustrated anti-air ballista during a shot', () => {
+  it('keeps support towers in an idle visual state when their effect pulses', () => {
     const { scene, image } = createScene();
-    const tower = new Tower(scene, 'ballista', { col: 1, row: 1 }, { x: 64, y: 64 });
-
-    tower.playAttack();
-    expect(image.setFrame).toHaveBeenLastCalledWith(2);
-    tower.updateVisual(75);
-    expect(image.setFrame).toHaveBeenLastCalledWith(3);
-    tower.updateVisual(90);
-    expect(image.setFrame).toHaveBeenLastCalledWith(0);
-  });
-
-  it('animates illustrated support towers when their pulse is triggered', () => {
-    const { scene, image } = createScene();
-    const tower = new Tower(scene, 'mine', { col: 1, row: 1 }, { x: 64, y: 64 });
+    const tower = new Tower(scene, 'command', { col: 1, row: 1 }, { x: 64, y: 64 });
 
     tower.playAttack();
     tower.updateVisual(75);
 
-    expect(image.setFrame).toHaveBeenLastCalledWith(3);
+    expect(image.setFrame).not.toHaveBeenCalled();
   });
 
 });

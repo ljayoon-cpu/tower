@@ -6,13 +6,6 @@ import { TARGET_PRIORITIES } from '../systems/TargetingSystem';
 import type { TargetPriority } from '../systems/TargetingSystem';
 
 let nextId = 1;
-const ANIMATED_TOWER_KEYS = new Set(['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'poison', 'laser', 'command', 'mine', 'ballista']);
-const TOWER_ART_ROTATION_OFFSET: Readonly<Record<string, number>> = {
-  arrow: 0,
-  laser: 0,
-  sniper: 0,
-  poison: Math.PI,
-};
 
 /**
  * 배치된 타워 1기. Phaser 스프라이트 + 사거리 표시 링을 감싼 얇은 래퍼.
@@ -27,8 +20,6 @@ export class Tower {
   priority: TargetPriority = 'first';
   /** 발사 쿨다운(ms). Task 15 에서 사용. */
   cooldownMs = 0;
-  /** 전투와 무관한 공격 포즈 타이머. 4프레임 타워 시트에서만 의미가 있다. */
-  private attackVisualMs = 0;
   /** beam(레이저탑): 현재 조준 중인 대상 id, 그 대상에 빔이 머문 시간(ms), 스파크 연출 타이머. */
   beamTargetId: number | null = null;
   beamLockMs = 0;
@@ -120,8 +111,8 @@ export class Tower {
   }
 
   private applyLevelVisual(): void {
-    const scale = 1 + (this.level - 1) * 0.12;
-    this.sprite.setScale(scale);
+    // 머지는 전투력만 올린다. 본체 크기가 계속 변하면 3배속에서 판독성이 떨어진다.
+    this.sprite.setScale(1);
     this.sprite.setData('level', this.level);
     this.ring.setRadius(this.displayRadius());
   }
@@ -134,27 +125,20 @@ export class Tower {
     this.ring.setVisible(v);
   }
 
-  /** 스프라이트를 표적 쪽으로 회전. 원형(대포)은 회전이 무의미하므로 제외. */
+  /** 타워 본체는 고정하고, 방향 정보는 투사체에만 적용한다. */
   faceToward(target: Vec2): void {
-    if (this.key === 'cannon') return;
-    this.sprite.setRotation(
-      Math.atan2(target.y - this.sprite.y, target.x - this.sprite.x)
-        + (TOWER_ART_ROTATION_OFFSET[this.key] ?? Math.PI / 2),
-    );
+    void target;
+    this.sprite.setRotation(0);
   }
 
-  /** 발사 직후 공격 프레임을 보여준다. 전투 수치·쿨다운에는 관여하지 않는다. */
+  /** 발사 시에도 타워 본체는 대기 프레임을 유지한다. */
   playAttack(): void {
-    if (!ANIMATED_TOWER_KEYS.has(this.key)) return;
-    this.attackVisualMs = 140;
-    this.sprite.setFrame(2);
+    // 방향·발사감은 투사체와 이펙트가 담당한다.
   }
 
-  /** 공격 프레임을 windup → release → idle 순서로 진행한다. */
+  /** 기존 호출 지점과의 호환용. 타워 본체 애니메이션은 사용하지 않는다. */
   updateVisual(dtMs: number): void {
-    if (!ANIMATED_TOWER_KEYS.has(this.key) || this.attackVisualMs <= 0) return;
-    this.attackVisualMs = Math.max(0, this.attackVisualMs - dtMs);
-    this.sprite.setFrame(this.attackVisualMs > 70 ? 2 : this.attackVisualMs > 0 ? 3 : 0);
+    void dtMs;
   }
 
   cyclePriority(): TargetPriority {

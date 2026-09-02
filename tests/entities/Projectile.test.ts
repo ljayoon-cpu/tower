@@ -4,12 +4,13 @@ import { Pool } from '../../src/core/pool';
 
 function renderer() {
   const sprite = {
-    x: 0, y: 0, visible: false, active: false, texture: 'projectile',
+    x: 0, y: 0, visible: false, active: false, texture: 'projectile', scale: 1,
     setDepth() { return this; },
     setPosition(x: number, y: number) { this.x = x; this.y = y; return this; },
     setVisible(v: boolean) { this.visible = v; return this; },
     setActive(v: boolean) { this.active = v; return this; },
     setTexture(key: string) { this.texture = key; return this; },
+    setScale(scale: number) { this.scale = scale; return this; },
     setRotation() { return this; },
   };
   const image = vi.fn(() => sprite);
@@ -63,5 +64,15 @@ describe('pooled projectiles', () => {
     shot.launch({ x: 0, y: 0 }, opts);
 
     expect(r.sprite.texture).toBe('projectile_sniper');
+  });
+
+  it('resets a reused projectile to its base size on launch', () => {
+    const r = renderer();
+    const shot = new Projectile(r.scene);
+    r.sprite.scale = 1.8;
+
+    shot.launch({ x: 0, y: 0 }, { speed: 100, targetPos: () => ({ x: 100, y: 0 }), onHit: vi.fn() });
+
+    expect(r.sprite.scale).toBe(1);
   });
 });
