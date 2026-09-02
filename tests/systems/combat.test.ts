@@ -1,5 +1,6 @@
 import {
   chainDamages, buildChain, beamDamage, buffMultiplier, buildMultiShot, executeMultiplier, pierceLineTargets,
+  frostCollapseDamage, reactionBonusDamage, dischargeTargets, isOrthAdjacent,
 } from '../../src/systems/combat';
 import type { Targetable } from '../../src/systems/TargetingSystem';
 import type { TowerLevelStats } from '../../src/core/types';
@@ -113,5 +114,59 @@ describe('pierceLineTargets', () => {
     const enemies = [mk(1, 40, 0), mk(2, 90, 0), mk(3, 150, 0)];
     const result = pierceLineTargets(origin, target, enemies, 20, 100);
     expect(result.map((e) => e.id)).toEqual([1, 2]); // enemy 3 at dist 150 > 100 excluded
+  });
+});
+
+describe('frostCollapseDamage', () => {
+  it('is a fraction of max hp, capped, and rounded', () => {
+    expect(frostCollapseDamage(1000)).toBe(50);      // 5% of 1000
+    expect(frostCollapseDamage(100000)).toBe(220);   // capped
+    expect(frostCollapseDamage(0)).toBe(0);
+    expect(frostCollapseDamage(-100)).toBe(0);
+  });
+});
+
+describe('reactionBonusDamage', () => {
+  it('is flat + ratio * dealt, rounded, never negative', () => {
+    expect(reactionBonusDamage(100, 0.35, 40)).toBe(75);
+    expect(reactionBonusDamage(0, 0.4, 0)).toBe(0);
+    expect(reactionBonusDamage(-50, 0.4, 10)).toBe(10);
+  });
+});
+
+describe('dischargeTargets', () => {
+  it('picks nearest living enemies within jumpRadius, excluding the detonated one', () => {
+    const origin = { x: 0, y: 0 };
+    const all: Targetable[] = [
+      mk(1, 0, 0),        // excluded
+      mk(2, 30, 0),       // in
+      mk(3, 80, 0),       // in
+      mk(4, 200, 0),      // out of range
+      mk(5, 10, 10, false), // dead
+    ];
+    const got = dischargeTargets(origin, all, 1).map((e) => e.id);
+    expect(got).toEqual([2, 3]);
+  });
+
+  it('caps at STATIC_DISCHARGE.maxJumps', () => {
+    const all: Targetable[] = [mk(1, 0, 0), mk(2, 5, 0), mk(3, 6, 0), mk(4, 7, 0), mk(5, 8, 0)];
+    expect(dischargeTargets({ x: 0, y: 0 }, all, 1).length).toBe(3);
+  });
+
+  it('tie-breaks equal-distance targets by ascending id', () => {
+    const origin = { x: 0, y: 0 };
+    const all: Targetable[] = [mk(3, 40, 0), mk(2, -40, 0)];
+    expect(dischargeTargets(origin, all, 1).map((e) => e.id)).toEqual([2, 3]);
+  });
+});
+
+describe('isOrthAdjacent', () => {
+  it('is true only for the four orthogonal neighbours', () => {
+    const c = { col: 5, row: 5 };
+    expect(isOrthAdjacent(c, { col: 5, row: 4 })).toBe(true);
+    expect(isOrthAdjacent(c, { col: 6, row: 5 })).toBe(true);
+    expect(isOrthAdjacent(c, { col: 6, row: 6 })).toBe(false); // diagonal
+    expect(isOrthAdjacent(c, { col: 5, row: 5 })).toBe(false); // self
+    expect(isOrthAdjacent(c, { col: 5, row: 7 })).toBe(false); // two away
   });
 });

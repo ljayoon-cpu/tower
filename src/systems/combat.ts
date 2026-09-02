@@ -1,5 +1,6 @@
 import type { Targetable } from './TargetingSystem';
-import type { TowerLevelStats, Vec2 } from '../core/types';
+import type { TowerLevelStats, TileCoord, Vec2 } from '../core/types';
+import { FROST_COLLAPSE, STATIC_DISCHARGE } from '../data/reactions';
 
 /**
  * 체인 라이트닝 데미지 배열. 길이 `extraJumps + 1`,
@@ -118,4 +119,32 @@ export function pierceLineTargets(
       const bb = (b.pos.x - origin.x) * ux + (b.pos.y - origin.y) * uy;
       return aa - bb;
     });
+}
+
+/** 서리 붕괴 순간 피해 — 대상 최대체력의 일부, 상한 적용, 반올림. 장갑·저항 무시는 호출측이 처리. */
+export function frostCollapseDamage(targetMaxHp: number): number {
+  const raw = Math.max(0, targetMaxHp) * FROST_COLLAPSE.maxHpFraction;
+  return Math.round(Math.min(raw, FROST_COLLAPSE.flatCap));
+}
+
+/** 반응 순간타 = flat + ratio × 이번 직격 실피해. 음수 방지, 반올림. */
+export function reactionBonusDamage(dealtAmount: number, ratio: number, flat: number): number {
+  return Math.round(Math.max(0, flat + Math.max(0, dealtAmount) * ratio));
+}
+
+/**
+ * 정전 방출 점프 대상: `origin`(기폭 지점) 기준 `STATIC_DISCHARGE.jumpRadius` 내
+ * 살아있는 적을 최근접순으로 최대 `STATIC_DISCHARGE.maxJumps` 명. `excludeId` 는 제외.
+ */
+export function dischargeTargets(origin: Vec2, all: Targetable[], excludeId: number): Targetable[] {
+  const r2 = STATIC_DISCHARGE.jumpRadius * STATIC_DISCHARGE.jumpRadius;
+  return all
+    .filter((e) => e.alive && e.id !== excludeId && dist2(origin, e.pos) <= r2)
+    .sort((a, b) => dist2(origin, a.pos) - dist2(origin, b.pos) || a.id - b.id)
+    .slice(0, STATIC_DISCHARGE.maxJumps);
+}
+
+/** 두 타일이 상하좌우로 딱 붙어 있는가 (대각선·자기 자신 제외). */
+export function isOrthAdjacent(a: TileCoord, b: TileCoord): boolean {
+  return Math.abs(a.col - b.col) + Math.abs(a.row - b.row) === 1;
 }
