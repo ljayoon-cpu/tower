@@ -28,3 +28,12 @@ if (import.meta.env.DEV) {
   // dev-only handle
   (window as unknown as { __game?: Phaser.Game }).__game = game;
 }
+
+// PWA 자동 업데이트를 실제로 자주 확인한다 — 기본은 새로고침 전까지 옛 버전이 남는다.
+// autoUpdate 모드라 새 서비스워커는 즉시 활성화(skipWaiting)되고, update()가 새 버전을
+// 발견하면 다음 진입에 새 번들을 받는다. 앱을 계속 켜둬도 1분마다, 다시 볼 때마다 확인.
+if ('serviceWorker' in navigator) {
+  const check = () => navigator.serviceWorker.getRegistration().then((r) => r?.update()).catch(() => {});
+  setInterval(check, 60_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) void check(); });
+}
