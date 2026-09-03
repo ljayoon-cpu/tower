@@ -119,7 +119,6 @@ export class Game extends Phaser.Scene {
   private hitstopLeftMs = 0;
   /** 직전 프레임의 이동 벡터. 피격 넉백을 진행 방향 반대로 보이게 한다. */
   private enemyMotion = new Map<number, Vec2>();
-  private sellTimer?: Phaser.Time.TimerEvent;
   private sellPanel?: Phaser.GameObjects.Container;
   private sellPanelBackdrop?: Phaser.GameObjects.Rectangle;
   /** 드래그 직후 발생하는 pointerup 이 빌드메뉴/사거리 토글을 켜지 않도록 억제. */
@@ -187,17 +186,15 @@ export class Game extends Phaser.Scene {
     this.chargedKeys.clear();
     this.enemyMotion.clear();
     this.suppressTapUntil = 0;
-    this.sellTimer = undefined;
     this.sellPanel = undefined;
     this.sellPanelBackdrop = undefined;
     this.input.enabled = true;
-    // A stationary press must remain eligible for selling; dragging starts after movement.
+    // 드래그는 10px 움직인 뒤 시작 — 탭이 실수로 드래그로 넘어가지 않게.
     this.input.dragDistanceThreshold = 10;
     this.time.paused = false;
     this.tweens.resumeAll();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.running = false;
-      this.sellTimer?.remove();
       this.input.off('dragstart');
       this.input.off('drag');
       this.input.off('dragend');
@@ -295,7 +292,6 @@ export class Game extends Phaser.Scene {
     if (!this.running) return;
     this.paused = !this.paused;
     if (this.paused) this.audio.stop();
-    this.sellTimer?.remove();
     this.closeBuildMenu();
     this.sellPanel?.destroy();
     this.sellPanelBackdrop?.destroy();
@@ -495,7 +491,6 @@ export class Game extends Phaser.Scene {
       'dragstart',
       (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image) => {
         if (!this.running || this.paused) return;
-        this.sellTimer?.remove();
         obj.setDepth(600);
         const t = this.towerFromObj(obj);
         t?.showRange(true);
@@ -646,8 +641,8 @@ export class Game extends Phaser.Scene {
     if (this.towers.indexOf(tower) === -1) return;
     this.sellPanel?.destroy();
     this.sellPanelBackdrop?.destroy();
-    // 롱프레스에서 손을 떼며 발생하는 pointerup 이 갓 생성된 판매 버튼이나
-    // 사거리 토글 핸들러로 흘러들지 않도록 억제(드래그 경로와 동일한 가드).
+    // 시트의 판매 버튼을 누른 그 pointerup 이 갓 생성된 확인 팝업/사거리 토글로
+    // 흘러들지 않도록 억제(드래그 경로와 동일한 가드).
     this.suppressTapUntil = this.time.now + 150;
 
     const refund = Math.floor(
@@ -687,7 +682,7 @@ export class Game extends Phaser.Scene {
       if (this.sellPanel === panel) this.sellPanel = undefined;
       if (this.sellPanelBackdrop === backdrop) this.sellPanelBackdrop = undefined;
     };
-    // Require a fresh press on the modal: releasing the original long press cannot sell/close it.
+    // Require a fresh press on the modal: releasing the press that opened it cannot sell/close it.
     let armed: Phaser.GameObjects.GameObject | null = null;
     for (const control of [sell, cancel, backdrop]) {
       control.on('pointerdown', () => { armed = control; });
@@ -697,7 +692,7 @@ export class Game extends Phaser.Scene {
       close();
     }, () => armed === sell);
     attachPressFeedback(this, cancel, [cancel], this.audio, close, () => armed === cancel);
-    // 백드롭 = 바깥 탭 닫기. 단, 롱프레스에서 손 떼는 그 pointerup 은 무시
+    // 백드롭 = 바깥 탭 닫기. 단, 팝업을 연 그 손가락을 떼는 pointerup 은 무시
     // (그 순간 포인터가 백드롭 위에 있으므로 즉시 닫히는 것을 방지).
     backdrop.on('pointerup', () => {
       if (armed !== backdrop) return;
@@ -726,21 +721,14 @@ export class Game extends Phaser.Scene {
     if (this.towers.filter((t) => t.key === key).length >= 2) this.advanceTutorial('sameTypePlaced');
     // 타워 탭 → 사거리 링 토글(한 번에 하나만 표시). 드래그 직후 탭은 무시.
     // 타워를 고르면 설치 메뉴는 닫는다 — 정보창과 설치창이 동시에 뜨지 않게.
+    // 탭 → 정보 시트(강화·판매 버튼) + 사거리 링. 드래그 → 머지/이동. 판매는 시트 버튼으로만
+    // (롱프레스 판매는 드래그-머지와 충돌해서 제거).
     tower.sprite.on('pointerup', () => {
       if (!this.running || this.paused) return;
       if (this.time.now < this.suppressTapUntil) return;
       this.closeBuildMenu();
       this.clearTowerRanges(tower.rangeVisible ? undefined : tower);
     });
-    // 롱프레스(~500ms) → 판매 확인 팝업.
-    tower.sprite.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (!this.running || this.paused) return;
-      this.sellTimer?.remove();
-      this.sellTimer = this.time.delayedCall(500, () => {
-        if (pointer.isDown) this.showSellPrompt(tower);
-      });
-    });
-    tower.sprite.on('pointerup', () => this.sellTimer?.remove());
     this.closeBuildMenu();
   }
 
@@ -778,7 +766,6 @@ export class Game extends Phaser.Scene {
     this.scene.stop('hud');
     this.audio.stop();
     this.input.enabled = false;
-    this.sellTimer?.remove();
     this.sheet?.hide();
     this.pendingPathAction = undefined;
 

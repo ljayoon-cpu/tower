@@ -195,8 +195,8 @@ describe('resonance target band — the adjacent pair vs an identical non-adjace
   const ADJ: [[number, number], [number, number], [number, number]] = [[4, 6], [4, 7], [4, 8]];
   const SPREAD: [[number, number], [number, number], [number, number]] = [[4, 6], [6, 7], [4, 9]];
 
-  it('a fully-charged 3-element adjacent spread still cannot solo 1-8 or 2-3', () => {
-    for (const stageId of ['1-8', '2-3'] as const) {
+  it('a fully-charged 3-element adjacent spread still cannot solo 1-6, 1-8 or 2-3', () => {
+    for (const stageId of ['1-6', '1-8', '2-3'] as const) {
       for (const seed of [1, 42, 20260831]) {
         const adj: Trio = {};
         const spr: Trio = {};
