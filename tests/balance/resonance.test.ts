@@ -26,13 +26,6 @@ function apart(a: string, b: string) {
   };
 }
 
-describe('resonance charged set', () => {
-  it('charges an elemental tower placed next to a non-support partner', () => {
-    const report = simulate(getStage('1-1'), pair('frost', 'arrow'), 1);
-    expect(report.waves.length).toBeGreaterThan(0);
-  });
-});
-
 describe('resonance reactions fire', () => {
   it('charged frost + adjacent arrow detonates the ice mark (arrow is the detonator)', () => {
     let count = 0;
@@ -160,6 +153,66 @@ describe('resonance target band — the adjacent pair vs an identical non-adjace
         const hold: Hold = {};
         const rep = simulate(getStage(stageId), pairBuild([4, 7], hold), seed);
         expect(rep.won, `charged frost+bolt pair must not solo ${stageId} (seed ${seed})`).toBe(false);
+      }
+    }
+  });
+
+  // ── Spread-regression guard (spec §8, AGENTS.md "머지 > 스프레드") ──────────────
+  // The pair tests above use two towers. A "spread" build is wider: three
+  // *different* elements laid along one lane with a dedicated physical detonator
+  // in the middle, every tower charged, arrow popping both marks every shot.
+  // That is the shape spec §8 warns could out-race deep merging. This test builds
+  // exactly that at Lv3 and pins two things the suite must keep able to detect:
+  //   1. adjacency is load-bearing — the identical three towers spread onto
+  //      separate trunk tiles fire ZERO reactions (rxSpread === 0), so any
+  //      clear/loss delta is provably the resonance layer, not tile luck.
+  //   2. even fully charged, the 3-element Lv3 spread still cannot solo the
+  //      world-1 finale (1-8) or 2-3 — deep merging stays mandatory late.
+  // Why "cannot solo" and not a clear-time ratio here: on 1-8/2-3 the spread
+  // control under-funds (reactions snowball the adjacent build's economy), so the
+  // two runs are no longer level-matched and a ratio would be meaningless. The
+  // level-matched clear-time bound lives in the 1-1 test above (both builds fully
+  // fund and win there); this test guards the late-game invariant instead.
+  // Observed at HEAD (all of seeds 1/42/20260831): adjacent -> [3,3,3], loses
+  // 1-8 at ~150s / 2-3 at ~114s with ~250-300 reactions; spread -> rx 0, loses
+  // far sooner. If a deliberate reactions.ts change makes the adjacent build win
+  // either stage, that is the regression — re-check §3.3 power budget before
+  // widening this.
+  type Trio = { frost?: Tower; arrow?: Tower; bolt?: Tower };
+  const trioBuild = (tiles: [[number, number], [number, number], [number, number]], hold: Trio) =>
+    (c: StrategyContext) => {
+      if (c.wave === 1 && c.game.towers.length === 0) {
+        hold.frost = c.buy('frost', ...tiles[0]);
+        hold.arrow = c.buy('arrow', ...tiles[1]);
+        hold.bolt = c.buy('bolt', ...tiles[2]);
+      }
+      const core = [hold.frost, hold.arrow, hold.bolt].filter((t): t is Tower => !!t);
+      for (let lvl = 2; lvl <= 3; lvl++) for (const t of core) raise(c, t, lvl, 'a');
+    };
+  // adjacent: frost(4,6)-arrow(4,7)-bolt(4,8) in one column, all 4-adjacent to the
+  // detonator. spread: the same three on non-adjacent trunk tiles (the balance
+  // suite's own mixedSpread tiles), same firing lane, zero adjacency.
+  const ADJ: [[number, number], [number, number], [number, number]] = [[4, 6], [4, 7], [4, 8]];
+  const SPREAD: [[number, number], [number, number], [number, number]] = [[4, 6], [6, 7], [4, 9]];
+
+  it('a fully-charged 3-element adjacent spread still cannot solo 1-8 or 2-3', () => {
+    for (const stageId of ['1-8', '2-3'] as const) {
+      for (const seed of [1, 42, 20260831]) {
+        const adj: Trio = {};
+        const spr: Trio = {};
+        let rxAdj = 0;
+        let rxSpread = 0;
+        const adjRep = simulate(getStage(stageId), trioBuild(ADJ, adj), seed, 1, { onReaction: () => { rxAdj++; } });
+        const sprRep = simulate(getStage(stageId), trioBuild(SPREAD, spr), seed, 1, { onReaction: () => { rxSpread++; } });
+
+        expect(adj.frost?.level).toBe(3);           // adjacent build reaches the full Lv3 core
+        expect(adj.arrow?.level).toBe(3);
+        expect(adj.bolt?.level).toBe(3);
+        expect(rxAdj, `adjacent trio must fire reactions on ${stageId} (seed ${seed})`).toBeGreaterThan(0);
+        expect(rxSpread, `spread trio must fire zero reactions on ${stageId} (seed ${seed})`).toBe(0);
+
+        expect(adjRep.won, `charged 3-element spread must not solo ${stageId} (seed ${seed})`).toBe(false);
+        expect(sprRep.won).toBe(false);
       }
     }
   });

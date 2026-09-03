@@ -436,14 +436,18 @@ export class Game extends Phaser.Scene {
   /** 정보 시트용 공명 상태 한 줄. 없으면 null. */
   private resonanceInspectLine(tower: Tower): string | null {
     const el = elementOf(tower.key);
-    if (el && tower.charged) return `공명 충전 · ${REACTIONS[el].name}`;
-    if (el && !tower.charged) return null;
-    // 원소 없는 타워: 인접에 충전된 원소 첨탑이 있으면 기폭기로 표시
-    const partners = this.towers.filter((n) =>
-      n !== tower && elementOf(n.key) && n.charged && isOrthAdjacent(tower.tile, n.tile)
-      && getTower(tower.key).attack !== 'support');
-    if (partners.length === 0) return null;
-    const names = partners.map((n) => `${getTower(n.key).name}→${REACTIONS[elementOf(n.key)!].name}`);
+    if (el) return tower.charged ? `공명 충전 · ${REACTIONS[el].name}` : null;
+    // 여기부터는 원소 없는 타워. 지원탑은 공명에 관여하지 않는다 (루프 불변 — 밖으로 뺀다).
+    if (getTower(tower.key).attack === 'support') return null;
+    // 인접에 충전된 원소 첨탑이 있으면 기폭기로 표시
+    const names: string[] = [];
+    for (const n of this.towers) {
+      if (n === tower || !n.charged || !isOrthAdjacent(tower.tile, n.tile)) continue;
+      const nel = elementOf(n.key);
+      if (!nel) continue;
+      names.push(`${getTower(n.key).name}→${REACTIONS[nel].name}`);
+    }
+    if (names.length === 0) return null;
     return `공명 기폭 · ${names.join(', ')}`;
   }
 
@@ -834,7 +838,7 @@ export class Game extends Phaser.Scene {
   private updateResonanceLinks(): void {
     for (const l of this.resonanceLines) l.destroy();
     this.resonanceLines = [];
-    if (typeof this.add.line !== 'function') return; // 밸런스 시뮬 가짜 씬
+    if (typeof this.add.line !== 'function') return; // 방어 가드: line 팩토리 없는 씬에서 렌더 스킵
     const seen = new Set<string>();
     for (const t of this.chargedTowers) {
       for (const n of this.towers) {
@@ -975,11 +979,12 @@ export class Game extends Phaser.Scene {
       .setAlpha(0.5 + Math.min(0.45, (mult - 1) * 0.22));
   }
 
-  /** enemy.takeDamage + 타워 종류별 기여도 집계. 실제로 깎은 체력+보호막을 누적한다. */
-  private dealDamage(towerKey: string, enemy: Enemy, packet: DamagePacket, flash = true): number {
+  /** enemy.takeDamage + 타워 종류별 기여도 집계. 실제로 깎은 체력+보호막을 누적한다.
+   *  `resonance=false` 로 공명 훅을 건너뛴다 — 발사율 게이트 없는 지속 필드(냉기장)용. */
+  private dealDamage(towerKey: string, enemy: Enemy, packet: DamagePacket, flash = true, resonance = true): number {
     const dealt = enemy.takeDamage(packet, flash);
     this.creditDamage(towerKey, dealt);
-    this.resonanceHook(towerKey, enemy, dealt);
+    if (resonance) this.resonanceHook(towerKey, enemy, dealt);
     return dealt;
   }
 
@@ -1045,12 +1050,16 @@ export class Game extends Phaser.Scene {
           const e = this.enemies.find((x) => x.id === hit.id);
           if (!e) continue;
           // 진짜 타워 key 로 독을 건다 — Game.update 의 collectPoisonDamage 크레딧 루프가 자동 귀속.
+          // 기폭기가 스스로 역병탑(또는 화상 중인 대포 B)이면 이 독은 기존 채널에 max 로 합쳐져
+          // 통째로 흡수될 수 있다 — 스펙 §3.2 귀속 규칙의 감수된 결과.
           e.applyPoison(byTowerKey, dps * CORROSION_BURST.spreadDpsRatio, CORROSION_BURST.spreadDurationMs);
           n++;
         }
       }
     } else { // fire
       target.applyArmorBreak(OVERHEAT.armorBreakPercent, OVERHEAT.armorBreakDurationMs);
+      // 화상=독 채널 재사용. 기폭기가 이미 이 적에 더 센 독/화상을 걸어 뒀으면 max 병합으로
+      // 이 화상이 흡수될 수 있다 — 스펙 §3.2 귀속 규칙의 감수된 결과.
       target.applyPoison(byTowerKey, OVERHEAT.burnDps, OVERHEAT.burnDurationMs);
       this.dealDamage(byTowerKey, target, {
         amount: reactionBonusDamage(dealtAmount, OVERHEAT.detonatorRatio, 0), kind: 'splash',
@@ -1090,7 +1099,8 @@ export class Game extends Phaser.Scene {
           const e = this.enemies.find((x) => x.id === hit.id);
           if (!e) continue;
           e.applySlow(sAura.slowMul ?? 1, sAura.slowDurationMs ?? 200);
-          this.dealDamage(tower.key, e, { amount: (sAura.damage * dtMs) / 1000, kind: 'slow' }, false);
+          // 냉기장 지속 틱은 공명에 관여하지 않는다 — 발사율 게이트가 없어 상한이 사라진다
+          this.dealDamage(tower.key, e, { amount: (sAura.damage * dtMs) / 1000, kind: 'slow' }, false, false);
         }
         continue;
       }

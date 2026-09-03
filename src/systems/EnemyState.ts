@@ -190,7 +190,8 @@ export class EnemyState {
   applyElementalMark(element: ElementKind, durationMs: number): void {
     const d = Math.max(0, durationMs);
     if (!this.alive || d === 0) return;
-    this.mark = { element, leftMs: d };
+    if (this.mark) { this.mark.element = element; this.mark.leftMs = d; }
+    else this.mark = { element, leftMs: d };
   }
 
   get markedElement(): ElementKind | null {

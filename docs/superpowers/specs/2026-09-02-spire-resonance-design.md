@@ -279,7 +279,7 @@ private runReaction(el: ElementKind, byTowerKey: string, target: Enemy, dealtAmo
 
 `Game.inspectView(tower)` 의 `lines` 에 조건부 한 줄:
 
-- 충전된 원소 첨탑: `공명 충전 · {각인이름}` (예: `공명 충전 · 서리 각인`)
+- 충전된 원소 첨탑: `공명 충전 · {반응 이름}` (예: `공명 충전 · 서리 붕괴`)
 - 원소는 없지만 인접에 충전 가능한 원소 첨탑이 있는 기폭기:
   `공명 기폭 · {인접 원소 첨탑 이름} → {반응 이름}` (여러 개면 쉼표)
 - 아무것도 없으면 줄 생략.
@@ -321,7 +321,7 @@ private runReaction(el: ElementKind, byTowerKey: string, target: Enemy, dealtAmo
    - 서리탑 + 화살탑 인접 → 공명선. 서리가 적 얼림 → 화살 명중 → 서리 붕괴 팝.
    - 서리탑 + 번개탑 인접 → 양방향. 둘 다 각각 반응.
    - 서리탑 코너 홀로 → 공명선 없음, 각인 안 생김.
-   - 정보 시트에 `공명 충전 · 서리 각인` / `공명 기폭 · …` 줄.
+   - 정보 시트에 `공명 충전 · 서리 붕괴` / `공명 기폭 · …` 줄.
    - `read_console_messages` 에러 없음. 스크린샷: 공명선, 반응 팝, 시트.
 
 ## 7. 비목표 (v1 제외)
