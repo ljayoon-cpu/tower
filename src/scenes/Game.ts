@@ -88,6 +88,8 @@ export class Game extends Phaser.Scene {
   private eco!: EconomyManager;
   private rng = new Rng(Date.now() & 0xffffffff);
   private enemies: Enemy[] = [];
+  /** id → Enemy. this.enemies 와 동기 유지 — 타겟팅·광역이 id 로 엔티티를 되찾을 때 선형 탐색을 피한다. */
+  private enemyById = new Map<number, Enemy>();
   private towers: Tower[] = [];
   private projectiles: Projectile[] = [];
   private projectilePool!: Pool<Projectile>;
@@ -168,6 +170,7 @@ export class Game extends Phaser.Scene {
     );
     this.lives = this.stage.startLives + this.meta.startLives;
     this.enemies = [];
+    this.enemyById.clear();
     this.towers = [];
     this.projectiles = [];
     this.projectilePool = new Pool(() => new Projectile(this));
@@ -757,6 +760,7 @@ export class Game extends Phaser.Scene {
         : this.path.chooseRoute(this.rng).polyline);
     const enemy = new Enemy(this, def, polyline, modifiers, countsForWave, summonedById, at?.traveled ?? 0);
     this.enemies.push(enemy);
+    this.enemyById.set(enemy.id, enemy);
     if (countsForWave) this.waves.notifyEnemySpawned();
     if (def.isBoss) this.bus.emit('boss:spawned', { name: def.name });
   }
@@ -916,12 +920,11 @@ export class Game extends Phaser.Scene {
       const dy = e.pos.y - tower.homePos.y;
       return dx * dx + dy * dy <= r2 && layers.has(e.layer);
     };
-    let enemy = tower.beamTargetId != null
-      ? this.enemies.find((e) => e.id === tower.beamTargetId && e.alive && inRange(e))
-      : undefined;
+    const locked = tower.beamTargetId != null ? this.enemyById.get(tower.beamTargetId) : undefined;
+    let enemy = locked && locked.alive && inRange(locked) ? locked : undefined;
     if (!enemy) {
       const t = pickTarget(tower.homePos, s.range, eligibleTargets(this.enemies, layers), tower.priority);
-      enemy = t ? this.enemies.find((e) => e.id === t.id) : undefined;
+      enemy = t ? this.enemyById.get(t.id) : undefined;
       if (enemy && tower.beamTargetId !== enemy.id) tower.beamLockMs *= 0.35;
       tower.beamTargetId = enemy?.id ?? null;
     }
@@ -1018,7 +1021,7 @@ export class Game extends Phaser.Scene {
       const jolt = reactionBonusDamage(dealtAmount, STATIC_DISCHARGE.detonatorRatio, STATIC_DISCHARGE.flat);
       // 층 필터 없음(의도적): 전기는 공중으로도 아크가 튄다 — 지상/공중 모두 점프 대상.
       for (const hit of dischargeTargets(target.pos, this.enemies, target.id)) {
-        const e = this.enemies.find((x) => x.id === hit.id);
+        const e = this.enemyById.get(hit.id);
         if (!e) continue;
         this.dealDamage(byTowerKey, e, { amount: jolt, kind: 'chain' }, false);
         if (typeof this.add.line === 'function') {
@@ -1039,7 +1042,7 @@ export class Game extends Phaser.Scene {
         let n = 0;
         for (const hit of enemiesInRadius(target.pos, CORROSION_BURST.spreadRadius, this.enemies, layers)) {
           if (hit.id === target.id || n >= CORROSION_BURST.spreadMaxTargets) continue;
-          const e = this.enemies.find((x) => x.id === hit.id);
+          const e = this.enemyById.get(hit.id);
           if (!e) continue;
           // 진짜 타워 key 로 독을 건다 — Game.update 의 collectPoisonDamage 크레딧 루프가 자동 귀속.
           // 기폭기가 스스로 역병탑(또는 화상 중인 대포 B)이면 이 독은 기존 채널에 max 로 합쳐져
@@ -1088,7 +1091,7 @@ export class Game extends Phaser.Scene {
         }
         const auraLayers = towerLayers(def.targetsGround, def.targetsAir);
         for (const hit of enemiesInRadius(tower.homePos, sAura.slowAuraRadius ?? 0, this.enemies, auraLayers)) {
-          const e = this.enemies.find((x) => x.id === hit.id);
+          const e = this.enemyById.get(hit.id);
           if (!e) continue;
           e.applySlow(sAura.slowMul ?? 1, sAura.slowDurationMs ?? 200);
           // 냉기장 지속 틱은 공명에 관여하지 않는다 — 발사율 게이트가 없어 상한이 사라진다
@@ -1105,7 +1108,7 @@ export class Game extends Phaser.Scene {
       if (!target) continue;
       tower.cooldownMs = 1000 / s.fireRate;
 
-      const enemy = this.enemies.find((e) => e.id === target.id);
+      const enemy = this.enemyById.get(target.id);
       if (!enemy) continue;
       tower.playAttack();
       if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
@@ -1132,7 +1135,7 @@ export class Game extends Phaser.Scene {
               ? { durationMs: s.staggerDurationMs, cooldownMs: s.staggerCooldownMs ?? 1800 }
               : undefined;
             chain.forEach((hit, i) => {
-              const e = this.enemies.find((x) => x.id === hit.id);
+              const e = this.enemyById.get(hit.id);
               if (!e) return;
               const airMul = e.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;
               this.dealDamage(tower.key, e, { amount: dmgs[i] * airMul, kind: 'chain', ignoreShield: s.shieldPierce });
@@ -1157,7 +1160,7 @@ export class Game extends Phaser.Scene {
           speed: 520,
           textureKey: PROJECTILE_TEXTURE[tower.key],
           targetPos: () => {
-            const e = this.enemies.find((x) => x.id === shot.id);
+            const e = this.enemyById.get(shot.id);
             return e && e.alive ? e.renderPos : null;
           },
           onHit: (hitPos) => {
@@ -1167,12 +1170,12 @@ export class Game extends Phaser.Scene {
               this.impactFlash(hitPos, COLORS.poison, 'light');
               const pierce = s.poisonArmorPierce ?? 0;
               for (const hit of enemiesInRadius(hitPos, s.poisonRadius ?? 0, this.enemies, layers)) {
-                const affected = this.enemies.find((e) => e.id === hit.id);
+                const affected = this.enemyById.get(hit.id);
                 if (affected) this.dealDamage(tower.key, affected, { amount: s.damage, armorPierce: pierce || undefined, kind: 'poison' });
                 affected?.applyPoison(tower.key, s.poisonDps ?? 0, s.poisonDurationMs ?? 0);
                 if (affected && s.poisonSpreadRadius) {
                   for (const near of enemiesInRadius(affected.pos, s.poisonSpreadRadius, this.enemies, layers)) {
-                    const ne = this.enemies.find((e) => e.id === near.id);
+                    const ne = this.enemyById.get(near.id);
                     ne?.applyPoison(tower.key, (s.poisonDps ?? 0) * (s.poisonSpreadRatio ?? 0.5), s.poisonDurationMs ?? 0);
                   }
                 }
@@ -1180,7 +1183,7 @@ export class Game extends Phaser.Scene {
             } else if (def.attack === 'splash') {
               this.impactFlash(hitPos, COLORS.cannon, 'heavy');
               for (const hit of enemiesInRadius(hitPos, s.splashRadius ?? 0, this.enemies, layers)) {
-                const affected = this.enemies.find((e) => e.id === hit.id);
+                const affected = this.enemyById.get(hit.id);
                 const airMul = affected && affected.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;
                 if (affected) this.dealDamage(tower.key, affected, { amount: s.damage * airMul, kind: 'splash' });
                 affected?.applyArmorBreak(s.armorBreakPercent ?? 0, s.armorBreakDurationMs ?? 0);
@@ -1188,18 +1191,18 @@ export class Game extends Phaser.Scene {
               this.startHitstop();
               if (s.burnDps) {
                 for (const hit of enemiesInRadius(hitPos, s.burnRadius ?? s.splashRadius ?? 0, this.enemies, layers)) {
-                  const be = this.enemies.find((e) => e.id === hit.id);
+                  const be = this.enemyById.get(hit.id);
                   be?.applyPoison(tower.key, s.burnDps, s.burnDurationMs ?? 1400);
                   if (be) this.impactFlash(be.renderPos, COLORS.cannon, 'light');
                 }
               }
             } else {
-              const e = this.enemies.find((x) => x.id === shot.id);
+              const e = this.enemyById.get(shot.id);
               if (!e || !e.alive) return;
               const airMul = e.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;
               if (s.pierceAll) {
                 for (const hit of pierceLineTargets(tower.homePos, e.pos, eligible, TILE * 0.9, s.range)) {
-                  const pe = this.enemies.find((x) => x.id === hit.id);
+                  const pe = this.enemyById.get(hit.id);
                   if (!pe) continue;
                   const am = pe.layer === 'air' ? (s.airDamageMultiplier ?? 1) : 1;
                   this.dealDamage(tower.key, pe, { amount: shot.damage * am, armorPierce: s.armorPierce ?? 0, kind: 'single' });
@@ -1465,7 +1468,7 @@ export class Game extends Phaser.Scene {
         }
       }
       if (e.summonedById !== null) {
-        this.enemies.find((parent) => parent.id === e.summonedById)?.notifySummonRemoved();
+        this.enemyById.get(e.summonedById)?.notifySummonRemoved();
       }
       if (e.countsForWave) this.waves.notifyEnemyRemoved();
       if (!this.running) return;
@@ -1473,6 +1476,7 @@ export class Game extends Phaser.Scene {
       e.destroy();
     }
     this.enemies = this.enemies.filter((e) => e.alive);
+    for (const e of removed) this.enemyById.delete(e.id);
     this.trackBoss();
   }
 
