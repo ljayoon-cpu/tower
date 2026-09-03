@@ -6,7 +6,6 @@ import { TARGET_PRIORITIES } from '../systems/TargetingSystem';
 import type { TargetPriority } from '../systems/TargetingSystem';
 
 let nextId = 1;
-const ANIMATED_TOWER_KEYS = new Set(['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'poison', 'laser', 'command', 'mine', 'ballista']);
 
 /**
  * 배치된 타워 1기. Phaser 스프라이트 + 사거리 표시 링을 감싼 얇은 래퍼.
@@ -23,8 +22,6 @@ export class Tower {
   priority: TargetPriority = 'first';
   /** 발사 쿨다운(ms). Task 15 에서 사용. */
   cooldownMs = 0;
-  /** 전투와 무관한 공격 포즈 타이머. 4프레임 타워 시트에서만 의미가 있다. */
-  private attackVisualMs = 0;
   /** beam(레이저탑): 현재 조준 중인 대상 id, 그 대상에 빔이 머문 시간(ms), 스파크 연출 타이머. */
   beamTargetId: number | null = null;
   beamLockMs = 0;
@@ -129,19 +126,13 @@ export class Tower {
     this.ring.setVisible(v);
   }
 
-  /** 발사 직후 공격 프레임을 보여준다. 전투 수치·쿨다운에는 관여하지 않는다. */
-  playAttack(): void {
-    if (!ANIMATED_TOWER_KEYS.has(this.key)) return;
-    this.attackVisualMs = 140;
-    this.sprite.setFrame(2);
-  }
-
-  /** 공격 프레임을 windup → release → idle 순서로 진행한다. */
-  updateVisual(dtMs: number): void {
-    if (!ANIMATED_TOWER_KEYS.has(this.key) || this.attackVisualMs <= 0) return;
-    this.attackVisualMs = Math.max(0, this.attackVisualMs - dtMs);
-    this.sprite.setFrame(this.attackVisualMs > 70 ? 2 : this.attackVisualMs > 0 ? 3 : 0);
-  }
+  /**
+   * 예전엔 발사할 때 4프레임 시트의 공격 포즈로 바꿨는데, 연사·3배속에서 스프라이트가
+   * 튀어 보여서 뺐다. 타워는 항상 idle(프레임 0)로 가만히 서 있고 연출은 투사체·머즐 플래시만.
+   * 호출부(Game.updateTowers)는 그대로 두고 여기서 no-op 으로 흡수한다.
+   */
+  playAttack(): void {}
+  updateVisual(_dtMs: number): void {}
 
   cyclePriority(): TargetPriority {
     const i = TARGET_PRIORITIES.indexOf(this.priority);
