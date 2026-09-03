@@ -885,14 +885,7 @@ export class Game extends Phaser.Scene {
   /** 지원 타워(지휘탑·금광탑): 직접 공격 없음. 금광탑은 초당 골드를 생성한다.
    *  골드는 매 틱 들어오지만, 뜨는 숫자·효과음은 ~3초마다 한 번만(스팸 방지). */
   private updateSupportTower(tower: Tower, s: TowerLevelStats, dtMs: number): void {
-    // 지휘탑은 항상 버프를 유지한다. 짧은 깃발 펄스로 그 상태를 읽을 수 있게 한다.
-    if (tower.key === 'command') {
-      tower.cooldownMs = Math.max(0, tower.cooldownMs - dtMs);
-      if (tower.cooldownMs === 0) {
-        tower.cooldownMs = 1600;
-        tower.playAttack();
-      }
-    }
+    // 지휘탑은 상시 버프만 — 공격 연출 없음(3배속에서 펄스가 튀어 정신 사납다).
     if (s.goldIntervalMs == null || s.goldPerTick == null) return;
     tower.goldTimerMs += dtMs;
     let pending = 0;
@@ -939,7 +932,6 @@ export class Game extends Phaser.Scene {
     }
 
     tower.beamLockMs += dtMs;
-    tower.faceToward(enemy.renderPos);
     const dmgPerHit = beamDamage(s.damage, (tower.beamLockMs / 1000) * 2.6, s.beamRampPct ?? 0, s.beamRampMax ?? 1);
     const mult = s.damage > 0 ? dmgPerHit / s.damage : 1;
 
@@ -1115,7 +1107,6 @@ export class Game extends Phaser.Scene {
 
       const enemy = this.enemies.find((e) => e.id === target.id);
       if (!enemy) continue;
-      tower.faceToward(enemy.renderPos);
       tower.playAttack();
       if (tower.key === 'arrow' || tower.key === 'cannon' || tower.key === 'frost' || tower.key === 'bolt' || tower.key === 'sniper' || tower.key === 'poison') {
         this.audio.play(tower.key);

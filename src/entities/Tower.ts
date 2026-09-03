@@ -7,12 +7,6 @@ import type { TargetPriority } from '../systems/TargetingSystem';
 
 let nextId = 1;
 const ANIMATED_TOWER_KEYS = new Set(['arrow', 'cannon', 'frost', 'bolt', 'sniper', 'poison', 'laser', 'command', 'mine', 'ballista']);
-const TOWER_ART_ROTATION_OFFSET: Readonly<Record<string, number>> = {
-  arrow: 0,
-  laser: 0,
-  sniper: 0,
-  poison: Math.PI,
-};
 
 /**
  * 배치된 타워 1기. Phaser 스프라이트 + 사거리 표시 링을 감싼 얇은 래퍼.
@@ -122,8 +116,7 @@ export class Tower {
   }
 
   private applyLevelVisual(): void {
-    const scale = 1 + (this.level - 1) * 0.12;
-    this.sprite.setScale(scale);
+    // 레벨이 올라도 스프라이트 크기는 고정 — 커지면 화면이 어수선하고 타일 경계를 넘는다.
     this.sprite.setData('level', this.level);
     this.ring.setRadius(this.displayRadius());
   }
@@ -134,15 +127,6 @@ export class Tower {
 
   showRange(v: boolean): void {
     this.ring.setVisible(v);
-  }
-
-  /** 스프라이트를 표적 쪽으로 회전. 원형(대포)은 회전이 무의미하므로 제외. */
-  faceToward(target: Vec2): void {
-    if (this.key === 'cannon') return;
-    this.sprite.setRotation(
-      Math.atan2(target.y - this.sprite.y, target.x - this.sprite.x)
-        + (TOWER_ART_ROTATION_OFFSET[this.key] ?? Math.PI / 2),
-    );
   }
 
   /** 발사 직후 공격 프레임을 보여준다. 전투 수치·쿨다운에는 관여하지 않는다. */
