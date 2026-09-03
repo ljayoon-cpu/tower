@@ -40,8 +40,8 @@ describe.skipIf(!process.env.BALANCE_EXPLORE)('temporary balance exploration, no
         const stage = structuredClone(base);
         ENEMIES.tank.hp = tankHp;
         ENEMIES.tank.lifeDamage = 2;
-        stage.waves[stage.waves.length - 1].groups.find(g => g.enemy === 'tank')!.count = tankCount;
-        stage.waves[stage.waves.length - 1].groups.find(g => g.enemy === 'tank')!.intervalMs = 200;
+        const tankGroup = stage.waves[stage.waves.length - 1].groups.find(g => g.enemy === 'tank');
+        if (tankGroup) { tankGroup.count = tankCount; tankGroup.intervalMs = 200; }
         for (const [strategy, play] of Object.entries(strategies)) {
           if (strategy === 'none' || strategy === 'oneArrow') continue;
           rows.push({ tankHp, tankCount, strategy, ...simulate(stage, play, 42) });
